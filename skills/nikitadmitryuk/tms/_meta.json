@@ -3,11 +3,16 @@
   "slug": "tms",
   "displayName": "TMS (Telegram Media Server)",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1771799810352,
-    "commit": "https://github.com/openclaw/skills/commit/10b1ddd80168a1b8378fe14965c337c413eacdcb"
+    "version": "1.0.6",
+    "publishedAt": 1772372827971,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1771799810352,
+      "commit": "https://github.com/openclaw/skills/commit/10b1ddd80168a1b8378fe14965c337c413eacdcb"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1771796288930,
