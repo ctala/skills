@@ -1,0 +1,97 @@
+name: cann-review
+version: 1.0.0
+description: |
+  CANN runtime 代码审查技能。
+  自动分析 PR 代码变更，重点检查内存泄漏、安全漏洞和代码可读性，
+  生成结构化审查报告并发布评论。
+  
+author: OpenClaw Team
+tags:
+  - code-review
+  - cann
+  - runtime
+  - gitcode
+  - pull-request
+
+homepage: https://gitcode.com/cann/runtime
+icon: 🔍
+
+# 技能类型
+type: agent
+
+# 依赖的工具
+tools:
+  - browser
+
+# 输入参数定义
+inputs:
+  pr_url:
+    description: PR 页面链接 (例如: https://gitcode.com/cann/runtime/pull/472)
+    type: string
+    required: true
+  
+  focus_areas:
+    description: |
+      重点审查领域，可选值：
+      - memory: 内存泄漏检查
+      - security: 安全漏洞检查
+      - readability: 代码可读性
+      - all: 全部检查 (默认)
+    type: string
+    required: false
+    default: all
+
+  severity_threshold:
+    description: |
+      严重程度阈值，决定是否自动发布 /lgtm：
+      - low: 低风险自动发布
+      - medium: 中低风险自动发布 (默认)
+      - high: 仅发布审查报告
+    type: string
+    required: false
+    default: medium
+
+# 输出定义
+outputs:
+  review_result:
+    description: 审查结果摘要
+    type: object
+    properties:
+      severity:
+        description: 严重程度 (low/medium/high/critical)
+        type: string
+      can_merge:
+        description: 是否可以合入
+        type: boolean
+      issues_count:
+        description: 发现问题数量
+        type: integer
+      comment_posted:
+        description: 是否成功发布评论
+        type: boolean
+      lgtm_posted:
+        description: 是否发布 /lgtm
+        type: boolean
+
+# 示例用法
+examples:
+  - description: 审查 CANN runtime PR
+    input:
+      pr_url: https://gitcode.com/cann/runtime/pull/472
+    output:
+      severity: low
+      can_merge: true
+      issues_count: 2
+      comment_posted: true
+      lgtm_posted: true
+
+# 权限要求
+permissions:
+  - browser_access
+  - gitcode_comment
+
+# 配置项
+config:
+  timeout: 300  # 超时时间(秒)
+  max_files: 100  # 最大文件数
+  max_diff_size: 10000  # 最大 diff 行数

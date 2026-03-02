@@ -1,0 +1,74 @@
+# ClawHub Package Configuration
+# 用于发布到 ClawHub 技能市场
+
+# 包基本信息
+package:
+  name: cann-review
+  version: 1.0.0
+  description: |
+    CANN runtime 自动化代码审查技能。
+    自动分析 PR 代码变更，检查内存泄漏、安全漏洞和可读性问题，
+    生成专业审查报告并发布评论。
+  
+# 发布者信息
+publisher:
+  name: OpenClaw Team
+  email: openclaw@gitcode.com
+  homepage: https://gitcode.com/openclaw
+
+# 分类
+category: code-review
+tags:
+  - code-review
+  - cann
+  - runtime
+  - c++
+  - automation
+  - gitcode
+
+# 兼容性
+compatibility:
+  claw_version: ">=1.0.0"
+  platforms:
+    - linux
+    - macos
+    - windows
+
+# 依赖
+dependencies:
+  - name: browser
+    version: ">=1.0.0"
+    type: tool
+
+# 文件清单
+files:
+  - skill.yaml
+  - prompt.md
+  - README.md
+  - LICENSE
+  - examples/example_report.md
+
+# 截图/预览
+previews:
+  - type: image
+    url: https://gitcode.com/clawhub/cann-review/raw/main/assets/preview.png
+    caption: 审查报告示例
+
+# 更新日志
+changelog:
+  1.0.0:
+    - 初始版本发布
+    - 支持内存泄漏检查
+    - 支持安全漏洞检查
+    - 支持代码可读性检查
+    - 自动发布审查评论
+    - 自动发布 /lgtm 标记
+
+# 价格 (免费)
+pricing:
+  type: free
+
+# 支持
+support:
+  issues: https://gitcode.com/clawhub/cann-review/issues
+  documentation: https://gitcode.com/clawhub/cann-review/blob/main/README.md
