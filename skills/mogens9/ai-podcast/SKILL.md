@@ -1,6 +1,6 @@
 ---
 name: ai-podcast
-description: PDF to podcast and text to podcast in a natural two-person format with MagicPodcast.
+description: Generate AI podcast episodes from PDFs, text, notes, and links using MagicPodcast in OpenClaw. Creates natural two-person dialogue audio, supports custom language, and returns podcast links with progress tracking in the MagicPodcast dashboard. Use for PDF-to-podcast, text-to-podcast, and fast content-to-audio workflows.
 homepage: https://www.magicpodcast.app
 metadata: {"clawdbot":{"emoji":"🎙️","requires":{"bins":["curl","jq"],"env":["MAGICPODCAST_API_URL","MAGICPODCAST_API_KEY"]}}}
 ---
