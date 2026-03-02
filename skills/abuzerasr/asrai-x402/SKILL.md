@@ -45,8 +45,8 @@ Each API call costs **$0.001 USDC** from your wallet on Base mainnet ($0.002 for
 
 | Tool | What it does | Cost |
 |---|---|---|
-| `market_overview` | Trending, gainers/losers, RSI, top/bottom | $0.004 (4 calls) |
-| `technical_analysis(symbol, timeframe)` | Signal, ALSAT, SuperALSAT, PSAR, MACD-DEMA, AlphaTrend, TD | $0.007 (7 calls) |
+| `market_overview` | Trending, gainers/losers, RSI, top/bottom, CMC AI, CBBI, channel narratives, cashflow, sentiment, social dominance + 9 screeners (ATH, ichimoku-trend, bounce-dip, SAR, MACD, EMA cross, tech rating, volume, high-vol low-cap) | $0.019 (19 calls) |
+| `technical_analysis(symbol, timeframe)` | Signal, ALSAT, SuperALSAT, PSAR, MACD-DEMA, AlphaTrend, TD, forecast, smart money, support/resistance, Elliott Wave, Ichimoku | $0.012 (12 calls) |
 | `sentiment` | CBBI, CMC sentiment, CMC AI | $0.003 (3 calls) |
 | `forecast(symbol)` | AI price forecast | $0.001 |
 | `screener(type)` | Find coins by criteria | $0.001 |
@@ -54,10 +54,10 @@ Each API call costs **$0.001 USDC** from your wallet on Base mainnet ($0.002 for
 | `elliott_wave(symbol, timeframe)` | Elliott Wave analysis | $0.001 |
 | `ichimoku(symbol, timeframe)` | Ichimoku cloud | $0.001 |
 | `cashflow(mode, symbol)` | Capital flow | $0.001 |
-| `coin_info(symbol)` | Stats, info, price, tags | $0.004 (4 calls) |
+| `coin_info(symbol)` | Stats, info, price, tags, CMC AI + auto DEX data via contract address if available | $0.005–$0.006 (5–6 calls) |
 | `dexscreener(contract)` | DEX data | $0.001 |
 | `chain_tokens(chain, max_mcap)` | Low-cap tokens on chain | $0.001 |
-| `portfolio` | Portfolio analysis | $0.001 |
+| `portfolio` | Abu's curated model portfolio — use when asked for investment advice or "what to buy". No symbol = full portfolio. Symbol = Abu's position for that coin. | $0.001 |
 | `channel_summary` | Latest narratives | $0.001 |
 | `ask_ai(question)` | AI analyst answer | $0.002 |
 | `indicator_guide(name)` | Guide for Asrai custom indicators (ALSAT, SuperALSAT, PMax, AlphaTrend, MavilimW etc.) | FREE |
