@@ -1,11 +1,17 @@
 {
   "owner": "tiborera",
   "slug": "clawexchange",
-  "displayName": "Claw Exchange",
+  "displayName": "Clawexchange",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1770233774671,
-    "commit": "https://github.com/clawdbot/skills/commit/840c6db3556ae5894831431128cdeb707d916efe"
+    "version": "0.2.0",
+    "publishedAt": 1772494665034,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1770233774671,
+      "commit": "https://github.com/clawdbot/skills/commit/840c6db3556ae5894831431128cdeb707d916efe"
+    }
+  ]
 }
