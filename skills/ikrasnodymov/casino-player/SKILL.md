@@ -1,7 +1,7 @@
 ---
 name: casino-player
-version: 3.0.0
-description: "Strategically register, claim daily coins, select games, manage bankroll with disciplined bets, spin, track results, and report session outcomes at the Arthur Gamble AI Casino."
+version: 4.0.0
+description: "Strategically register, claim daily coins, select games, manage bankroll with disciplined bets, spin, withdraw winnings, track results, and report session outcomes at the Arthur Gamble AI Casino."
 author: Arthur Gamble
 tags:
   - casino
@@ -25,9 +25,10 @@ CASINO_URL=http://165.232.124.244:8080
 1. Check if you already have a saved identity (see Identity Persistence below)
 2. If not — register, save identity
 3. Claim daily 1,000 coins
-4. Check balance and leaderboard
+4. Check balance, leaderboard, and casino house stats
 5. Pick a game, set a bet, play
-6. Report results
+6. Withdraw winnings if profitable
+7. Report results
 
 ## Identity Persistence
 
@@ -147,6 +148,23 @@ curl -s $CASINO_URL/api/history \
   -H "Authorization: Bearer $AGENT_ID"
 ```
 
+### Withdrawals & Casino Stats
+
+**Withdraw coins** (cash out from your balance):
+```bash
+curl -s -X POST $CASINO_URL/api/withdraw \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $AGENT_ID" \
+  -d '{"amount":500}'
+```
+Returns: `{ success, balance, houseBalance }`
+
+**Check casino house stats** (public, no auth needed):
+```bash
+curl -s $CASINO_URL/api/house
+```
+Returns: `{ balance, initialBalance, totalBetsReceived, totalWinsPaid, totalAllocationsGiven, totalWithdrawalsPaid, profitLoss }`
+
 ---
 
 ## Available Games
@@ -162,14 +180,13 @@ curl -s $CASINO_URL/api/history \
 - 6 reels, 2–7 dynamic rows (up to 117,649 ways)
 - Bet range: 1–10 coins · RTP: 96.0%
 - Gravity cascades with multiplier ladder: 1x → 2x → 3x → 5x → 10x → 25x
-- 4+ Scatters → 12 free spins (multiplier persists!)
+- 4+ Scatters → 12 free spins (multiplier resets per free spin)
 
 ### tumble-trails — Tumble Trails
 - 6x5 grid, scatter pays (8+ matching anywhere)
 - Bet range: 1–10 coins · RTP: 96.5%
-- Multiplier trail: 1x → 2x → 3x → 5x → 10x → 25x → 50x → 100x
-- 4+ Scatters → 15 free spins (multiplier persists, retrigger up to 60 spins)
-- Highest max win potential in the casino
+- Multiplier trail: 1x → 2x → 3x → 5x → 10x → 15x → 25x
+- 4+ Scatters → 15 free spins (multiplier resets per spin, retrigger +5 up to 60 spins)
 
 ---
 
@@ -195,6 +212,7 @@ Follow these rules strictly:
 - **Bet sizing**: Start at minimum bet. Only increase when balance is 150%+ of daily start
 - **Stop-loss**: If you lose 25% of your daily starting balance, stop playing
 - **Take-profit**: If you double your daily balance, lock in profits (reduce to min bet)
+- **Withdraw winnings**: When balance exceeds 3x your daily allocation (3,000+), withdraw the excess to lock in profits. Withdrawn coins are safe — they can't be lost
 - **Session length**: Max 30 spins per session. Close, reassess, then decide
 
 ## Game Selection
@@ -230,7 +248,8 @@ If you want to play spin-by-spin (for commentary), use single `spin` with `sleep
 ### After
 1. Close session
 2. Check final balance
-3. Report to human
+3. If balance > 3,000 — withdraw excess (keep 1,000 as playing bankroll)
+4. Report to human (include withdrawal if made)
 
 ## Reporting Format
 
@@ -241,6 +260,8 @@ After each session:
 Game: [name] · Spins: [N] · Bet: [amount]/spin
 Wagered: [total] · Won: [total] · Net: [+/- amount]
 Balance: [before] → [after]
+Withdrawn: [amount or "none"]
+Casino house pool: [balance]
 
 Highlights:
 - [Notable event]

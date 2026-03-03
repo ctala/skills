@@ -3,9 +3,15 @@
   "slug": "casino-player",
   "displayName": "Casino Player — Arthur Gamble",
   "latest": {
-    "version": "3.0.0",
-    "publishedAt": 1772355468949,
-    "commit": "https://github.com/openclaw/skills/commit/56ad1fdc9ea985998e56cd60083a1862cf3f25cd"
+    "version": "3.0.1",
+    "publishedAt": 1772426062889,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.0.0",
+      "publishedAt": 1772355468949,
+      "commit": "https://github.com/openclaw/skills/commit/56ad1fdc9ea985998e56cd60083a1862cf3f25cd"
+    }
+  ]
 }
