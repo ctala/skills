@@ -1,0 +1,11 @@
+{
+  "owner": "stj001",
+  "slug": "sensitive-data-masker",
+  "displayName": "Sensitive Data Masker",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772540563020,
+    "commit": null
+  },
+  "history": []
+}
