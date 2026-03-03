@@ -1,0 +1,11 @@
+{
+  "owner": "photochat",
+  "slug": "photochat-search",
+  "displayName": "PhotoCHAT Photo Search",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772411405756,
+    "commit": null
+  },
+  "history": []
+}
