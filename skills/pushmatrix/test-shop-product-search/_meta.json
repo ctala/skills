@@ -1,0 +1,11 @@
+{
+  "owner": "pushmatrix",
+  "slug": "test-shop-product-search",
+  "displayName": "Testing Product Search",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1772487195661,
+    "commit": null
+  },
+  "history": []
+}
