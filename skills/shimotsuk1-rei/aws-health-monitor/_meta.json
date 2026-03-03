@@ -1,0 +1,11 @@
+{
+  "owner": "shimotsuk1-rei",
+  "slug": "aws-health-monitor",
+  "displayName": "AWS Health Monitor",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772437504017,
+    "commit": null
+  },
+  "history": []
+}
