@@ -1,13 +1,18 @@
 {
   "owner": "alex-tradequo",
   "slug": "whatsapp-automation-a2a",
-  "displayName": "WhatsApp Automation — No Meta API | Bulk Send, Lead Mining, AI Outreach & Scheduled Campaigns",
+  "displayName": "WhatsApp Outreach Platform — AI Leads, Bulk Messaging, Reviews & CRM Pipeline",
   "latest": {
-    "version": "2.15.1",
-    "publishedAt": 1771757583091,
-    "commit": "https://github.com/openclaw/skills/commit/1061d3bdb33a9804c08c2d4c3b46df5422f64eae"
+    "version": "2.16.4",
+    "publishedAt": 1772522422359,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.15.1",
+      "publishedAt": 1771757583091,
+      "commit": "https://github.com/openclaw/skills/commit/1061d3bdb33a9804c08c2d4c3b46df5422f64eae"
+    },
     {
       "version": "2.14.6",
       "publishedAt": 1771490041768,
