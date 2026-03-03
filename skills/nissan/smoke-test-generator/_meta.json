@@ -1,0 +1,11 @@
+{
+  "owner": "nissan",
+  "slug": "smoke-test-generator",
+  "displayName": "Smoke Test Generator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772393341038,
+    "commit": null
+  },
+  "history": []
+}
