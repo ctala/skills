@@ -1,0 +1,11 @@
+{
+  "owner": "fe-room",
+  "slug": "xiaohongshu-login",
+  "displayName": "小红书登录",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772367449158,
+    "commit": null
+  },
+  "history": []
+}
