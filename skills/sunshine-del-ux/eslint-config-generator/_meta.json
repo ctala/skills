@@ -1,0 +1,11 @@
+{
+  "owner": "sunshine-del-ux",
+  "slug": "eslint-config-generator",
+  "displayName": "ESLint Config Generator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772451337047,
+    "commit": null
+  },
+  "history": []
+}
