@@ -3,9 +3,15 @@
   "slug": "telegram-chat-to-image",
   "displayName": "Telegram Chat To Image",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1772353319774,
-    "commit": "https://github.com/openclaw/skills/commit/76fb29a4ba8084072a83d7f3ae837cf3881bfa9a"
+    "version": "1.2.0",
+    "publishedAt": 1772439476900,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1772353319774,
+      "commit": "https://github.com/openclaw/skills/commit/76fb29a4ba8084072a83d7f3ae837cf3881bfa9a"
+    }
+  ]
 }

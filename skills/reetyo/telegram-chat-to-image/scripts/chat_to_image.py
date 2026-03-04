@@ -37,15 +37,38 @@ class ChatRenderer:
     MESSAGE_SPACING = 8
     GROUP_SPACING = 16
     
-    def __init__(self, font_path: Optional[str] = None, my_id: Optional[str] = None):
-        self.width = self.WIDTH
-        self.margin = self.MARGIN
+    def __init__(self, font_path: Optional[str] = None, my_id: Optional[str] = None, width: Optional[int] = None, hd: bool = False):
         self.my_id = my_id  # e.g., "user1" or "Me"
+        self.hd = hd
         
-        # Fonts
+        # Set default font sizes first
         self.font_size = 15
         self.name_font_size = 13
         self.time_font_size = 11
+        
+        # Auto-select width if not specified
+        if width:
+            self.width = width
+        else:
+            self.width = self.WIDTH
+        
+        # HD mode: scale everything up
+        if hd:
+            self.width = int(self.width * 2)
+            self.margin = int(self.MARGIN * 2)
+            self.BUBBLE_PADDING = int(self.BUBBLE_PADDING * 2)
+            self.BUBBLE_RADIUS = int(self.BUBBLE_RADIUS * 2)
+            self.AVATAR_SIZE = int(self.AVATAR_SIZE * 2)
+            self.LINE_SPACING = int(self.LINE_SPACING * 2)
+            self.MESSAGE_SPACING = int(self.MESSAGE_SPACING * 2)
+            self.GROUP_SPACING = int(self.GROUP_SPACING * 2)
+            self.font_size = int(self.font_size * 2)
+            self.name_font_size = int(self.name_font_size * 2)
+            self.time_font_size = int(self.time_font_size * 2)
+        else:
+            self.margin = self.MARGIN
+        
+        # Font sizes already set above (may be scaled by HD mode)
         
         font_candidates = [
             font_path,
@@ -71,6 +94,41 @@ class ChatRenderer:
             self.font = ImageFont.load_default()
             self.name_font = self.font
             self.time_font = self.font
+    
+    @classmethod
+    def calculate_optimal_width(cls, messages: List[Dict]) -> int:
+        """Calculate optimal image width based on message content."""
+        if not messages:
+            return cls.WIDTH
+        
+        # Count messages
+        msg_count = len(messages)
+        
+        # Calculate total text length and max single message length
+        total_chars = 0
+        max_msg_length = 0
+        for msg in messages:
+            text = msg.get("text", "")
+            if isinstance(text, list):
+                text = "".join(x if isinstance(x, str) else x.get("text", "") for x in text)
+            total_chars += len(text)
+            max_msg_length = max(max_msg_length, len(text))
+        
+        avg_length = total_chars / msg_count if msg_count > 0 else 0
+        
+        # Decision logic
+        if msg_count <= 3 and max_msg_length < 200:
+            # Short conversation with short messages
+            return 800
+        elif max_msg_length > 800 or total_chars > 3000:
+            # Very long messages or lots of content
+            return 1600
+        elif msg_count > 10 or total_chars > 1500:
+            # Many messages or moderate content
+            return 1200
+        else:
+            # Default
+            return 800
     
     def wrap_text(self, text: str, max_width: int) -> List[str]:
         """Wrap text handling newlines and Chinese characters."""
@@ -108,8 +166,8 @@ class ChatRenderer:
         lines = self.wrap_text(text, max_w)
         lh = self.font_size + self.LINE_SPACING
         h = len(lines) * lh + (self.BUBBLE_PADDING * 2)
-        if is_first:
-            h += self.name_font_size + 4
+        # Always reserve space for name
+        h += self.name_font_size + 4
         return h
     
     def draw_msg(self, draw: ImageDraw.Draw, y: int, msg: Dict, is_me: bool, is_first: bool) -> int:
@@ -167,13 +225,10 @@ class ChatRenderer:
             radius=self.BUBBLE_RADIUS, fill=bubble_color
         )
         
-        # Text
+        # Text - always show sender name
         ty = y + self.BUBBLE_PADDING
-        if is_first and not is_me:
-            draw.text((bubble_x + self.BUBBLE_PADDING, ty), sender, fill=name_color, font=self.name_font)
-            ty += self.name_font_size + 4
-        elif is_first and is_me:
-            ty += self.name_font_size + 4
+        draw.text((bubble_x + self.BUBBLE_PADDING, ty), sender, fill=name_color, font=self.name_font)
+        ty += self.name_font_size + 4
         
         for line in lines:
             draw.text((bubble_x + self.BUBBLE_PADDING, ty), line, fill=txt_color, font=self.font)
@@ -188,13 +243,21 @@ class ChatRenderer:
         
         return y + bubble_h + self.MESSAGE_SPACING
     
-    def render(self, messages: List[Dict], output: str, my_id: Optional[str] = None):
+    def render(self, messages: List[Dict], output: str, my_id: Optional[str] = None, width: Optional[int] = None):
         if not messages:
             print("No messages")
             return
         
         if my_id:
             self.my_id = my_id
+        
+        # Auto-detect width if not specified
+        if width:
+            self.width = width
+        elif self.width == self.WIDTH:
+            # Only auto-calculate if not already set
+            self.width = self.calculate_optimal_width(messages)
+            print(f"Auto-selected width: {self.width}px")
         
         # Auto-detect "me" as first sender if not set
         if not self.my_id and messages:
@@ -253,6 +316,8 @@ def main():
     p.add_argument("--font", "-f")
     p.add_argument("--limit", "-l", type=int)
     p.add_argument("--me", "-m", help="Your from_id or name (e.g., user123 or Me)")
+    p.add_argument("--width", "-w", type=int, help="Image width in pixels (auto if not specified)")
+    p.add_argument("--hd", action="store_true", help="High-definition mode (2x scaling)")
     args = p.parse_args()
     
     if not os.path.exists(args.input):
@@ -264,8 +329,8 @@ def main():
         msgs = msgs[:args.limit]
     print(f"Loaded {len(msgs)} messages")
     
-    r = ChatRenderer(font_path=args.font, my_id=args.me)
-    r.render(msgs, args.output, my_id=args.me)
+    r = ChatRenderer(font_path=args.font, my_id=args.me, width=args.width, hd=args.hd)
+    r.render(msgs, args.output, my_id=args.me, width=args.width)
 
 
 if __name__ == "__main__":
