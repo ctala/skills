@@ -1,11 +1,17 @@
 {
   "owner": "bobrenze-bot",
   "slug": "agentfolio",
-  "displayName": "Agentfolio",
+  "displayName": "AgentFolio",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772011688836,
-    "commit": "https://github.com/openclaw/skills/commit/bc230bc4bc313a64c06809c096eb5bcf02373201"
+    "version": "1.0.1",
+    "publishedAt": 1772629210835,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772011688836,
+      "commit": "https://github.com/openclaw/skills/commit/bc230bc4bc313a64c06809c096eb5bcf02373201"
+    }
+  ]
 }
