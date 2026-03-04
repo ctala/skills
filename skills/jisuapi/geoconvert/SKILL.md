@@ -118,7 +118,7 @@ python3 skills/geoconvert/geoconvert.py addr2coord '{"address":"益乐路39号",
 
 ## 常见错误码
 
-来源于 [官方经纬度文档](https://www.jisuapi.com/api/geoconvert/)：
+来源于 [极速数据经纬度文档](https://www.jisuapi.com/api/geoconvert/)：
 
 | 代号 | 说明         |
 |------|--------------|
