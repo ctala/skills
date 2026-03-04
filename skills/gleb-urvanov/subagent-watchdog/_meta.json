@@ -1,0 +1,11 @@
+{
+  "owner": "gleb-urvanov",
+  "slug": "subagent-watchdog",
+  "displayName": "Subagent Watchdog",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1772551538239,
+    "commit": null
+  },
+  "history": []
+}
