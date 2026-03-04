@@ -3,9 +3,15 @@
   "slug": "plan-c",
   "displayName": "Plan C",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772519830901,
-    "commit": "https://github.com/openclaw/skills/commit/cfdd6ca7e01e91e3e572866f733ad14eec12f88d"
+    "version": "1.0.7",
+    "publishedAt": 1772533310651,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772519830901,
+      "commit": "https://github.com/openclaw/skills/commit/cfdd6ca7e01e91e3e572866f733ad14eec12f88d"
+    }
+  ]
 }
