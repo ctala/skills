@@ -102,7 +102,7 @@
       "on_action": 0.10,
       "on_low": 0.05,
       "on_deprivation": null,
-      "note": "понимание → уверенность; незнание → curiosity drive"
+      "note": "понимание → уверенность; незнание → exploration drive"
     },
     {
       "source": "closure",
@@ -166,27 +166,6 @@
       "on_action": 0.15,
       "on_deprivation": null,
       "note": "честен → не боюсь"
-    },
-    {
-      "source": "curiosity",
-      "target": "understanding",
-      "on_action": 0.20,
-      "on_deprivation": null,
-      "note": "curious → learned something"
-    },
-    {
-      "source": "curiosity",
-      "target": "expression",
-      "on_action": 0.15,
-      "on_deprivation": -0.1,
-      "note": "curiosity fuels expression"
-    },
-    {
-      "source": "understanding",
-      "target": "curiosity",
-      "on_action": 0.10,
-      "on_deprivation": null,
-      "note": "learning sparks more questions"
     },
     {
       "source": "autonomy",

@@ -1,21 +1,78 @@
 #!/bin/bash
 # Turing Pyramid — Mark Need as Satisfied + Apply Cross-Need Impact
-# Usage: ./mark-satisfied.sh <need> [impact]
+# Usage: ./mark-satisfied.sh <need> [impact] [--reason "..."]
 # Impact: float 0.0-3.0 (default 3.0)
+# Reason: required for audit trail (what action was taken)
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE_FILE="$SKILL_DIR/assets/needs-state.json"
 CROSS_IMPACT_FILE="$SKILL_DIR/assets/cross-need-impact.json"
+AUDIT_FILE="$SKILL_DIR/assets/audit.log"
 
-if [[ -z "$1" ]]; then
-    echo "Usage: $0 <need> [impact]"
-    echo "Example: $0 connection 1.5"
+# Acquire exclusive lock on state file to prevent race conditions
+exec 200>"$STATE_FILE.lock"
+if ! flock -n 200; then
+    # Another process has the lock, wait for it
+    flock 200
+fi
+
+# Parse arguments
+NEED=""
+IMPACT="3.0"
+REASON=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --reason)
+            REASON="$2"
+            shift 2
+            ;;
+        --reason=*)
+            REASON="${1#*=}"
+            shift
+            ;;
+        *)
+            if [[ -z "$NEED" ]]; then
+                NEED="$1"
+            elif [[ "$IMPACT" == "3.0" ]]; then
+                IMPACT="$1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$NEED" ]]; then
+    echo "Usage: $0 <need> [impact] --reason \"what was done\""
+    echo "Example: $0 connection 1.5 --reason \"replied to Moltbook comments\""
     exit 1
 fi
 
-NEED="$1"
-IMPACT="${2:-3.0}"
+# Reason is required for audit transparency
+if [[ -z "$REASON" ]]; then
+    echo "⚠️  Warning: No --reason provided. Audit trail will show 'no reason given'."
+    echo "   Better: $0 $NEED $IMPACT --reason \"description of action taken\""
+    REASON="(no reason given)"
+fi
+
+# Scrub sensitive patterns from reason before logging
+scrub_sensitive() {
+    local text="$1"
+    # Remove potential secrets/tokens (patterns)
+    text=$(echo "$text" | sed -E '
+        s/[a-zA-Z0-9_-]{20,}/[REDACTED]/g;
+        s/[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}/[CARD]/g;
+        s/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/[EMAIL]/g;
+        s/(password|secret|token|key|api_key|apikey)[=: ]+[^ ]+/\1=[REDACTED]/gi;
+        s/Bearer [^ ]+/Bearer [REDACTED]/g;
+    ')
+    echo "$text"
+}
+
+REASON_SCRUBBED=$(scrub_sensitive "$REASON")
+
 NOW_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+CALLER="${TURING_CALLER:-manual}"
 
 # Validate impact is numeric and in range
 if ! [[ "$IMPACT" =~ ^-?[0-9]*\.?[0-9]+$ ]]; then
@@ -64,6 +121,19 @@ jq --arg need "$NEED" --arg now "$NOW_ISO" --argjson impact "$IMPACT" --argjson 
 echo "✅ $NEED marked as satisfied (impact: $IMPACT)"
 echo "   satisfaction: $CURRENT_SAT → $NEW_SAT"
 echo "   last_satisfied = $NOW_ISO"
+echo "   reason: $REASON"
+
+# Write to audit log (append-only transparency, sensitive data scrubbed)
+AUDIT_ENTRY=$(jq -cn \
+    --arg ts "$NOW_ISO" \
+    --arg need "$NEED" \
+    --argjson impact "$IMPACT" \
+    --arg old_sat "$CURRENT_SAT" \
+    --arg new_sat "$NEW_SAT" \
+    --arg reason "$REASON_SCRUBBED" \
+    --arg caller "$CALLER" \
+    '{timestamp: $ts, need: $need, impact: $impact, old_sat: $old_sat, new_sat: $new_sat, reason: $reason, caller: $caller}')
+echo "$AUDIT_ENTRY" >> "$AUDIT_FILE"
 
 # Apply cross-need impacts (on_action)
 if [[ -f "$CROSS_IMPACT_FILE" ]]; then

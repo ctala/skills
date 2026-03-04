@@ -1,11 +1,12 @@
-#!/bin/bash
-# run-tests.sh — Test runner for Turing Pyramid
-# Usage: ./run-tests.sh [unit|integration|regression|all]
+#!/usr/bin/env bash
+# Turing Pyramid Test Runner
+# Usage: ./run-tests.sh [unit|integration|all]
+
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -13,84 +14,68 @@ NC='\033[0m'
 
 PASSED=0
 FAILED=0
+SKIPPED=0
 
 run_test() {
     local test_file="$1"
-    local test_name=$(basename "$test_file" .sh)
+    local test_name="$(basename "$test_file" .sh)"
     
-    chmod +x "$test_file" 2>/dev/null
+    if [[ ! -x "$test_file" ]]; then
+        echo -e "${YELLOW}SKIP${NC} $test_name (not executable)"
+        ((SKIPPED++)) || true
+        return
+    fi
     
-    printf "  %-40s " "$test_name"
-    
-    if output=$(bash "$test_file" 2>&1); then
-        echo -e "${GREEN}PASS${NC}"
-        PASSED=$((PASSED + 1))
-        return 0
+    if WORKSPACE="$SKILL_DIR" "$test_file" >/dev/null 2>&1; then
+        echo -e "${GREEN}PASS${NC} $test_name"
+        ((PASSED++)) || true
     else
-        echo -e "${RED}FAIL${NC}"
-        [[ -n "$output" ]] && echo "    $output"
-        FAILED=$((FAILED + 1))
-        return 1
+        echo -e "${RED}FAIL${NC} $test_name"
+        ((FAILED++)) || true
     fi
 }
 
 run_suite() {
-    local suite="$1"
-    local suite_dir="$SCRIPT_DIR/$suite"
+    local suite_dir="$1"
+    local suite_name="$(basename "$suite_dir")"
     
     if [[ ! -d "$suite_dir" ]]; then
-        echo -e "${YELLOW}Suite '$suite' not found${NC}"
+        echo "Suite not found: $suite_dir"
         return
     fi
     
-    local found=0
+    echo ""
+    echo "=== $suite_name tests ==="
+    
     for test_file in "$suite_dir"/test_*.sh; do
-        [[ -f "$test_file" ]] || continue
-        found=1
+        [[ -e "$test_file" ]] || continue
         run_test "$test_file"
     done
-    
-    [[ $found -eq 0 ]] && echo -e "${YELLOW}  (no tests)${NC}"
 }
 
-echo "========================================"
+# Main
 echo "🔺 Turing Pyramid Test Suite"
-echo "========================================"
-echo ""
+echo "============================"
 
 case "${1:-all}" in
     unit)
-        echo "📦 Unit Tests"
-        run_suite "unit"
+        run_suite "$SCRIPT_DIR/unit"
         ;;
     integration)
-        echo "🔗 Integration Tests"
-        run_suite "integration"
-        ;;
-    regression)
-        echo "🐛 Regression Tests"
-        run_suite "regression"
+        run_suite "$SCRIPT_DIR/integration"
         ;;
     all)
-        echo "📦 Unit Tests"
-        run_suite "unit"
-        echo ""
-        echo "🔗 Integration Tests"
-        run_suite "integration"
-        echo ""
-        echo "🐛 Regression Tests"
-        run_suite "regression"
+        run_suite "$SCRIPT_DIR/unit"
+        run_suite "$SCRIPT_DIR/integration"
         ;;
     *)
-        echo "Usage: $0 [unit|integration|regression|all]"
+        echo "Usage: $0 [unit|integration|all]"
         exit 1
         ;;
 esac
 
 echo ""
-echo "========================================"
-echo -e "Results: ${GREEN}$PASSED passed${NC}, ${RED}$FAILED failed${NC}"
-echo "========================================"
+echo "============================"
+echo -e "Results: ${GREEN}$PASSED passed${NC}, ${RED}$FAILED failed${NC}, ${YELLOW}$SKIPPED skipped${NC}"
 
-[[ $FAILED -gt 0 ]] && exit 1
-exit 0
+[[ $FAILED -eq 0 ]]

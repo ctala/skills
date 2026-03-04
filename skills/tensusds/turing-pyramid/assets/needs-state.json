@@ -1,69 +1,87 @@
 {
   "security": {
-    "satisfaction": 2.8072,
-    "last_satisfied": "2026-02-25T18:19:39Z",
-    "last_decay_check": "2026-02-27T03:15:49Z"
+    "satisfaction": 0.9980,
+    "last_satisfied": "2026-03-04T02:40:29Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z"
   },
   "integrity": {
-    "satisfaction": 2.9767,
-    "last_satisfied": "2026-02-25T18:19:39Z",
-    "last_decay_check": "2026-02-27T03:15:49Z"
+    "satisfaction": 0.7452,
+    "last_satisfied": "2026-03-04T02:40:29Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z",
+    "deprivation_applied": {
+      "autonomy": "2026-03-04T02:40:29Z"
+    }
   },
   "coherence": {
-    "satisfaction": 2.9770,
-    "last_satisfied": "2026-02-27T01:01:59Z",
-    "last_decay_check": "2026-02-27T03:15:49Z",
-    "last_impact": 0.35
+    "satisfaction": 0.8860,
+    "last_satisfied": "2026-03-04T02:40:29Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z",
+    "deprivation_applied": {
+      "autonomy": "2026-03-04T02:40:29Z",
+      "closure": "2026-03-04T02:40:29Z"
+    }
   },
   "closure": {
-    "satisfaction": 2.9552,
-    "last_satisfied": "2026-02-27T02:43:30Z",
-    "last_decay_check": "2026-02-27T03:15:49Z",
-    "last_impact": 1.5
+    "satisfaction": 0.9702,
+    "last_satisfied": "2026-03-04T02:40:29Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z"
   },
   "autonomy": {
-    "satisfaction": 1.93,
-    "last_satisfied": "2026-02-27T01:34:42Z",
-    "last_decay_check": "2026-02-27T03:15:49Z",
-    "last_impact": 0.8
+    "satisfaction": 0.5402,
+    "last_satisfied": "2026-03-04T02:40:29Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z",
+    "deprivation_applied": {
+      "closure": "2026-03-04T02:40:29Z",
+      "coherence": "2026-03-04T02:40:29Z",
+      "security": "2026-03-04T02:40:29Z"
+    }
   },
   "connection": {
-    "satisfaction": 1.7755,
-    "last_satisfied": "2026-02-26T23:23:45Z",
-    "last_decay_check": "2026-02-27T03:15:49Z",
-    "last_impact": 0.5
+    "satisfaction": 1.0436,
+    "last_satisfied": "2026-03-04T02:40:29Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z"
   },
   "competence": {
-    "satisfaction": 2.50,
-    "last_satisfied": "2026-02-27T03:15:59Z",
-    "last_decay_check": "2026-02-27T03:15:59Z",
-    "last_impact": 2.5
+    "satisfaction": 0.9926,
+    "last_satisfied": "2026-03-04T02:40:29Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z"
   },
   "understanding": {
-    "satisfaction": 2.5374,
-    "last_satisfied": "2026-02-26T22:19:24Z",
-    "last_decay_check": "2026-02-27T03:15:49Z",
-    "last_impact": 3.0
+    "satisfaction": 0.8202,
+    "last_satisfied": "2026-03-04T02:40:29Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z",
+    "deprivation_applied": {
+      "coherence": "2026-03-04T02:40:29Z"
+    }
   },
   "recognition": {
-    "satisfaction": 2.05,
-    "last_satisfied": "2026-02-26T14:37:59Z",
-    "last_decay_check": "2026-02-27T03:15:49Z",
-    "last_impact": 0.4,
+    "satisfaction": 0.9454,
+    "last_satisfied": "2026-03-04T02:40:29Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z",
     "deprivation_applied": {
-      "competence": "2026-02-27T03:15:49Z"
+      "competence": "2026-03-04T02:40:29Z",
+      "expression": "2026-03-04T02:40:29Z"
     }
   },
   "expression": {
-    "satisfaction": 2.7886,
-    "last_satisfied": "2026-02-26T22:51:34Z",
-    "last_decay_check": "2026-02-27T03:15:49Z",
-    "last_impact": 2.4
-  },
-  "curiosity": {
-    "satisfaction": 2.30,
-    "last_satisfied": "2026-02-26T22:19:24Z",
-    "last_decay_check": "2026-02-27T02:41:53Z",
-    "last_impact": 0.1
+    "satisfaction": 1.0090,
+    "last_satisfied": "2026-03-04T02:44:44Z",
+    "deprivation": 1,
+    "last_decay_check": "2026-03-04T03:03:14Z",
+    "deprivation_applied": {
+      "autonomy": "2026-03-04T02:40:29Z",
+      "connection": "2026-03-04T02:40:29Z",
+      "recognition": "2026-03-04T02:40:29Z"
+    },
+    "last_impact": 0.5
   }
 }

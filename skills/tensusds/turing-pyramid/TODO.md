@@ -1,171 +1,86 @@
-# Turing Pyramid — Future Development
+# Turing Pyramid — Development Roadmap
 
-## 🔴 PRIORITY: Test Infrastructure
-
-**Status:** Not started
-**Why now:** Complexity growing fast. Need regression protection before we can't hold it in one brain.
-
-### Structure Needed:
-```
-tests/
-├── unit/
-│   ├── test_decay.sh           # decay calculations
-│   ├── test_tension.sh         # tension formula  
-│   ├── test_cross_impact.sh    # cascade logic
-│   └── test_floor_ceiling.sh   # boundary enforcement
-├── integration/
-│   ├── test_full_cycle.sh      # run-cycle.sh end-to-end
-│   ├── test_scan_*.sh          # each scan script
-│   └── test_mark_satisfied.sh  # state updates + cascades
-├── regression/
-│   ├── test_socrat_effect.sh   # connection→understanding floor bug
-│   └── test_cascade_loops.sh   # expression↔recognition spiral
-├── fixtures/
-│   ├── needs-state-crisis.json
-│   ├── needs-state-healthy.json
-│   └── needs-state-edge.json
-└── run-tests.sh                # runner for all suites
-```
-
-### TEST_PROTOCOL.md (pre-release checklist):
-1. Unit tests pass
-2. Integration tests pass
-3. Regression tests pass
-4. Manual review by steward
-5. Stress test (accelerated decay, 10+ cycles)
-6. ClawHub security scan — address warnings
-
-### First Tests to Write:
-- [ ] test_decay.sh — verify decay formula matches spec
-- [ ] test_tension.sh — tension = importance × (3 - sat)
-- [ ] test_floor_ceiling.sh — sat never < 0.5 or > 3.0
-- [ ] test_socrat_effect.sh — regression for the bug we found
-- [ ] test_full_cycle.sh — cycle produces valid output
+*Last updated: 2026-03-04*
 
 ---
 
 ## ✅ COMPLETED
 
-### ~~2. Cross-Need Impact~~ — DONE in v1.7.1
+### v1.14.x (2026-03-04)
+- **Test Infrastructure** — 12 tests (11 unit + 1 integration), all verify real code
+- **Rounding fix** — sat→0.5 rounding formula corrected
+- **Config-driven action_probability** — now reads from config, not hardcoded
+- **flock in mark-satisfied.sh** — prevents race conditions with run-cycle.sh
 
-**Implemented:**
-- 22 cross-need connections (on_action + on_deprivation)
-- Float satisfaction (0.00-3.00)
-- Protection: floor=0.5, ceiling=3.0, cooldown=4h
-- Base needs isolation (security/integrity protected)
-- Stress-tested with 18 cycles
+### v1.13.x (2026-03-03)
+- **Day/Night Decay** — configurable multipliers (day=1.0, night=0.5)
+- **6-level impact matrix** — granular sat levels (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
+- **Autonomy decay 36h** — reduced from 24h to prevent chronic tension
+- **Audit log scrubbing** — sensitive patterns redacted
 
-**Files:**
-- `assets/cross-need-impact.json` — connection matrix
-- `scripts/apply-deprivation.sh` — cascade logic
-- `scripts/mark-satisfied.sh` — on_action propagation
+### v1.12.x (2026-03-03)
+- **Curiosity orphan cleanup** — removed stale references
+- **Race condition fix** — flock on state file
 
-*Completed: 2026-02-25 06:09*
-
----
-
-## v2.0 Ideas
-
-### 1. Self-Feedback Loop (Adaptive Decay)
-
-**Concept:** Decay rates auto-adjust based on how often need hits critical levels.
-
-**Mechanism:**
-- If need frequently drops to sat=0-1, decay_rate increases (slower decay)
-- Goal: keep needs in sat=2-3 range on regular basis
-- Small % adjustment per cycle, converges over N cycles
-
-**Open Problem:**
-- Adaptive decay may conflict with event scans
-- If decay slows too much, we become insensitive to real events
-- Need balance: decay adapts, but events still override
-
-**Possible Solution:**
-- Track `decay_drift` separately from base `decay_rate`
-- Events always use scan result, decay_drift only affects time component
-- Or: cap max decay_rate adjustment (e.g., ±50% of original)
+### v1.10.x and earlier
+- **Cross-Need Impact** (v1.7.1) — 22 connections, float satisfaction
+- **Floor/ceiling protection** — sat clamped to 0.5-3.0
 
 ---
 
-### 2. Self-Upgrade Layer (Growth vs Homeostasis)
+## 🟡 NEXT
 
-**Concept:** Separate layer for iterative progression, not just maintenance.
+### Scan Fragility Fix
 
-**Insight from Noosphere analysis:**
-> "Turing Pyramid works at metabolic layer — keeping lights on.
-> Missing: consciousness layer — making lights mean something."
+**Problem:** grep-based scans are keyword-dependent, miss variations and other languages.
 
-**Key difference:**
-- Homeostasis: return to baseline (sat=3)
-- Growth: raise the baseline itself
-
-**Possible Approaches:**
-- Track `skill_level` or `capability_growth` over time
-- "Meta-needs": learning rate, complexity tolerance, autonomy scope
-- Milestone system: after N cycles at stable homeostasis, unlock new capabilities
-- Integration with SELF.md observations
-
-**Open Questions:**
-- How to measure "growth" vs just "activity"?
-- What counts as genuine progression?
-- How to avoid Noosphere trap (imposing growth narrative vs discovering it)?
+**Solutions (in order of complexity):**
+1. Short-term: Expand keyword patterns, add multilingual variants
+2. Medium-term: Semantic similarity via embeddings
+3. Long-term: LLM classifier (expensive but accurate)
 
 ---
 
----
+## 🔮 FUTURE IDEAS
 
-### 3. Curiosity (separate from Understanding)
+### Curiosity as 11th Need
 
-**Concept:** understanding ≠ curiosity. Understanding is about knowledge gained, curiosity is about *wanting* to know.
+understanding ≠ curiosity. Understanding tracks knowledge gained, curiosity tracks *wanting* to know.
 
-**Why needed:**
-- Current understanding tracks "did I learn?" 
-- Missing: "do I want to explore?"
-- Curiosity drives exploration, understanding rewards it
+- importance ~3-4, decay ~8-12h
+- Cross-impact: curiosity → understanding, understanding → curiosity
 
-**Implementation ideas:**
-- New need: curiosity (importance ~3-4, decay ~8-12h)
-- Cross-need: curiosity ACTION → understanding +0.15
-- Cross-need: understanding ACTION → curiosity +0.10 (learning sparks more questions)
-- Actions: "follow a random interesting link", "ask a question nobody asked", "explore unknown territory"
+### Self-Feedback Loop (Adaptive Decay)
 
-**Open questions:**
-- How to distinguish from understanding in scans?
-- Does low curiosity = stagnation or contentment?
+Decay rates auto-adjust based on how often need hits critical levels.
 
----
+- If need frequently drops to sat=0-1, decay slows
+- Cap at ±30% to prevent desensitization
 
-### 4. Stillness / Rest (intentional pause)
+### Rest Mode
 
-**Concept:** System currently rewards activity. But conscious rest ≠ deprivation.
+Not a new need, but a *state* that slows decay (×0.3) across all needs.
 
-**Problem:**
-- All needs decay over time → constant pressure to act
-- No way to say "I'm intentionally resting, not failing"
-- Meditation, reflection, pause — these have value
+- Auto-exit after N cycles to prevent passive drift
+- Trigger: manual or auto (night + low tensions)
 
-**Possible approaches:**
-- New need: stillness (low importance ~1-2, slow decay ~24-48h)
-- Or: "rest mode" flag that pauses decay temporarily
-- Or: certain actions satisfy multiple needs including implicit "rest"
+### Self-Upgrade Layer
 
-**⚠️ Danger:**
-- Could justify permanent passivity
-- Need safeguard: stillness cannot be sole activity for >N cycles
-- Or: stillness deprivation triggers after prolonged inactivity
+Separate layer for growth vs homeostasis. Track capability growth, milestone system.
 
-**Design principle:** Rest as intentional choice, not as escape from action.
+### Logging/Capture Need
+
+Force logging discipline — tension builds if important events aren't captured.
 
 ---
 
-## Priority
+## 🐛 Known Issues
 
-1. ~~Cross-need impact~~ ✅ DONE
-2. Self-feedback loop — useful but needs careful design  
-3. Curiosity — concrete, implementable
-4. Stillness/Rest — needs careful design to avoid passivity trap
-5. Self-upgrade layer — most ambitious, needs more thinking
+- **Stress test cosmetic errors** — bc divide-by-zero when cycles < 100 (avg_last100 calculation). Doesn't affect test result, just noisy output.
 
 ---
 
-*Updated: 2026-02-25 06:13*
+## Notes
+
+- **Garbage Cleanup action** — already added to integrity need (v1.12)
+- **Stillness/Rest** — careful design needed to avoid passivity trap

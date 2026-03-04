@@ -28,6 +28,13 @@ if [[ ! -f "$STATE_FILE" ]]; then
     exit 1
 fi
 
+# Acquire exclusive lock on state file to prevent race conditions
+exec 200>"$STATE_FILE.lock"
+if ! flock -n 200; then
+    echo "⏳ Another cycle is running, waiting..." >&2
+    flock 200
+fi
+
 NOW=$(date +%s)
 NOW_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 TODAY=$(date +%Y-%m-%d)
@@ -70,7 +77,9 @@ calculate_tensions() {
         local hours_since_decay=$(echo "scale=4; ($NOW - $last_decay_epoch) / 3600" | bc -l)
         
         # Calculate decay delta: lose 1 satisfaction per decay_rate hours
-        local decay_delta=$(echo "scale=4; $hours_since_decay / $decay_rate" | bc -l)
+        # Apply day/night multiplier if enabled
+        local decay_multiplier=$("$SCRIPTS_DIR/get-decay-multiplier.sh" 2>/dev/null || echo "1.0")
+        local decay_delta=$(echo "scale=4; ($hours_since_decay / $decay_rate) * $decay_multiplier" | bc -l)
         
         # Apply decay to current satisfaction
         local decayed_sat=$(echo "scale=2; $current_sat - $decay_delta" | bc -l)
@@ -126,24 +135,32 @@ get_top_needs() {
 
 # Probability-based action decision
 # Returns 0 (true) if should take action, 1 (false) for non-action
-# v1.5.0: Added tension bonus — higher importance needs are more "impatient"
+# v1.13.0: 6-level action probability with tension bonus
 roll_action() {
     local sat=$1
     local tension=$2
     
-    # Round float satisfaction to nearest integer for lookup
-    # (supports cross-need impact floats like 1.45 → 1)
-    sat=$(printf "%.0f" "$sat")
+    # Round float satisfaction to nearest 0.5 for lookup
+    # Formula: round(sat * 2) / 2
+    local doubled=$(echo "$sat * 2" | bc -l)
+    local rounded_int=$(printf "%.0f" "$doubled")
+    local sat_rounded=$(echo "scale=1; $rounded_int / 2" | bc -l)
+    # Normalize format (.5 → 0.5)
+    [[ "$sat_rounded" == .* ]] && sat_rounded="0$sat_rounded"
+    # Clamp to valid range [0.5, 3.0]
+    if (( $(echo "$sat_rounded < 0.5" | bc -l) )); then sat_rounded="0.5"; fi
+    if (( $(echo "$sat_rounded > 3.0" | bc -l) )); then sat_rounded="3.0"; fi
     
-    # Base chance by satisfaction level
-    local base_chance
-    case $sat in
-        3) base_chance=5 ;;   # 5% base
-        2) base_chance=20 ;;  # 20% base
-        1) base_chance=75 ;;  # 75% base
-        0) base_chance=100 ;; # 100% base
-        *) base_chance=0 ;;
-    esac
+    # Base chance by satisfaction level — read from config
+    local config_key="sat_$sat_rounded"
+    local base_chance=$(jq -r ".action_probability.\"$config_key\" // 50" "$CONFIG_FILE")
+    # Validate it's a number, fallback to 50
+    [[ ! "$base_chance" =~ ^[0-9]+$ ]] && base_chance=50
+    
+    # sat=3.0 always skip (no action needed)
+    if [[ "$base_chance" -eq 0 ]]; then
+        return 1
+    fi
     
     # Tension bonus: scales 0-50% based on tension
     # MAX_TENSION = max_importance × max_deprivation(3), calculated from config
@@ -160,22 +177,36 @@ roll_action() {
 }
 
 # Roll for impact range based on satisfaction
-# Returns: low, mid, or high (mapped to float impact ranges)
+# Returns: low, mid, high, or skip (for sat=3.0)
 roll_impact_range() {
     local need=$1
     local sat=$2
     local roll=$((RANDOM % 100))
     
-    # Round float satisfaction to nearest integer for matrix lookup
-    sat=$(printf "%.0f" "$sat")
+    # Round float satisfaction to nearest 0.5 for matrix lookup
+    # Formula: round(sat * 2) / 2 → e.g., 1.3→1.5, 1.7→1.5, 2.1→2.0, 2.8→3.0
+    local doubled=$(echo "$sat * 2" | bc -l)
+    local rounded_int=$(printf "%.0f" "$doubled")
+    local sat_rounded=$(echo "scale=1; $rounded_int / 2" | bc -l)
+    # Normalize format (.5 → 0.5)
+    [[ "$sat_rounded" == .* ]] && sat_rounded="0$sat_rounded"
+    # Clamp to valid range [0.5, 3.0]
+    if (( $(echo "$sat_rounded < 0.5" | bc -l) )); then sat_rounded="0.5"; fi
+    if (( $(echo "$sat_rounded > 3.0" | bc -l) )); then sat_rounded="3.0"; fi
     
     # Get impact matrix probabilities
-    local matrix_key="sat_$sat"
+    local matrix_key="sat_$sat_rounded"
     local p_low p_mid p_high
     
-    p_low=$(jq -r ".impact_matrix_default.\"$matrix_key\".low // 70" "$CONFIG_FILE")
-    p_mid=$(jq -r ".impact_matrix_default.\"$matrix_key\".mid // 25" "$CONFIG_FILE")
-    p_high=$(jq -r ".impact_matrix_default.\"$matrix_key\".high // 5" "$CONFIG_FILE")
+    p_low=$(jq -r ".impact_matrix_default.\"$matrix_key\".low // 25" "$CONFIG_FILE")
+    p_mid=$(jq -r ".impact_matrix_default.\"$matrix_key\".mid // 50" "$CONFIG_FILE")
+    p_high=$(jq -r ".impact_matrix_default.\"$matrix_key\".high // 25" "$CONFIG_FILE")
+    
+    # If all zeros (sat=3.0), skip action
+    if [[ $p_low -eq 0 && $p_mid -eq 0 && $p_high -eq 0 ]]; then
+        echo "skip"
+        return
+    fi
     
     # Roll: 0-p_low = low, p_low-(p_low+p_mid) = mid, rest = high
     if [[ $roll -lt $p_low ]]; then
@@ -323,9 +354,19 @@ for need in $top_needs; do
         tension=${TENSIONS[$need]}
         
         if roll_action $sat $tension; then
-            # ACTION - roll for impact range, then weighted action selection
-            ((action_count++))
+            # Roll for impact range first
             impact_range=$(roll_impact_range "$need" "$sat")
+            
+            # If sat=3.0, skip action (fully satisfied)
+            if [[ "$impact_range" == "skip" ]]; then
+                ((noticed_count++))
+                echo ""
+                echo "○ SATISFIED: $need (sat=$sat) — no action needed"
+                continue
+            fi
+            
+            # ACTION - weighted action selection
+            ((action_count++))
             
             # Select specific action using weights within range
             selected_action=$(select_weighted_action "$need" "$impact_range")

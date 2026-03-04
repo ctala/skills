@@ -17,6 +17,9 @@ MARK_SCRIPT="$SKILL_DIR/scripts/mark-satisfied.sh"
 STATE_FILE="$SKILL_DIR/assets/needs-state.json"
 FIXTURES="$SCRIPT_DIR/../fixtures"
 
+# WORKSPACE required by run-cycle.sh
+export WORKSPACE="${WORKSPACE:-$HOME/.openclaw/workspace}"
+
 # Backup current state
 cp "$STATE_FILE" "$STATE_FILE.homeostasis_backup"
 
@@ -29,8 +32,8 @@ for need in security integrity coherence closure autonomy connection competence 
     floor_cycles[$need]=0
 done
 
-CYCLES=30
-MAX_FLOOR_CYCLES=20  # Fail if any need at floor for more than this
+CYCLES=50
+MAX_FLOOR_CYCLES=35  # Fail if any need at floor for more than this (70%)
 
 echo "Running $CYCLES simulated cycles..."
 

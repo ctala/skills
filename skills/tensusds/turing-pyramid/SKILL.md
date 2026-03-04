@@ -1,3 +1,21 @@
+---
+name: turing-pyramid
+description: 10-need psychological hierarchy for AI agents. Run on heartbeat → get prioritized actions.
+metadata:
+  clawdbot:
+    emoji: "🔺"
+    requires:
+      env:
+        - WORKSPACE
+      bins:
+        - bash
+        - jq
+        - bc
+        - grep
+        - find
+    primaryEnv: WORKSPACE
+---
+
 # Turing Pyramid
 
 10-need psychological hierarchy for AI agents. Run on heartbeat → get prioritized actions.
@@ -22,6 +40,67 @@ export WORKSPACE="/path/to/your/workspace"
 ```
 ⚠️ **No silent fallback.** If WORKSPACE is unset, scripts exit with error.
 This prevents accidental scanning of unintended directories.
+
+**Post-install (ClawHub):**
+```bash
+# ClawHub doesn't preserve executable bits — fix after install:
+chmod +x ~/.openclaw/workspace/skills/turing-pyramid/scripts/*.sh
+chmod +x ~/.openclaw/workspace/skills/turing-pyramid/tests/**/*.sh
+```
+Why: Unix executable permissions (+x) are not preserved in ClawHub packages.
+Scripts work fine with `bash scripts/run-cycle.sh`, but `./scripts/run-cycle.sh` needs +x.
+
+---
+
+## Data Access & Transparency
+
+**What this skill reads (via grep/find scans):**
+- `MEMORY.md`, `memory/*.md` — for connection/expression/understanding signals
+- `SOUL.md`, `SELF.md` — for integrity/coherence checks
+- `research/`, `scratchpad/` — for competence/understanding activity
+- Dashboard files, logs — for various need assessments
+
+**What this skill writes:**
+- `assets/needs-state.json` — current satisfaction/deprivation state
+- `assets/audit.log` — append-only log of all mark-satisfied calls (v1.12.0+)
+
+**Privacy considerations:**
+- Scans use grep patterns, not semantic analysis — they see keywords, not meaning
+- State file contains no user content, only need metrics
+- Audit log records reasons given for satisfaction claims
+- No data is transmitted externally by the skill itself
+
+**Limitations & Trust Model:**
+- `mark-satisfied.sh` trusts caller-provided reasons — audit log records claims, not verified facts
+- Some actions in `needs-config.json` reference external services (Moltbook, web search) — marked with `"external": true, "requires_approval": true`
+- External actions are **suggestions only** — the skill doesn't execute them, the agent decides
+- If you don't want external action suggestions, set their weights to 0
+
+**Network & System Access:**
+- Scripts contain **no network calls** (no curl, wget, ssh, etc.) — verified by grep scan
+- Scripts contain **no system commands** (no sudo, systemctl, docker, etc.)
+- All operations are local: grep, find, jq, bc, date on WORKSPACE files only
+- The skill **suggests** actions (including some that mention external services) but **never executes** them
+
+**Required Environment Variables:**
+- `WORKSPACE` — path to agent workspace (REQUIRED, no fallback)
+- `TURING_CALLER` — optional, for audit trail (values: "heartbeat", "manual")
+
+**Audit trail (v1.12.0+):**
+All `mark-satisfied.sh` calls are logged with:
+- Timestamp, need, impact, old→new satisfaction
+- Reason (what action was taken) — **scrubbed for sensitive patterns**
+- Caller (heartbeat/manual)
+
+**Sensitive data scrubbing (v1.12.3+):**
+Before writing to audit log, reasons are scrubbed:
+- Long tokens (20+ chars) → `[REDACTED]`
+- Credit card patterns → `[CARD]`
+- Email addresses → `[EMAIL]`
+- password/secret/token/key values → `[REDACTED]`
+- Bearer tokens → `Bearer [REDACTED]`
+
+View audit: `cat assets/audit.log | jq`
 
 ---
 
@@ -61,32 +140,44 @@ This prevents accidental scanning of unintended directories.
 **Satisfaction:** 0.0–3.0 (floor=0.5 prevents paralysis)  
 **Tension:** `importance × (3 - satisfaction)`
 
-### Action Probability
+### Action Probability (v1.13.0)
+
+6-level granular system:
 
 ```
-┌───────┬────────┬──────────────────────┐
-│ Sat   │ Base P │ Note                 │
-├───────┼────────┼──────────────────────┤
-│ 3     │   5%   │ Maintenance mode     │
-│ 2     │  20%   │ Routine checks       │
-│ 1     │  75%   │ Needs attention      │
-│ 0     │ 100%   │ Critical — always    │
-└───────┴────────┴──────────────────────┘
+┌─────────────┬────────┬──────────────────────┐
+│ Sat         │ Base P │ Note                 │
+├─────────────┼────────┼──────────────────────┤
+│ 0.5 crisis  │  100%  │ Always act           │
+│ 1.0 severe  │   90%  │ Almost always        │
+│ 1.5 depriv  │   75%  │ Usually act          │
+│ 2.0 slight  │   50%  │ Coin flip            │
+│ 2.5 ok      │   25%  │ Occasionally         │
+│ 3.0 perfect │    0%  │ Skip (no action)     │
+└─────────────┴────────┴──────────────────────┘
 ```
 
 **Tension bonus:** `bonus = (tension × 50) / max_tension`
 
-### Impact Selection
+### Impact Selection (v1.13.0)
+
+6-level granular matrix with smooth transitions:
 
 ```
-┌─────────┬───────┬────────┬───────┐
-│ Sat     │ Small │ Medium │ Big   │
-├─────────┼───────┼────────┼───────┤
-│ 0 crit  │   5%  │   15%  │  80%  │
-│ 1 low   │  15%  │   50%  │  35%  │
-│ 2 ok    │  70%  │   25%  │   5%  │
-└─────────┴───────┴────────┴───────┘
+┌─────────────┬───────┬────────┬───────┐
+│ Sat         │ Small │ Medium │ Big   │
+├─────────────┼───────┼────────┼───────┤
+│ 0.5 crisis  │   0%  │    0%  │ 100%  │
+│ 1.0 severe  │  10%  │   20%  │  70%  │
+│ 1.5 depriv  │  20%  │   35%  │  45%  │
+│ 2.0 slight  │  30%  │   45%  │  25%  │
+│ 2.5 ok      │  45%  │   40%  │  15%  │
+│ 3.0 perfect │  —    │    —   │  —    │ (skip)
+└─────────────┴───────┴────────┴───────┘
 ```
+
+- **Crisis (0.5)**: All-in on big actions — every need guaranteed ≥3 big actions
+- **Perfect (3.0)**: Skip action selection — no waste on satisfied needs
 
 **ACTION** = do it, then `mark-satisfied.sh`  
 **NOTICED** = logged, deferred
@@ -105,6 +196,11 @@ This prevents accidental scanning of unintended directories.
 │ Threshold   │  1.0  │ Deprivation only when sat ≤ 1.0        │
 └─────────────┴───────┴────────────────────────────────────────┘
 ```
+
+**Day/Night Mode (v1.11.0):** Decay slows at night to reduce pressure during rest hours.
+- Configure in `assets/decay-config.json`
+- Default: 06:01-22:00 = day (×1.0), 22:01-06:00 = night (×0.5)
+- Disable with `"day_night_mode": false`
 
 **Base Needs Isolation:** Security (10) and Integrity (9) are protected:
 - They influence lower needs (security → autonomy)
@@ -281,7 +377,7 @@ turing-pyramid/
   # Review logs periodically for consistency
   ```
 
-### Script Audit (v1.10.9)
+### Script Audit (v1.14.4)
 
 **scan_*.sh files verified — NO network or system access:**
 ```
@@ -321,6 +417,18 @@ Stable agent with satisfied needs = fewer tokens.
 
 ---
 
+## Testing
+
+```bash
+# Run all tests
+WORKSPACE=/path/to/workspace ./tests/run-tests.sh
+
+# Unit tests (9): decay, floor/ceiling, tension, probability, impact matrix, day/night, scrubbing
+# Integration (3): full cycle, homeostasis stability, stress test
+```
+
+---
+
 ## Version
 
-**v1.10.1** — Bug fixes, cleaned docs. Full changelog: `CHANGELOG.md`
+**v1.14.1** — Mid-impact actions, 6-level matrices, expanded test coverage. Full changelog: `CHANGELOG.md`
