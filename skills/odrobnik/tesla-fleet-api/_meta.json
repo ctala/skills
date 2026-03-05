@@ -3,11 +3,16 @@
   "slug": "tesla-fleet-api",
   "displayName": "Tesla Fleet Api",
   "latest": {
-    "version": "1.5.0",
-    "publishedAt": 1771003588072,
-    "commit": "https://github.com/openclaw/skills/commit/23623e6cb7b3de7ef7caa29e878cc41ce7b80b42"
+    "version": "1.5.1",
+    "publishedAt": 1772570430526,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.0",
+      "publishedAt": 1771003588072,
+      "commit": "https://github.com/openclaw/skills/commit/23623e6cb7b3de7ef7caa29e878cc41ce7b80b42"
+    },
     {
       "version": "1.4.2",
       "publishedAt": 1770920505162,

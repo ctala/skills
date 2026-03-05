@@ -32,8 +32,8 @@ def _find_workspace_root() -> str:
     if env_ws and os.path.isdir(env_ws):
         return env_ws
 
-    # Walk up from CWD
-    cwd = os.getcwd()
+    # Walk up from CWD — use $PWD (preserves symlinks) instead of os.getcwd() (resolves them)
+    cwd = os.environ.get("PWD") or os.getcwd()
     d = cwd
     for _ in range(10):
         if os.path.exists(os.path.join(d, "SOUL.md")) or os.path.exists(
