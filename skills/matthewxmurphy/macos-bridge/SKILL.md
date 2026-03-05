@@ -1,6 +1,7 @@
 ---
 name: macos-bridge
 description: Bridge Mac-owned tools like imsg, remindctl, memo, things, and peekaboo onto a Linux OpenClaw gateway by installing explicit same-LAN SSH wrappers with optional Wake-on-LAN and OpenClaw config auto-discovery.
+metadata: {"openclaw":{"emoji":"🍎"}}
 ---
 
 # macOS Bridge
