@@ -115,6 +115,11 @@ else:
 VOLUME_CONFIDENCE = cfg["volume_confidence"]
 DAILY_BUDGET = cfg["daily_budget"]
 
+# Polymarket crypto fee formula constants (from docs.polymarket.com/trading/fees)
+# fee = C × p × POLY_FEE_RATE × (p × (1-p))^POLY_FEE_EXPONENT
+POLY_FEE_RATE = 0.25       # Crypto markets
+POLY_FEE_EXPONENT = 2      # Crypto markets
+
 
 # =============================================================================
 # Daily Budget Tracking
@@ -198,6 +203,17 @@ def _api_request(url, method="GET", data=None, headers=None, timeout=15):
 
 
 CLOB_API = "https://clob.polymarket.com"
+
+
+def _lookup_fee_rate(token_id):
+    """Fetch taker fee rate (bps) from Polymarket CLOB for a token. Returns 0 on failure."""
+    result = _api_request(f"{CLOB_API}/fee-rate?token_id={quote(str(token_id))}", timeout=5)
+    if not result or not isinstance(result, dict) or result.get("error"):
+        return 0
+    try:
+        return int(float(result.get("base_fee") or 0))
+    except (ValueError, TypeError):
+        return 0
 
 
 def fetch_live_midpoint(token_id):
@@ -298,7 +314,7 @@ def discover_fast_market_markets(asset="BTC", window="5m"):
                     "spread_cents": m.spread_cents,
                     "liquidity_tier": m.liquidity_tier,
                     "external_price_yes": m.external_price_yes,
-                    "fee_rate_bps": 0,  # Fast markets charge on winnings, not entry
+                    "fee_rate_bps": getattr(m, 'fee_rate_bps', 0),  # Filled by dynamic lookup after discovery
                     "source": "simmer",
                 })
             return markets
@@ -650,6 +666,16 @@ def run_fast_market_strategy(dry_run=True, positions_only=False, show_config=Fal
     markets = discover_fast_market_markets(ASSET, WINDOW)
     log(f"  Found {len(markets)} active fast markets")
 
+    # Look up fee rate once per run from a sample token (same window = same fee tier)
+    if markets:
+        sample = next((m for m in markets if m.get("clob_token_ids")), None)
+        if sample and sample.get("fee_rate_bps", 0) == 0:
+            fee = _lookup_fee_rate(sample["clob_token_ids"][0])
+            if fee > 0:
+                log(f"  Fee rate for {WINDOW} markets: {fee} bps ({fee/100:.0f}%)")
+                for m in markets:
+                    m["fee_rate_bps"] = fee
+
     if not markets:
         log("  No active fast markets found — may be outside market hours or wrong asset/window")
         log(f"  Check: asset={ASSET}, window={WINDOW}")
@@ -679,6 +705,22 @@ def run_fast_market_strategy(dry_run=True, positions_only=False, show_config=Fal
     log(f"\n🎯 Selected: {best['question']}")
     log(f"  Expires in: {remaining:.0f}s")
 
+    # Dedup: skip if we already hold a position on this market
+    _mid = best.get("market_id") or ""
+    _q = best.get("question", "").lower()
+    existing = get_positions()
+    for pos in existing:
+        held = (pos.get("shares_yes") or 0) + (pos.get("shares_no") or 0)
+        if held <= 0:
+            continue
+        if (_mid and pos.get("market_id") == _mid) or (_q and pos.get("question", "").lower() == _q):
+            log(f"  ⏸️  Already holding position on this market — skip (dedup)")
+            if not quiet:
+                print(f"📊 Summary: No trade (already holding this market)")
+            skip_reasons.append("already holding")
+            _emit_skip_report()
+            return
+
     # Fetch live CLOB price — required for fast markets (stale prices cause bad trades)
     clob_tokens = best.get("clob_token_ids", [])
     live_price = fetch_live_prices(clob_tokens) if clob_tokens else None
@@ -691,11 +733,16 @@ def run_fast_market_strategy(dry_run=True, positions_only=False, show_config=Fal
             print(f"📊 Summary: No trade (CLOB price unavailable)")
         return
 
-    # Fee info (fast markets charge 10% on winnings)
+    # Fee info: Polymarket crypto fee formula (docs.polymarket.com/trading/fees):
+    # fee = C × p × POLY_FEE_RATE × (p × (1-p))^POLY_FEE_EXPONENT
+    # Max effective rate: 1.56% at 50¢. fee_rate_bps from API is a contract param,
+    # not a direct percentage — we use the documented formula constants instead.
     fee_rate_bps = best.get("fee_rate_bps", 0)
-    fee_rate = fee_rate_bps / 10000  # 1000 bps -> 0.10
-    if fee_rate > 0:
-        log(f"  Fee rate:         {fee_rate:.0%} (Polymarket fast market fee)")
+    if fee_rate_bps > 0:
+        # Effective fee at current market price using Polymarket crypto formula
+        _p = market_yes_price if market_yes_price <= 0.5 else (1 - market_yes_price)
+        _eff = POLY_FEE_RATE * (_p * (1 - _p)) ** POLY_FEE_EXPONENT
+        log(f"  Fee rate:         {_eff:.2%} effective at current price (feeRateBps={fee_rate_bps})")
 
     # Step 3: Get CEX price momentum
     log(f"\n📈 Fetching {ASSET} price signal ({SIGNAL_SOURCE})...")
@@ -799,13 +846,15 @@ def run_fast_market_strategy(dry_run=True, positions_only=False, show_config=Fal
     # EV = win_prob * payout_after_fees - (1 - win_prob) * cost
     # At the buy price, win_prob ≈ buy_price (market-implied).
     # We need our edge (divergence) to overcome the fee drag.
-    if fee_rate > 0:
+    if fee_rate_bps > 0:
         buy_price = market_yes_price if side == "yes" else (1 - market_yes_price)
-        # Fee cost per share in price terms: fee applies to winnings (1 - buy_price)
-        fee_cost = (1 - buy_price) * fee_rate
-        # Minimum divergence must exceed fee cost + buffer
-        min_divergence = fee_cost + 0.02
-        log(f"  Fee cost/share:   ${fee_cost:.3f} (min divergence {min_divergence:.3f})")
+        # Polymarket crypto fee: fee = C × p × 0.25 × (p × (1-p))^2
+        # Effective rate = 0.25 × (p × (1-p))^2. Fee per share = buy_price × eff_rate.
+        effective_fee_rate = POLY_FEE_RATE * (buy_price * (1 - buy_price)) ** POLY_FEE_EXPONENT
+        fee_per_share = buy_price * effective_fee_rate  # absolute fee in price terms
+        # Divergence is in absolute price — compare to fee drag + buffer
+        min_divergence = fee_per_share * 2 + 0.02  # round-trip fee + buffer
+        log(f"  Fee:              ${fee_per_share:.4f}/share ({effective_fee_rate:.2%} effective, min divergence {min_divergence:.3f})")
         if divergence < min_divergence:
             log(f"  ⏸️  Divergence {divergence:.3f} < fee-adjusted minimum {min_divergence:.3f} — skip")
             if not quiet:
