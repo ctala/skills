@@ -1,0 +1,11 @@
+{
+  "owner": "tigerpassnet",
+  "slug": "tigerpass",
+  "displayName": "TigerPass",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1772625868170,
+    "commit": null
+  },
+  "history": []
+}
