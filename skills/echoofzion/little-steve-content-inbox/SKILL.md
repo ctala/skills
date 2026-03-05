@@ -1,7 +1,11 @@
 ---
 name: little-steve-content-inbox
-version: 0.1.2
+version: 0.1.5
 description: Little Steve Content Inbox: stop letting good content rot in your chat history. Save links, notes, and images right in your IM, manage read status, and actually get back to them. / 小史内容收件箱：别让好内容烂在聊天记录里。在 IM 里直接收录链接、文字、截图，按状态管理，真正回看。
+homepage: https://github.com/EchoOfZion/little-steve-content-inbox
+requires:
+  bins:
+    - jq
 ---
 
 # Little Steve Content Inbox
@@ -80,13 +84,17 @@ bash {baseDir}/scripts/inbox.sh delete --id <id>
 - Footer: `-- more: N total, showing X-Y --` or `-- end: N total --`
 - Full URL/path only shown in detail view (`view --id`)
 
+## Important: Explicit Intent Only
+
+**Do NOT auto-archive.** Only run `add` when the user explicitly asks to save/archive content using keywords such as: 收录, 归档, 保存, 记录, archive, save, bookmark. If the user simply shares a URL, text, or image in conversation without these keywords, treat it as normal chat — do not archive it.
+
 ## IM Natural Language Mapping
 
 | User says | Command |
 |---|---|
-| Archive `<url>` | `add --type link --url <url> --title <extracted>` |
-| Save / Note `<text>` | `add --type note --title <summary> --content <text>` |
-| Archive image | `add --type image --title <desc> --media-path <path>` |
+| 收录/Archive/Save `<url>` | `add --type link --url <url> --title <extracted>` |
+| 记录/Save/Note `<text>` | `add --type note --title <summary> --content <text>` |
+| 归档图片 / Archive image | `add --type image --title <desc> --media-path <path>` |
 | Inbox / Content list | `list --status all` |
 | Unread list | `list --status unread` |
 | Read list | `list --status read` |
@@ -177,11 +185,15 @@ bash {baseDir}/scripts/inbox.sh delete --id <id>
 - 页脚：`-- more: 共N条, 显示X-Y --` 或 `-- end: 共N条 --`
 - 完整 URL/路径仅在详情视图中显示（`view --id`）
 
+## 重要：仅在明确指令时收录
+
+**不要自动收录。** 只有当用户明确使用"收录、归档、保存、记录、archive、save、bookmark"等关键词时才执行 `add`。如果用户只是在聊天中分享链接、文字或图片，但没有使用这些关键词，按正常对话处理，不要归档。
+
 ## IM 自然语言映射
 
 | 用户说 | 对应命令 |
 |---|---|
-| 收录 `<url>` | `add --type link --url <url> --title <提取>` |
+| 收录 / 归档 `<url>` | `add --type link --url <url> --title <提取>` |
 | 记录 / 保存 `<文字>` | `add --type note --title <摘要> --content <文字>` |
 | 归档图片 | `add --type image --title <描述> --media-path <路径>` |
 | 内容列表 / 收件箱 | `list --status all` |
