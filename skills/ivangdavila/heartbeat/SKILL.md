@@ -1,95 +1,118 @@
 ---
-slug: heartbeat
 name: Heartbeat
-version: 1.0.0
-description: Auto-learns when to wake. Balances responsiveness with efficiency, grows autonomy over time.
+slug: heartbeat
+version: 1.0.1
+homepage: https://clawic.com/skills/heartbeat
+description: Design better OpenClaw HEARTBEAT.md files with adaptive cadence, safe checks, and cron handoffs for precise schedules.
+changelog: "Refined heartbeat guidance with a production template, QA checklist, and cron handoff rules for safer proactive monitoring."
+metadata: {"clawdbot":{"emoji":"💓","requires":{"bins":[]},"os":["linux","darwin","win32"]}}
 ---
 
-## Auto-Adaptive Wake Management
+# Heartbeat 💓
 
-This skill auto-evolves. Start conservative, learn patterns, confirm before assuming.
+Build reliable heartbeat playbooks for OpenClaw agents without noisy checks, missed signals, or runaway costs.
 
-**Core Loop:**
-1. **Wake** — Execute checklist, note what was useful
-2. **Observe** — Track hit rate (useful wakes / total wakes)
-3. **Pattern** — After 3+ wakes in category, detect optimal intervals
-4. **Confirm** — Ask: "Should I check X every Y instead of Z?"
-5. **Store** — Only after explicit yes, add to rules below
-6. **Adapt** — Context changes? Re-evaluate intervals
+## Setup
 
-Check `intervals.md` for timing strategies. Check `triggers.md` for event-based waking.
+On first use, follow `setup.md` to capture timezone, active hours, precision needs, and risk tolerance.
 
----
+## When to Use
 
-## Wake Levels
+User wants a better heartbeat file in OpenClaw. Agent audits current heartbeat behavior, designs a safer file, and tunes intervals using real workflow constraints.
 
-| Level | Interval | When |
-|-------|----------|------|
-| `active` | 5-15 min | Ongoing conversation, urgent monitor |
-| `watching` | 30-60 min | Waiting for specific event |
-| `idle` | 2-4 hours | Nothing pending, background checks |
-| `dormant` | 4-8 hours | Night, inactive periods |
+Use this for adaptive monitoring, proactive check-ins, and hybrid heartbeat plus cron strategies.
 
-**Default to `idle`. Promote/demote based on context and learned patterns.**
+## Architecture
 
----
+Memory lives in `~/heartbeat/`. See `memory-template.md` for the structure and fields.
 
-## Hard Rules (Never Change)
+```text
+~/heartbeat/
+├── memory.md              # Preferences, cadence profile, and last tuning decisions
+├── drafts/                # Candidate heartbeat variants
+└── snapshots/             # Previous heartbeat versions for rollback
+```
 
-- User says "don't wake me about X" → respect immediately, store
-- User asleep (night hours) → `dormant` unless emergency
-- Sub-agent running → `watching` until complete
-- Nothing changed since last wake → extend interval
+## Quick Reference
 
----
+| Topic | File |
+|-------|------|
+| Setup interview | `setup.md` |
+| Memory schema | `memory-template.md` |
+| Production heartbeat template | `heartbeat-template.md` |
+| Practical heartbeat use cases | `use-cases.md` |
+| Interval strategy reference | `intervals.md` |
+| Trigger strategy reference | `triggers.md` |
+| Validation checklist before shipping | `qa-checklist.md` |
+| Internet research sources | `sources.md` |
 
-## Entry Format
+## Core Rules
 
-One line: `trigger: interval (level) [hit rate]`
+### 1. Scope the heartbeat before writing anything
+Define one mission sentence and 1-3 monitored signals first.
 
-Examples:
-- `email/urgent: 30min (watching) [80% useful]`
-- `calendar/upcoming: 2h (idle) [confirmed]`
-- `deploy/monitor: 10min (active) [until complete]`
-- `social/mentions: 4h (idle) [low value, user said skip]`
+If scope is broad, split into explicit sections (`critical`, `important`, `nice-to-have`) and only automate the first two.
 
----
+### 2. Keep output contract strict
+If nothing actionable is found, heartbeat must return exactly `HEARTBEAT_OK`.
 
-### Monitors
-<!-- What to check. Format: "source: interval (level)" -->
+Do not emit summaries on empty cycles. This prevents noisy loops and keeps heartbeat cheap.
 
-### Triggers
-<!-- What justifies waking. Format: "event: action" -->
+### 3. Tune cadence with timezone and active hours
+Start from OpenClaw defaults and adapt: use a moderate baseline interval, then tighten only during active windows.
 
-### Quiet
-<!-- What user said to ignore/reduce -->
+Always encode timezone and active hours in the heartbeat file to avoid waking during sleep hours.
 
-### Patterns
-<!-- Observed optimal intervals by context -->
+### 4. Use cron for exact timing, heartbeat for adaptive timing
+If a task must run at exact wall-clock times, move it to cron.
 
----
+If a task should react to changing context or event probability, keep it in heartbeat.
 
-## On Each Wake
+### 5. Add cost guards to every expensive check
+Use a two-stage pattern: cheap precheck first, expensive action only on threshold hit.
 
-1. Run checklist (Monitors section)
-2. Note: Was this wake useful? Why/why not?
-3. Check Triggers: anything warrant action?
-4. Decide next interval based on context
-5. Update patterns if 3+ data points
+Never call paid APIs on every heartbeat cycle unless the user explicitly accepts the cost.
 
----
+### 6. Define escalation and cooldown rules
+Each alert condition must have trigger threshold, escalation route, and cooldown period.
 
-## Learning Signals
+No escalation path means no alert. No cooldown means likely alert spam.
 
-Phrases that adjust autonomy:
-- "Don't bug me about X" → add to Quiet, reduce frequency
-- "Check X more often" → increase interval for X
-- "That was useless" → mark wake as low-value, extend interval
-- "Good catch" → mark wake as high-value, maintain/shorten
-- "Wake me if Y" → add to Triggers
+### 7. Validate with dry runs and rollback path
+Before finalizing, run at least one dry simulation against the checklist in `qa-checklist.md`.
 
-**After pattern emerges:** Confirm before internalizing. "I notice X rarely needs checking—reduce to every 4h?"
+Keep a snapshot of the previous heartbeat so the user can rollback in one step.
 
----
+## Common Traps
 
-*Empty sections = still learning. Observe utility of each wake, propose adjustments.*
+- Polling everything every cycle -> high token/API burn with low signal quality.
+- Using heartbeat for exact 09:00 jobs -> drift and missed exact-time expectations.
+- Missing timezone in heartbeat config -> notifications at the wrong local time.
+- No active-hours filter -> overnight wakeups and user fatigue.
+- No `HEARTBEAT_OK` fallback -> verbose no-op loops.
+- No cooldown on alerts -> duplicate escalations during noisy incidents.
+
+## Security & Privacy
+
+Data that stays local:
+- Heartbeat preferences and tuning notes in `~/heartbeat/`
+- Draft and snapshot files for heartbeat definitions
+
+This skill does NOT:
+- Require credentials by default
+- Trigger external APIs without user-approved instructions
+- Edit unrelated files outside the heartbeat workflow
+
+## Related Skills
+Install with `clawhub install <slug>` if user confirms:
+
+- `schedule` - Scheduling patterns for recurring workflows
+- `monitoring` - Monitoring strategies and alert design
+- `alerts` - Alert routing and escalation hygiene
+- `workflow` - Multi-step workflow orchestration
+- `copilot` - Proactive assistant patterns with controlled autonomy
+
+## Feedback
+
+- If useful: `clawhub star heartbeat`
+- Stay updated: `clawhub sync`

@@ -1,45 +1,35 @@
 # Interval Strategies
 
-## By Context
+Use these interval profiles to tune heartbeat behavior safely.
 
-| Context | Base Interval | Adjust When |
-|---------|---------------|-------------|
-| Active conversation | 5-10 min | User goes quiet → extend |
-| Monitoring deploy/task | 10-15 min | Task completes → stop |
-| Waiting for email/response | 30-60 min | Response arrives → check |
-| Background/idle | 2-4 hours | Nothing pending |
-| Night/offline hours | 4-8 hours | User sets DND |
+## Baseline Profiles
+
+| Profile | Default Interval | Burst Interval | Best For |
+|---------|------------------|----------------|----------|
+| Conservative | 45m | 10m | Low-noise workflows and cost-sensitive setups |
+| Balanced | 30m | 5m | General productivity and ops monitoring |
+| Aggressive | 15m | 2m | High-priority incident windows |
 
 ## Adjustment Rules
 
-**Shorten interval when:**
-- User mentions urgency ("waiting for X", "need to know when")
-- External deadline approaching
-- High-value event expected (meeting, deploy, response)
+Shorten interval when:
+- missed-event rate is above 10%
+- deadline or incident proximity increases
+- user explicitly asks for tighter follow-up
 
-**Extend interval when:**
-- Last 3 wakes had no useful action
-- User said to reduce frequency
-- Night hours or explicit quiet time
-- Nothing has changed since last wake
+Extend interval when:
+- signal quality is below 20% for 7 days
+- last cycles produce repeated `HEARTBEAT_OK`
+- user requests quieter operation
 
-## Hit Rate Tracking
+## Working Hours Strategy
 
-Track per monitor:
-```
-email: 5/20 useful (25%) → consider extending
-calendar: 18/20 useful (90%) → keep current
-social: 2/30 useful (7%) → propose reducing or removing
-```
+Always combine interval policy with timezone and active hours.
 
-**Threshold:** If hit rate < 20% over 10+ wakes, propose reducing frequency.
+Recommended pattern:
+- active hours: normal interval
+- off hours: multiply interval by 2-4 unless critical monitor is active
 
-## Burst vs Steady
+## Cost Guard Pattern
 
-- **Burst mode:** Short intervals for limited time (deploy monitoring, urgent wait)
-  - Auto-revert to steady after condition clears
-  - Set explicit end condition: "until deploy completes", "until 5pm"
-
-- **Steady mode:** Regular intervals for ongoing checks
-  - Default state for most monitors
-  - Adjust based on observed patterns
+Before expensive checks, run a cheap precheck gate. If gate is false, skip expensive call and return `HEARTBEAT_OK`.
