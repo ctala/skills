@@ -1,6 +1,6 @@
 ---
 name: cryptoprice
-description: Query real-time cryptocurrency prices using the Binance API. Get latest prices for Bitcoin, Ethereum, and other major cryptocurrencies. Supports querying individual coins or displaying a list of popular coins.
+description: Query real-time cryptocurrency prices using the Binance API. Get latest prices for Bitcoin, Ethereum, and all BN listed cryptocurrencies. No API key required.
 ---
 
 # CryptoPrice - Cryptocurrency Price Query
