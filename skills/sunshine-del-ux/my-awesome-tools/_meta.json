@@ -1,0 +1,11 @@
+{
+  "owner": "sunshine-del-ux",
+  "slug": "my-awesome-tools",
+  "displayName": "My Awesome Tools",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772638283831,
+    "commit": null
+  },
+  "history": []
+}
