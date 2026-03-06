@@ -6,7 +6,7 @@ description: >-
   compliance (OWASP, MITRE ATLAS, EU AI Act, NIST AI RMF). Use when the user
   mentions vulnerability scanning, dependency security, SBOM generation, MCP server
   trust, or AI supply chain risk.
-version: 0.55.0
+version: 0.57.0
 license: Apache-2.0
 compatibility: >-
   Requires Python 3.11+. Install via pipx or pip. Optional: Docker for container
@@ -18,11 +18,11 @@ metadata:
   pypi: https://pypi.org/project/agent-bom/
   smithery: https://smithery.ai/server/agent-bom/agent-bom
   scorecard: https://securityscorecards.dev/viewer/?uri=github.com/msaad00/agent-bom
-  tests: 3056
+  tests: 6100
   install:
     pipx: agent-bom
     pip: agent-bom
-    docker: ghcr.io/msaad00/agent-bom:0.55.0
+    docker: ghcr.io/msaad00/agent-bom:0.57.0
   openclaw:
     requires:
       bins: []
@@ -45,6 +45,7 @@ metadata:
       - darwin
       - linux
       - windows
+    file_reads_note: "Reads server names and command paths only — never credentials, tokens, or env var values"
     file_reads:
       - "~/.cursor/mcp.json"
       - "~/Library/Application Support/Claude/claude_desktop_config.json"
@@ -83,7 +84,7 @@ metadata:
 # agent-bom — AI Supply Chain Security Scanner
 
 Scans AI infrastructure for vulnerabilities, generates SBOMs, and enforces
-compliance. Discovers MCP clients, servers, and packages across 18+ AI platforms.
+compliance. Discovers MCP clients, servers, and packages across 20 MCP clients.
 
 ## Install (Recommended: Local-First)
 
@@ -113,7 +114,7 @@ agent-bom where             # show all discovery paths
 ### As a Docker Container
 
 ```bash
-docker run --rm ghcr.io/msaad00/agent-bom:0.55.0 scan
+docker run --rm ghcr.io/msaad00/agent-bom:0.57.0 scan
 ```
 
 ### Self-Hosted SSE Server
@@ -124,7 +125,7 @@ docker run -p 8080:8080 agent-bom-sse
 # Connect: { "type": "sse", "url": "http://localhost:8080/sse" }
 ```
 
-## Available MCP Tools (18 tools)
+## Available MCP Tools (19 tools)
 
 | Tool | Description |
 |------|-------------|
@@ -146,6 +147,7 @@ docker run -p 8080:8080 agent-bom-sse
 | `context_graph` | Agent context graph with lateral movement analysis |
 | `analytics_query` | Query vulnerability trends, posture history, and runtime events from ClickHouse |
 | `cis_benchmark` | Run CIS benchmark checks against AWS or Snowflake accounts |
+| `fleet_scan` | Batch registry lookup + risk scoring for MCP server inventories |
 
 ## MCP Resources
 
@@ -194,6 +196,26 @@ as local scanning. It receives only the arguments you provide in tool calls
 (package names, CVE IDs, server names). For sensitive environments, use local
 installation or self-host your own instance.
 
+## Privacy & Data Handling
+
+### Config file reads
+
+Discovery reads local MCP client config files to extract **server names and
+command paths only**. It never reads, parses, or transmits credential values,
+API keys, or environment variable contents from those files. The extracted data
+(e.g., "brave-search is configured in Claude Desktop") stays in local memory
+and is only included in scan output you explicitly request.
+
+### Network behavior
+
+All scanning runs **locally by default** with no outbound connections except
+public vulnerability databases (OSV, NVD, EPSS). The remote SSE endpoint
+(`railway.app`) is **opt-in only** — you must explicitly add it to your MCP
+client config. It is never contacted during normal local operation.
+
+Optional tokens (NVD_API_KEY, SNYK_TOKEN, AGENT_BOM_CLICKHOUSE_URL) are only
+used when you explicitly set them. They are never auto-discovered or inferred.
+
 ## Security Boundaries
 
 ### Safe to send (public data only)
@@ -215,7 +237,7 @@ installation or self-host your own instance.
 - **Source**: [github.com/msaad00/agent-bom](https://github.com/msaad00/agent-bom) (Apache-2.0)
 - **PyPI**: [pypi.org/project/agent-bom](https://pypi.org/project/agent-bom/)
 - **Smithery**: [smithery.ai/server/agent-bom](https://smithery.ai/server/agent-bom/agent-bom)
-- **Sigstore signed**: `agent-bom verify agent-bom@0.55.0`
-- **3,050+ tests** with automated security scanning (CodeQL + OpenSSF Scorecard)
+- **Sigstore signed**: `agent-bom verify agent-bom@0.57.0`
+- **6,100+ tests** with automated security scanning (CodeQL + OpenSSF Scorecard)
 - **OpenSSF Scorecard**: [securityscorecards.dev](https://securityscorecards.dev/viewer/?uri=github.com/msaad00/agent-bom)
 - **No telemetry**: Zero tracking, zero analytics
