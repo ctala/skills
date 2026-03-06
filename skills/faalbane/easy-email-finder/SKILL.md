@@ -1,12 +1,12 @@
 ---
 name: easy-email-finder
-description: Search for businesses by industry/location and enrich them with verified email addresses, tech stack detection, and social media links using the Easy Email Finder API.
+description: Search for local or digital businesses and enrich them with verified email addresses, tech stack detection, and social media links using the Easy Email Finder API.
 metadata: {"openclaw":{"emoji":"📧","homepage":"https://easyemailfinder.com","primaryEnv":"EEF_API_KEY","requires":{"env":["EEF_API_KEY"]}}}
 ---
 
 # Easy Email Finder API
 
-Use this skill to find business leads and their email addresses. The Easy Email Finder API lets you search Google Places for businesses, then enrich them with verified emails scraped from their websites.
+Use this skill to find business leads and their email addresses. The Easy Email Finder API lets you search for local businesses (via Google Places) or digital/online-only businesses (SaaS, agencies, e-commerce, etc.), then enrich them with verified emails scraped from their websites.
 
 ## Authentication
 
@@ -29,13 +29,20 @@ https://easyemailfinder.com/api/v1
 ### Search for businesses (free — no credits)
 
 ```bash
+# Local businesses (default)
 curl -X POST https://easyemailfinder.com/api/v1/search \
   -H "Authorization: Bearer $EEF_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"query": "dentists in denver", "pageToken": null}'
+
+# Digital/online-only businesses
+curl -X POST https://easyemailfinder.com/api/v1/search \
+  -H "Authorization: Bearer $EEF_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SaaS companies", "mode": "digital"}'
 ```
 
-Returns business names, addresses, phone numbers, websites, ratings, and Google Maps links. Use `pageToken` from the response to get the next page.
+Set `mode` to `"local"` (default) for Google Places results or `"digital"` for online-only businesses. Returns business names, websites, and (for local mode) addresses, phone numbers, ratings, and Google Maps links. Use `pageToken` from the response to get the next page.
 
 ### Enrich a website with emails (1 credit per call)
 
@@ -60,13 +67,20 @@ curl -X POST https://easyemailfinder.com/api/v1/enrich-batch \
 ### Search + enrich in one call (1 credit per result)
 
 ```bash
+# Local businesses
 curl -X POST https://easyemailfinder.com/api/v1/search-and-enrich \
   -H "Authorization: Bearer $EEF_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"query": "plumbers in austin", "limit": 20}'
+
+# Digital businesses
+curl -X POST https://easyemailfinder.com/api/v1/search-and-enrich \
+  -H "Authorization: Bearer $EEF_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "digital marketing agencies", "limit": 20, "mode": "digital"}'
 ```
 
-Combines search and enrichment. `limit` defaults to 20, max 60.
+Combines search and enrichment. `limit` defaults to 20, max 60. Supports `mode`: `"local"` (default) or `"digital"`.
 
 ### Check credit balance (free)
 
@@ -108,8 +122,8 @@ Errors:
 
 ## Rate Limits
 
-- Standard endpoints (search, balance, usage): 60 requests/minute
-- Enrich endpoints: 10 requests/minute
+- Standard endpoints (search, balance, usage): 120 requests/minute
+- Enrich endpoints: 30 requests/minute
 - When rate limited, check the `Retry-After` response header
 
 ## Credit Costs
@@ -125,7 +139,13 @@ Errors:
 
 ## Typical Workflow
 
+**Local businesses** (e.g. "dentists in denver"):
 1. Use `/v1/search` to find businesses in a specific industry and location
 2. Use `/v1/enrich` or `/v1/enrich-batch` to get emails for businesses with websites
 3. Or use `/v1/search-and-enrich` to do both in one call
-4. Check `/v1/balance` to monitor credit usage
+
+**Digital businesses** (e.g. "SaaS companies", "digital marketing agencies"):
+1. Use `/v1/search` with `"mode": "digital"` to find online-only businesses
+2. Enrich with `/v1/enrich` or use `/v1/search-and-enrich` with `"mode": "digital"`
+
+Check `/v1/balance` to monitor credit usage.
