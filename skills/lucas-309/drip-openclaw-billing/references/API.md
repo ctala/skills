@@ -6,11 +6,12 @@ Drip issues two key types. **Always use the least-privileged key that meets your
 
 | Key Type | Prefix | Access | Recommended For |
 |----------|--------|--------|-----------------|
-| **Public Key** | `pk_live_` / `pk_test_` | Usage tracking, customers, billing, analytics, sessions | **All skill and agent integrations** |
+| **Public Key** | `pk_live_` / `pk_test_` | Provider-defined least-privilege integration access (validate exact actions per account/workspace) | **Default for skill and agent integrations** |
 | **Secret Key** | `sk_live_` / `sk_test_` | Full API access including webhooks, API key management, feature flags | Server-side admin only |
 
-> **Use `pk_` keys by default.** Public keys can do everything this skill needs: track usage, manage customers, create charges, record runs, and emit events. Only use `sk_` keys for admin operations (webhook CRUD, key rotation, feature flags).
+> **Use `pk_` keys by default.** Use least-privilege keys for agent integrations and reserve `sk_` keys for trusted server-side admin operations.
 > Never provide `sk_` keys to untrusted agents, browser/mobile clients, or third-party runtimes.
+> Validate `pk_` vs `sk_` action semantics with the provider for your workspace before enabling production writes.
 
 **Metadata safety:** Send only sanitized, non-sensitive metadata. Never include PII, secrets, raw prompts, model outputs, or environment variables. Use metadata only for operational context (model family, tool name, status code, latency, hashed IDs).
 
@@ -20,7 +21,9 @@ Drip issues two key types. **Always use the least-privileged key that meets your
 
 - Package: https://www.npmjs.com/package/@drip-sdk/node
 - Source: https://github.com/MichaelLevin5908/drip
+- This skill is instruction-only and does not bundle `@drip-sdk/node` source code.
 - Use pinned dependency versions in `package.json` + lockfile.
+- Treat SDK installation as an external npm supply-chain dependency and verify provenance before installation.
 - This skill does not recommend running remote package executors (for example `npx <package>`) before credentials are configured.
 - Prefer direct SDK integration in your codebase rather than ad-hoc runtime package execution.
 
@@ -29,7 +32,7 @@ Drip issues two key types. **Always use the least-privileged key that meets your
 ## SDK Quick Setup
 
 ```bash
-# Recommended: public key (pk_) — usage tracking, customers, billing (sufficient for all skill operations)
+# Recommended: public key (pk_) — default least-privilege key for agent integrations
 export DRIP_API_KEY=pk_live_...
 
 # Optional: trusted API base URL override
@@ -42,7 +45,7 @@ export DRIP_API_KEY=pk_live_...
 # export DRIP_API_KEY=sk_live_...
 ```
 
-> **Key scoping:** Public keys (`pk_`) access usage tracking, customers, billing, analytics, and sessions — everything this skill needs. Secret keys (`sk_`) additionally access webhook management, API key management, and feature flags. Using a `pk_` key limits blast radius if the key is compromised.
+> **Key scoping:** Treat `pk_` keys as default least-privilege integration credentials and `sk_` keys as broad admin credentials. Confirm exact permissions with vendor documentation/support for your account before assuming which write operations are allowed.
 
 **Node.js:**
 ```typescript
@@ -79,6 +82,8 @@ const handler = new DripCallbackHandler({
 ```
 
 Before enabling auto-tracking in production, verify the installed SDK version still sanitizes metadata in callback/middleware paths (allowlist filtering, explicit redact keys, non-primitive drop, and string truncation).
+This reference file documents expected controls, but runtime enforcement depends on the installed SDK package and version.
+If package provenance or key semantics cannot be validated, run integrations only in isolated/staging environments and do not provide any `sk_` keys.
 
 For framework middleware wrappers (`withDrip`, `dripMiddleware`), pass the same keys:
 

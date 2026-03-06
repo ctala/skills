@@ -1,8 +1,8 @@
 ---
 name: drip-billing
-description: Track AI agent usage and costs with Drip metered billing.
+description: "Track AI agent usage and costs with Drip metered billing. Use when integrating @drip-sdk/node for usage metrics (`trackUsage`), run events (`recordRun`, `startRun`, `emitEvent`, `endRun`), and framework auto-tracking (LangChain callbacks, middleware). Send sanitized metadata only, never raw prompts/outputs/PII/secrets, and prefer least-privilege `pk_` keys."
 license: MIT
-compatibility: Requires Node.js 18+, npm, and DRIP_API_KEY. Optional: DRIP_BASE_URL, DRIP_WORKFLOW_ID. (Node 24.x if developing the Drip monorepo)
+compatibility: Requires Node.js 18+, npm, and DRIP_API_KEY. Optional: DRIP_BASE_URL, DRIP_WORKFLOW_ID.
 provenance:
   npmPackage: https://www.npmjs.com/package/@drip-sdk/node
   sourceRepository: https://github.com/MichaelLevin5908/drip
@@ -10,21 +10,21 @@ credentials:
   primary: DRIP_API_KEY
   keyTypes:
     - prefix: "pk_live_"
-      scope: "Usage tracking, customers, billing, analytics, sessions"
+      scope: "Least-privileged integration key for telemetry/billing workflows (verify exact capabilities with provider)"
       recommended: true
     - prefix: "pk_test_"
-      scope: "Same as pk_live_ but on testnet"
+      scope: "Testnet equivalent of pk_live_"
       recommended: true
     - prefix: "sk_live_"
-      scope: "Full API access — all endpoints including webhooks, key management, feature flags"
+      scope: "Broad admin API access (for example webhook/key/feature management)"
       recommended: false
     - prefix: "sk_test_"
-      scope: "Same as sk_live_ but on testnet"
+      scope: "Testnet equivalent of sk_live_"
       recommended: false
-  leastPrivilege: "Use pk_ (public) keys for usage tracking and billing. Only use sk_ (secret) keys if you need webhook management, API key rotation, or feature flags. Never expose sk_ keys to untrusted agents, client apps, or third-party runtimes."
+  leastPrivilege: "Use pk_ keys by default and validate permitted actions with the provider for your account/workspace. Never expose sk_ keys to agents, browsers, mobile clients, or untrusted runtimes."
 requiredEnvVars:
   - name: DRIP_API_KEY
-    description: "Required API key from the Drip dashboard. Use a public key (pk_live_... or pk_test_...) for usage tracking. Only use a secret key (sk_live_... or sk_test_...) for trusted server-side admin operations."
+    description: "Required API key from the Drip dashboard. Use pk_ for agent/runtime integrations. Avoid sk_ unless you fully trust the runtime and need admin operations."
     required: true
   - name: DRIP_BASE_URL
     description: Optional trusted Drip API base URL used for telemetry emission.
@@ -33,158 +33,165 @@ requiredEnvVars:
     description: Optional workflow identifier for run telemetry.
     required: false
 dataSent:
-  - "Usage quantities (meter name + numeric quantity)"
+  - "Usage quantities (meter + numeric quantity)"
   - "Customer identifiers (customerId, externalCustomerId)"
   - "Run lifecycle events (start, end, status, duration)"
-  - "Sanitized metadata for diagnostics (for example model family, tool name, status code, latency, hashed IDs)"
+  - "Sanitized operational metadata"
 dataNotSent:
   - "Raw prompts, completions, or model outputs"
-  - "Environment variables, secrets, or credentials"
+  - "PII, secrets, or environment variables"
   - "Raw request/response bodies, file contents, or source code"
 securityNotes:
-  - "Never include PII, secrets, passwords, API keys, or raw user content in metadata fields"
-  - "Use a strict metadata allowlist and redaction policy before emitting telemetry"
-  - "Prefer pk_ (public) keys which cannot manage webhooks, rotate API keys, or toggle feature flags"
-  - "Never provide sk_ (secret) keys to untrusted agents, browsers, mobile clients, or third-party execution environments"
-  - "Verify the @drip-sdk/node package on npm before installing: https://www.npmjs.com/package/@drip-sdk/node"
+  - "Use metadataAllowlist and redactMetadataKeys in all auto-tracking integrations"
+  - "Verify SDK sanitization behavior before production"
+  - "Never provide sk_ keys to untrusted agents or client runtimes"
 metadata:
-  author: drip
-  version: "1.2"
 ---
 
-# Drip Billing Integration
+# Drip Billing Skill
 
-Track usage and costs for AI agents, LLM calls, tool invocations, and any metered workload.
+Integrate Drip billing telemetry with strict data-minimization and key-safety rules.
 
-## When to Use This Skill
+## Quick Reference
 
-- Recording LLM usage quantities (for example total tokens per call)
-- Tracking tool/function call costs
-- Logging agent execution traces
-- Metering API requests for billing
-- Attributing costs to customers or workflows
+| Situation | Action |
+|-----------|--------|
+| Need credentials | Require `DRIP_API_KEY`; optionally set `DRIP_BASE_URL`, `DRIP_WORKFLOW_ID` |
+| Choosing key type | Use `pk_` keys by default; use `sk_` only for trusted server-side admin flows |
+| Handling secret keys | Never provide `sk_` keys to untrusted agents, browser/mobile clients, or third-party runtimes |
+| Sending telemetry | Send usage quantities, customer IDs, run lifecycle events, and sanitized operational metadata only |
+| Auto-tracking setup | Always pass explicit `metadataAllowlist` and `redactMetadataKeys` |
+| Before production | Verify installed SDK version still enforces metadata sanitization in callback/middleware paths |
+| Installing SDK | Pin package version and lockfile; verify npm package provenance before use |
+| Registry metadata check | Ensure published/registry metadata marks `DRIP_API_KEY` as required and deploy tooling exports it |
 
-## Security & Data Privacy
+## Instruction Scope
 
-**Key scoping (least privilege):**
-- Use **`pk_` (public) keys** for usage tracking, customer management, and billing. This is sufficient for all skill operations.
-- Only use **`sk_` (secret) keys** if you need admin operations: webhook management, API key rotation, or feature flags.
-- Never provide `sk_` keys to untrusted agents, browser/mobile clients, or third-party hosted runtimes.
-- Public keys (`pk_`) cannot manage webhooks, rotate API keys, or toggle feature flags — this limits blast radius if the key is compromised.
+This skill is limited to billing and telemetry integration:
 
-**Metadata safety:**
-- Include only minimal non-sensitive operational context in metadata.
-- Never include PII, secrets, passwords, API keys, raw user prompts, model outputs, or full request/response bodies.
-- Use a strict allowlist and redaction policy before telemetry writes.
-- Prefer hashes/IDs (for example `queryHash`) instead of raw user text.
+- `trackUsage` for metered usage quantities
+- `recordRun` for complete run summaries
+- `startRun` / `emitEvent` / `endRun` for streaming run timelines
+- Auto-tracking wrappers (LangChain callback handlers and middleware)
 
-**What data is transmitted:**
-- Usage quantities (meter name + numeric value)
-- Customer identifiers
-- Run lifecycle events (start/end, status, duration)
-- Sanitized metadata you explicitly provide (model family, tool name, status code, latency, hashed IDs)
+This skill does not cover business logic, auth design, or non-Drip observability stacks.
 
-**What is NOT transmitted:**
+## Safety Contract
+
+### Data allowed
+
+- Usage quantities (meter + numeric quantity)
+- Customer identifiers (`customerId`, `externalCustomerId`)
+- Run lifecycle and event types (status, duration, step type)
+- Sanitized operational metadata (for example model family, latency, status code, hashed IDs)
+
+### Data forbidden
+
 - Raw prompts, completions, or model outputs
-- Environment variables or secrets
-- File contents or source code
+- PII, passwords, tokens, API keys, secrets, environment variables
+- Raw request/response bodies, file contents, or source code
 
-## Installation
+### Metadata rules
+
+- Use explicit allowlists; drop keys not explicitly permitted.
+- Redact sensitive keys even if accidentally present.
+- Drop non-primitive metadata values.
+- Truncate long metadata strings.
+- Prefer hashed values (for example `queryHash`) over raw user content.
+
+## Install & Provenance Policy
+
+`@drip-sdk/node` is fetched from npm (external dependency). Treat install/runtime as a supply-chain boundary.
 
 ```bash
-npm install @drip-sdk/node
+npm install @drip-sdk/node@<pinned-version>
 ```
 
-## Provenance & Install Policy
-
-- Install from the official npm package only: `@drip-sdk/node`.
-- Prefer pinned versions in project manifests and lockfiles.
-- Do not run remote package execution flows (`npx <package>`) in this skill.
-- Before supplying credentials, verify package source and published version:
+- Use pinned versions in `package.json` and a committed lockfile.
+- Verify package provenance before supplying credentials:
   - npm: https://www.npmjs.com/package/@drip-sdk/node
-  - source: https://github.com/MichaelLevin5908/drip
-  - sdk source (node): https://github.com/MichaelLevin5908/drip-sdk
-  - sdk source (python): https://github.com/MichaelLevin5908/drip-sdk-python
+  - repo: https://github.com/MichaelLevin5908/drip
+  - sdk repo (node): https://github.com/MichaelLevin5908/drip-sdk
+  - sdk repo (python): https://github.com/MichaelLevin5908/drip-sdk-python
+- Do not run ad-hoc remote package execution flows (`npx <package>`) for this skill.
+
+## Registry Consistency
+
+- `DRIP_API_KEY` is required for this skill.
+- If a registry listing or generated metadata says no required env vars, treat that as stale metadata.
+- Update registry metadata and/or deploy tooling so `DRIP_API_KEY` is always set.
+
+## Runtime Trust Boundary
+
+This skill file is instruction-only. It does not bundle the runtime SDK implementation.
+
+- Documented sanitization controls are expected behavior.
+- Actual enforcement depends on the installed `@drip-sdk/node` version.
+- Re-verify sanitization behavior when upgrading SDK versions.
 
 ## Environment Setup
 
 ```bash
-# Recommended: public key — sufficient for all usage tracking and billing
+# Required
 export DRIP_API_KEY=pk_live_...
 
-# Get a free api key from the Drip website: https://drippay.dev/
-
-# Optional: trusted API base URL override
+# Optional
 # export DRIP_BASE_URL=https://api.drippay.dev/v1
-
-# Optional: workflow grouping default for run telemetry
 # export DRIP_WORKFLOW_ID=research-agent
 
-# Only if you need admin operations (webhooks, key management, feature flags):
+# Only for trusted server-side admin operations:
 # export DRIP_API_KEY=sk_live_...
 ```
 
-## Telemetry Safety Contract
+## Key Scoping
 
-- Send only metadata needed for billing and diagnostics.
-- Do not send raw prompts, raw model outputs, raw query text, full request/response bodies, or credentials.
-- Prefer stable identifiers and hashes (for example `queryHash`) over raw user content.
-- Emit telemetry only to a trusted `DRIP_BASE_URL`.
-- Before enabling auto-tracking in production, verify the installed handler/middleware implementation still sanitizes metadata (allowlist filtering, key redaction, non-primitive dropping, string truncation).
-- LangChain auto-tracking emits counts and hashes (for example `promptCount`, `queryHash`) instead of raw prompt/query/output previews.
-- Always pass explicit `metadataAllowlist` and `redactMetadataKeys` values for high-sensitivity workloads; do not rely only on defaults.
+- Prefer `pk_live_` / `pk_test_` for all skill and agent integrations.
+- Use `sk_live_` / `sk_test_` only when admin endpoints are required (webhook CRUD, key management, feature flags).
+- Treat `sk_` keys as high impact credentials with broad API authority.
+- Validate `pk_` vs `sk_` action semantics with the provider for your workspace before enabling production billing writes.
 
-## Quick Start
+## Core Usage Patterns
 
-### 1. Initialize the SDK
+### Basic metering
 
 ```typescript
 import { Drip } from '@drip-sdk/node';
 
-// Reads DRIP_API_KEY from environment automatically (pk_live_... recommended)
 const drip = new Drip({
   apiKey: process.env.DRIP_API_KEY,
   baseUrl: process.env.DRIP_BASE_URL,
 });
-```
 
-### 2. Track Usage (Simple)
-
-```typescript
 await drip.trackUsage({
   customerId: 'customer_123',
   meter: 'llm_tokens',
   quantity: 1500,
-  // metadata is optional — only include operational context, never PII or secrets
-  metadata: { model: 'gpt-4' }
+  metadata: { modelFamily: 'gpt-4', latencyMs: 820 },
 });
 ```
 
-### 3. Record Agent Runs (Complete Execution)
+### Complete run summary
 
 ```typescript
 await drip.recordRun({
   customerId: 'cus_123',
-  workflow: 'research-agent',
+  workflow: process.env.DRIP_WORKFLOW_ID ?? 'research-agent',
   events: [
     { eventType: 'llm.call', model: 'gpt-4', quantity: 1700, units: 'tokens' },
     { eventType: 'tool.call', name: 'web-search', duration: 1500 },
-    { eventType: 'llm.call', model: 'gpt-4', quantity: 1000, units: 'tokens' },
   ],
   status: 'COMPLETED',
 });
 ```
 
-### 4. Streaming Execution (Real-Time)
+### Streaming run events
 
 ```typescript
-// Start the run
 const run = await drip.startRun({
   customerId: 'cus_123',
   workflowId: process.env.DRIP_WORKFLOW_ID ?? 'document-processor',
 });
 
-// Log each step as it happens
 await drip.emitEvent({
   runId: run.id,
   eventType: 'llm.call',
@@ -193,61 +200,12 @@ await drip.emitEvent({
   units: 'tokens',
 });
 
-await drip.emitEvent({
-  runId: run.id,
-  eventType: 'tool.call',
-  name: 'web-search',
-  duration: 1500,
-});
-
-// Complete the run
 await drip.endRun(run.id, { status: 'COMPLETED' });
 ```
 
-## Event Types
+## Auto-Tracking (Fail-Closed Configuration)
 
-| Event Type | Description | Key Fields |
-|------------|-------------|------------|
-| `llm.call` | LLM API call | `model`, `quantity`, `units` |
-| `tool.call` | Tool invocation | `name`, `duration`, `status` |
-| `agent.plan` | Planning step | `description` |
-| `agent.execute` | Execution step | `description`, `metadata` |
-| `error` | Error occurred | `description`, `metadata` |
-
-## Common Patterns
-
-### Wrap Tool Calls
-
-```typescript
-async function trackedToolCall<T>(runId: string, toolName: string, fn: () => Promise<T>): Promise<T> {
-  const start = Date.now();
-  try {
-    const result = await fn();
-    await drip.emitEvent({
-      runId,
-      eventType: 'tool.call',
-      name: toolName,
-      duration: Date.now() - start,
-      status: 'success',
-    });
-    return result;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    await drip.emitEvent({
-      runId,
-      eventType: 'tool.call',
-      name: toolName,
-      duration: Date.now() - start,
-      status: 'error',
-      // Only include the error message — never include stack traces, env vars, or user data
-      metadata: { error: message },
-    });
-    throw error;
-  }
-}
-```
-
-### LangChain Auto-Tracking
+### LangChain callback handler
 
 ```typescript
 import { DripCallbackHandler } from '@drip-sdk/node/langchain';
@@ -256,19 +214,36 @@ const handler = new DripCallbackHandler({
   apiKey: process.env.DRIP_API_KEY,
   baseUrl: process.env.DRIP_BASE_URL,
   customerId: 'cus_123',
-  workflow: process.env.DRIP_WORKFLOW_ID ?? 'research-agent',
+  workflow: process.env.DRIP_WORKFLOW_ID ?? 'langchain',
   metadata: { integration: 'langchain' },
   metadataAllowlist: ['integration', 'model', 'latencyMs', 'promptCount', 'queryHash', 'statusCode'],
-  redactMetadataKeys: ['prompt', 'input', 'output', 'response', 'apiKey', 'token', 'authorization'],
+  redactMetadataKeys: ['prompt', 'input', 'output', 'response', 'authorization', 'token', 'apiKey'],
 });
-
-// All LLM calls and tool usage automatically tracked
-const result = await agent.invoke(
-  { input: 'Research the latest AI news' },
-  { callbacks: [handler] }
-);
 ```
 
-## API Reference
+### Framework middleware
 
-See [references/API.md](references/API.md) for complete SDK documentation.
+```typescript
+import { withDrip } from '@drip-sdk/node/middleware';
+
+export const POST = withDrip({
+  meter: 'api_calls',
+  quantity: 1,
+  metadataAllowlist: ['integration', 'route', 'statusCode', 'latencyMs'],
+  redactMetadataKeys: ['authorization', 'cookie', 'prompt', 'responseBody'],
+}, handler);
+```
+
+## Verification Checklist (Before Production)
+
+1. Verify installed SDK version and lockfile pinning.
+2. Confirm metadata allowlist/redaction is explicitly configured in your integration code.
+3. Inspect callback/middleware sanitization paths in the installed SDK release before enabling auto-tracking.
+4. Confirm telemetry payloads do not include raw prompts/outputs/PII/secrets.
+5. Confirm `sk_` keys are not exposed to untrusted runtimes.
+6. Confirm provider-documented `pk_` capabilities for your account (do not assume charge/create semantics without validation).
+7. If package provenance or `pk_`/`sk_` semantics cannot be validated, run only in isolated staging and do not provide any `sk_` keys.
+
+## Reference
+
+See [references/API.md](references/API.md) for SDK API details and integration examples.
