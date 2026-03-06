@@ -3,9 +3,15 @@
   "slug": "web-recon",
   "displayName": "Web Recon",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1772660455899,
-    "commit": "https://github.com/openclaw/skills/commit/e507b103bec06236d7e739fb8da6966356fc74a3"
+    "version": "1.2.0",
+    "publishedAt": 1772732516271,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1772660455899,
+      "commit": "https://github.com/openclaw/skills/commit/e507b103bec06236d7e739fb8da6966356fc74a3"
+    }
+  ]
 }
