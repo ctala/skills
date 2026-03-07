@@ -37,6 +37,19 @@ if [ "$ACTIVE_COUNT" -gt 0 ]; then
       else
         log "no-output: $TASK_ID"
         jq --arg id "$TASK_ID" '.tasks |= map(if .id == $id then .status = "no-output" else . end)' "$TASKS_FILE" > "${TASKS_FILE}.tmp" && mv "${TASKS_FILE}.tmp" "$TASKS_FILE"
+        # Obsidian writeback: reset to ready so user can retrigger
+        _NO_NOTE=$(echo "$TASK" | jq -r '.noteFile // ""')
+        _NO_TNAME=$(echo "$TASK" | jq -r '.taskName // ""')
+        if [ -n "$_NO_NOTE" ] && [ -f "$_NO_NOTE" ] && [ -n "$_NO_TNAME" ]; then
+          sed -i '' "s/### ${_NO_TNAME}\nstatus: in_progress/### ${_NO_TNAME}\nstatus: ready/" "$_NO_NOTE" 2>/dev/null || \
+          python3 -c "
+import pathlib
+p = pathlib.Path(r'''$_NO_NOTE''')
+t = p.read_text('utf-8')
+p.write_text(t.replace('### $_NO_TNAME\nstatus: in_progress', '### $_NO_TNAME\nstatus: ready'), 'utf-8')
+" 2>/dev/null
+          log "  Obsidian reset to ready: $_NO_TNAME"
+        fi
         {
           echo "⚠️ TASK_NO_OUTPUT"
           echo "Project: $PROJECT"

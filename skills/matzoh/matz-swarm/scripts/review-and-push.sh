@@ -230,8 +230,11 @@ MR_DESC_FILE="${LOGS_DIR}/${TASK_ID}-mr-desc.txt"
 
 MR_URL=""
 cd "$WORKTREE"
+# Sanitize MR title: single line, no special chars, max 80 chars
+MR_TITLE=$(echo "$DESC" | head -1 | tr -d '\r\n' | sed 's/[<>\"'\''`\\]//g; s/  */ /g; s/^ *//; s/ *$//' | cut -c1-80)
+[ -z "$MR_TITLE" ] && MR_TITLE="Task ${TASK_ID}"
 log "Creating MR from $(pwd) for branch $BRANCH"
-MR_OUT=$(swarm_mr_create "$DESC" "$MR_DESC_FILE" "$BRANCH" 2>&1) || true
+MR_OUT=$(swarm_mr_create "$MR_TITLE" "$MR_DESC_FILE" "$BRANCH" 2>&1) || true
 log "MR create output: $(echo "$MR_OUT" | head -5)"
 MR_URL=$(swarm_mr_url "$MR_OUT")
 

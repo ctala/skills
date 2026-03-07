@@ -1,6 +1,6 @@
 ---
-name: agent-swarm-orchestrator
-description: Orchestrate OpenClaw Agent Swarm workflows for multi-project coding automation with Obsidian task intake, Claude coding, Codex review, GitLab MR flow, merge+sync, and done-status closure.
+name: matz-swarm
+description: Orchestrate OpenClaw Agent Swarm workflows for multi-project coding automation. Use when user says "合并"/"merge" replying to a PR_READY notification, spawns a coding task, or asks about agent/task/MR status. Covers: Obsidian task intake, Claude coding, Codex review, GitLab MR flow, merge+sync, done-status closure.
 ---
 
 # Agent Swarm Orchestrator
@@ -11,7 +11,7 @@ Multi-project coding automation: Obsidian task intake → Claude Code → Codex 
 
 ```
 Obsidian note (status: ready)
-  → scan-obsidian.sh (cron 15min)
+  → scan-obsidian.sh (cron 5min)
     → spawn-agent.sh
       ├── git worktree + branch
       ├── prompt file (task + context.md)
@@ -22,10 +22,15 @@ Obsidian note (status: ready)
                                   ├── push + glab mr create --yes
                                   └── notification → Telegram
 
-check-agents.sh (cron 5min)
+merge-and-sync.sh (manual trigger)
+  ├── glab mr merge <iid>
+  ├── sync-project-main.sh (fast-forward local main)
+  └── check-agents.sh (background) → mark done + send notification
+
+check-agents.sh (cron 3min / called by merge-and-sync)
   ├── dead tmux + commits → trigger review
   ├── >60min → timeout notification
-  └── MR merged → done + sync main
+  └── MR merged → mark done in tasks.json + .notification → Telegram
 ```
 
 ## Core Paths
@@ -46,7 +51,7 @@ check-agents.sh (cron 5min)
 | `spawn-agent.sh` | Create worktree + prompt + tmux → run-agent |
 | `run-agent.sh` | `claude -p` → check commits → trigger review |
 | `review-and-push.sh` | Codex review → graded fix → push → MR |
-| `check-agents.sh` | Cron fallback: detect done/stuck, auto-close merged |
+| `check-agents.sh` | Cron + post-merge: detect done/stuck, mark done, send notification |
 | `scan-obsidian.sh` | Parse Obsidian notes, spawn `status: ready` tasks |
 | `send-notifications.sh` | Send `.notification` files via OpenClaw CLI |
 | `merge-and-sync.sh` | Merge MR + sync local main |
@@ -103,16 +108,28 @@ ready_to_merge → done (auto on MR merged)
 ### Cron
 ```
 PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
-*/5 * * * * ~/agent-swarm/scripts/check-agents.sh
-*/15 * * * * ~/agent-swarm/scripts/scan-obsidian.sh
+*/3 * * * * ~/agent-swarm/scripts/check-agents.sh
+*/5 * * * * ~/agent-swarm/scripts/scan-obsidian.sh
 0 3 * * * ~/agent-swarm/scripts/cleanup.sh
 ```
 
 ### Notifications
+
+Configure in `~/agent-swarm/registry.json`:
+```json
+{
+  "notifyMethod": "openclaw",
+  "notifyChannel": "telegram",
+  "notifyTarget": "<chat_id>"
+}
+```
+
+`swarm_notify()` in `config.sh` reads these values and calls:
 ```bash
 openclaw message send --channel telegram --target <chat_id> --message "..."
 ```
-Configure target in `send-notifications.sh` via `SWARM_NOTIFY_TARGET` env var.
+
+⚠️ Do NOT use `>/dev/null 2>&1` in `swarm_notify` — errors must be visible so failed sends are not silently marked as sent.
 
 ## Prompt Template
 
@@ -151,6 +168,31 @@ echo '{"tasks":[]}' > ~/agent-swarm/tasks.json
 
 Then: register projects in `registry.json`, set cron, configure notifications.
 
+## Intent → Action Mapping
+
+When a user message matches one of these intents, take the corresponding action immediately without asking for confirmation:
+
+| User says | Context | Action |
+|-----------|---------|--------|
+| "合并" / "merge" / "merge it" | Replied to a PR_READY notification | Extract `<project>` and `<mr-iid>` from the notification, run `merge-and-sync.sh <project> <mr-iid>` |
+| "起任务" / "spawn" / "新任务" | With a task description | Run `spawn-agent.sh <project> "<desc>"` |
+| "查状态" / "check status" | Any | Run `check-agents.sh` and summarize output |
+| "新项目" / "new project" | With a project name | Run `new-project.sh <project-name>` |
+
+### Extracting MR info from PR_READY notifications
+
+PR_READY notifications follow this format:
+```
+✅ PR_READY
+Project: <project>
+Task: <desc>
+Task ID: <task-id>
+Branch: <branch>
+MR: https://gitlab.com/.../-/merge_requests/<mr-iid> | Review ...
+```
+
+Extract `Project` → `<project>`, and the number at the end of the MR URL → `<mr-iid>`.
+
 ## Guardrails
 
 ### You are the dispatcher, not the analyst
@@ -171,4 +213,4 @@ The coding agent runs in a full worktree with complete project context — it is
 - Do not edit project code directly — always go through spawn-agent
 - Push-first + cron-fallback notification design
 - State names: `done`, `ready_to_merge`, `review-error`, `needs-manual-fix`
-- Context.md auto-update only for architectural changes (not minor fixes)
+- Context.md auto-update for new features, gameplay changes, and architectural changes (skip trivial config/formatting)

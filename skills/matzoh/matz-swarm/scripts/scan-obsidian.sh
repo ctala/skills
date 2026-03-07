@@ -58,11 +58,11 @@ for part in parts[1:]:
     if status != 'ready':
         continue
 
-    m_desc = re.search(r'(?m)^>\s*(.+)$', block)
-    if not m_desc:
+    desc_lines = re.findall(r'(?m)^>\s*(.+)$', block)
+    if not desc_lines:
         print(f"  Skip task (no description): {task_name}")
         continue
-    task_desc = m_desc.group(1).strip()
+    task_desc = "\n".join(line.strip() for line in desc_lines)
 
     if task_name.upper() == 'INIT_PROJECT':
         print(f"  Initializing project: {project}")
