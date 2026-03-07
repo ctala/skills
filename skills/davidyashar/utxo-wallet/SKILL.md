@@ -7,16 +7,7 @@ metadata:
     homepage: "https://utxo.fun"
     requires:
       runtime: ["node>=18"]
-    env:
-      - name: UTXO_API_BASE_URL
-        required: false
-        description: "API base URL (default: http://localhost:3000, production: https://utxo.fun)"
-      - name: SPARK_AGENT_NETWORK
-        required: false
-        description: "Network selection — omit for mainnet, set to REGTEST for regtest"
-      - name: UTXO_ALLOW_CUSTOM_BASE_URL
-        required: false
-        description: "Set to 1 to allow connecting to hosts outside the default allowlist (advanced, see Security Considerations)"
+      env: ["UTXO_API_BASE_URL", "SPARK_AGENT_NETWORK"]
     files:
       writes:
         - path: .wallet.json
@@ -74,6 +65,8 @@ Flags:
 
 Base URL: `http://localhost:3000` (or `UTXO_API_BASE_URL` env var)
 
+> **Production setup:** For mainnet, set `UTXO_API_BASE_URL=https://utxo.fun` in your environment before running any commands. Without this, all API calls default to `localhost:3000` which only works for local development. You can also pass `--base-url https://utxo.fun` to each script invocation.
+
 > **Network:** The API defaults to **mainnet**. All addresses use the `spark1` prefix (not `sparkrt1`). Token addresses use the `btkn1` prefix. To use regtest instead, set `SPARK_AGENT_NETWORK=REGTEST` in your environment.
 
 ---
@@ -112,7 +105,7 @@ Options: `--wallet <path>`, `--base-url <url>`, `--disconnect`, `--force`, `--pr
 
 After running, `.session.json` contains `session_token` and `spark_address`.
 
-If any API returns **HTTP 401**, run wallet-connect.ts again and retry.
+If any API returns **HTTP 401**, run wallet-connect.js again and retry.
 
 ---
 
@@ -356,7 +349,7 @@ Response:
 ## Complete Agent Workflow (Summary)
 
 ```
-1. Run wallet-connect.ts → get session_token + spark_address
+1. Run wallet-connect.js → get session_token + spark_address
 2. Fund wallet: transfer sats to agent's spark_address
 3. Check balance via GET /api/agent/wallet/balance
 4. Launch token:
@@ -402,7 +395,7 @@ Response:
 
 ## Security Considerations
 
-- **Base URL allowlist**: By default, scripts only connect to `localhost`, `127.0.0.1`, `utxo.fun`, `*.utxo.fun`, and `*.vercel.app`. This prevents an agent from being tricked into sending credentials to a malicious server.
+- **Base URL allowlist**: By default, scripts only connect to `localhost`, `127.0.0.1`, `utxo.fun`, and `*.utxo.fun`. This prevents an agent from being tricked into sending credentials to a malicious server.
 - **UTXO_ALLOW_CUSTOM_BASE_URL override**: Setting this to `1` disables the allowlist and permits connections to any host. **Only enable this if you fully trust the target host.** It is off by default and the agent should never set it autonomously.
 - **Sensitive files**: The skill writes `.wallet.json`, `.wallet.key`, and `.session.json` into the workspace. These contain encryption keys and session tokens. Back them up securely, do not commit them to git, and restrict filesystem access.
 - **Pre-compiled scripts**: The published `.js` files are compiled from the included `.ts` source. No `npx tsx` or npm fetches happen at runtime — only Node.js >= 18 is required. If you want to verify the JS matches the TS source, compile with `tsc --target ES2022 --module nodenext --moduleResolution nodenext --esModuleInterop --skipLibCheck`.

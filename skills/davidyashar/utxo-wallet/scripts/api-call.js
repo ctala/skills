@@ -110,7 +110,7 @@ async function main() {
     if (useAuth) {
         const sessionPath = findFile('.session.json');
         if (!sessionPath) {
-            console.error('ERROR: .session.json not found. Run wallet-connect.ts first.');
+            console.error('ERROR: .session.json not found. Run wallet-connect.js first.');
             process.exit(1);
         }
         const session = JSON.parse(fs.readFileSync(sessionPath, 'utf-8'));

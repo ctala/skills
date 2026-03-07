@@ -91,7 +91,7 @@ function parseArgs(): {
   // Validate base URL to prevent connecting to malicious servers
   if (!isAllowedBaseUrl(baseUrl)) {
     console.error(`ERROR: Base URL not allowed: ${baseUrl}`);
-    console.error('Allowed: localhost, 127.0.0.1, utxo.fun, *.utxo.fun, *.vercel.app');
+    console.error('Allowed: localhost, 127.0.0.1, utxo.fun, *.utxo.fun');
     console.error('Set UTXO_ALLOW_CUSTOM_BASE_URL=1 to override.');
     process.exit(1);
   }
@@ -115,7 +115,6 @@ function isAllowedBaseUrl(url: string): boolean {
     const host = parsed.hostname;
     if (ALLOWED_HOSTS.includes(host)) return true;
     if (host.endsWith('.utxo.fun')) return true;
-    if (host.endsWith('.vercel.app')) return true;
     return false;
   } catch {
     return false;
