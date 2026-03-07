@@ -1,59 +1,48 @@
-# API Patterns (All Providers)
+# API Patterns - AI Video Generation
 
-Common patterns for video generation APIs.
+Common patterns for modern video generation APIs.
 
-## Async Generation
+## Async-First Contract
 
-All video APIs use async patterns:
-1. Submit generation request → get job ID
-2. Poll status endpoint until `completed`
-3. Download from signed URL
+Most providers follow this shape:
+1. Create job
+2. Receive job ID or operation name
+3. Poll until terminal state
+4. Download output from signed URL
 
-## Polling Example
+## Provider Pattern Map
 
-```python
-import time
-import requests
+| Provider | Create | Status | Notes |
+|----------|--------|--------|-------|
+| OpenAI Sora 2 | Responses API with `modalities=["video"]` | Response/job status | Supports background and async flows |
+| Google Veo (Vertex) | `generateVideos` | Long-running operation | `fetchPredictOperation` for polling |
+| Runway | Task create endpoint | Task status endpoint | SDK supports wait helper |
+| Luma | Generation create endpoint | Generation status endpoint | URL expiry handling required |
+| Vidu | Async create endpoint | Async query endpoint | Includes callback and polling modes |
+| Tencent MPS AIGC | `CreateAigcVideoTask` | `DescribeAigcVideoTaskStatus` | Unified multi-model gateway |
+| Fal / Replicate | Queue submit | Queue status endpoint | Webhook mode available |
 
-def wait_for_video(job_id, api_key, max_wait=300):
-    for _ in range(max_wait // 5):
-        resp = requests.get(
-            f"https://api.provider.com/generations/{job_id}",
-            headers={"Authorization": f"Bearer {api_key}"}
-        )
-        status = resp.json()
-        if status["state"] == "completed":
-            return status["assets"]["video"]
-        if status["state"] == "failed":
-            raise Exception(status["failure_reason"])
-        time.sleep(5)
-    raise TimeoutError("Generation timed out")
-```
+## Retry Strategy
 
-## Exponential Backoff
+- Use idempotency keys where supported
+- Poll with exponential backoff (for example 2s -> 4s -> 8s -> 16s)
+- Apply max runtime by model tier
+- Fail fast on explicit content-policy or invalid-parameter errors
 
-```python
-wait_times = [5, 10, 20, 40, 60]  # seconds
-for wait in wait_times:
-    status = check_status(job_id)
-    if status == "completed":
-        break
-    time.sleep(wait)
-```
+## Output Handling
 
-## Cache Results
+- Signed URLs expire quickly
+- Download outputs immediately after completion
+- Save metadata with model ID, prompt, seed, duration, ratio, and provider job ID
 
-- Signed URLs expire (typically 24h)
-- Download and store videos immediately after generation
-- Store generation IDs for retrieval if re-download needed
+## Fallback Tree
 
-## Comparison Table
+1. Same provider lower tier
+2. Equivalent cross-provider model
+3. Open-source/local model
 
-| Provider | Max Duration | Text-to-Video | Image-to-Video | Approx. Cost/sec |
-|----------|--------------|---------------|----------------|------------------|
-| Runway Gen-4.5 | 10s | ✅ | ✅ | $0.05 |
-| Luma Ray-2 | 5s | ✅ | ✅ | $0.032 |
-| Kling V2 | 10s | ✅ | ✅ | $0.10 |
-| Pika | 3s | ✅ | ✅ | $0.05 |
-| SVD (local) | ~4s | ❌ | ✅ | Free |
-| Replicate | Varies | Varies | ✅ | $0.02-0.10 |
+## Cost Guardrails
+
+- Draft short (3-5s), finish long only after approval
+- Prefer fast tiers for ideation batches
+- Disable auto-upscale in early iterations

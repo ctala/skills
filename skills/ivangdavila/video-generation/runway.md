@@ -1,41 +1,31 @@
-# Runway (Gen-3 Alpha / Gen-4.5)
+# Runway Gen-4 API
 
-**Best for:** Complex motion, professional quality, motion brushes
+**Best for:** cinematic motion control and longer-form creative outputs.
 
-**API:** https://docs.dev.runwayml.com/
+## Official Model IDs
 
-## Setup
+- `gen4_turbo`
+- `gen4_aleph`
 
-1. Get API key: https://dev.runwayml.com/
-2. Install SDK: `npm install @runwayml/sdk` or `pip install runwayml`
+## Duration and Resolution Notes
 
-## Quick Start (Node.js)
+- `gen4_turbo`: optimized for fast 5s or 10s runs
+- `gen4_aleph`: supports broader duration options (including longer-form tiers)
+- Resolution defaults and limits vary by model and plan
 
-```javascript
-import RunwayML from '@runwayml/sdk';
+## API Path
 
-const client = new RunwayML();
-const task = await client.imageToVideo.create({
-  model: 'gen4.5',
-  promptText: 'A serene mountain landscape at sunrise',
-  ratio: '1280:720',
-  duration: 5,
-}).waitForTaskOutput();
+Use Runway API task endpoints (`image_to_video` and related task flows).
+Track task IDs and poll until terminal state.
 
-console.log('Video URL:', task.output[0]);
-```
+## Practical Routing
 
-## Models
+- Use `gen4_turbo` for prompt and motion validation loops
+- Use `gen4_aleph` for final cinematic sequences and continuity work
+- Prefer image-to-video when precise shot framing is required
 
-- `gen4.5` — Latest, best quality
-- `gen3a_turbo` — Faster, requires input image
+## Reliability Tips
 
-## Pricing
-
-- ~$0.05 per second generated
-- Enterprise tiers available
-
-## Limits
-
-- Max 10 seconds per generation
-- Rate limits vary by plan
+- Include clear camera verbs (pan, dolly, orbit, push-in)
+- Use reference frames for character continuity
+- Save all task IDs for audit and rerender workflows

@@ -1,11 +1,17 @@
 {
   "owner": "ivangdavila",
   "slug": "video-generation",
-  "displayName": "Video Generation",
+  "displayName": "AI Video Generation",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1770860905397,
-    "commit": "https://github.com/openclaw/skills/commit/c841296429e2bc8d70baffbd5f9026274465a42b"
+    "version": "1.0.1",
+    "publishedAt": 1772754387865,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1770860905397,
+      "commit": "https://github.com/openclaw/skills/commit/c841296429e2bc8d70baffbd5f9026274465a42b"
+    }
+  ]
 }

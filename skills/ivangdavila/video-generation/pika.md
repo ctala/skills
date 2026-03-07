@@ -1,30 +1,25 @@
-# Pika Labs
+# Pika (API via Fal)
 
-**Best for:** Stylized content, fast iterations, artistic effects
+**Best for:** stylized social content and fast creative iteration.
 
-**API:** Via Fal.ai: https://fal.ai/models/pika
+## API Access
 
-## Setup
+Pika's official API page routes developers to Fal for API use.
+Use Fal queue endpoints for text-to-video and image-to-video calls.
 
-1. Get Fal.ai API key
-2. Use Pika models through Fal endpoint
+## Common Models
 
-## Quick Start
+- `fal-ai/pika/v2.2/text-to-video`
+- `fal-ai/pika/v2.2/image-to-video`
 
-```bash
-curl -X POST https://queue.fal.run/fal-ai/pika/text-to-video \
-  -H "Authorization: Key $FAL_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "a cat dancing"}'
-```
+## Practical Routing
 
-## Features
+- Use Pika for social-first, stylized clips and fast tests
+- Keep prompts visual and energetic rather than cinematic-technical
+- Prefer short durations for high-throughput experimentation
 
-- Pikaformance — lip-sync and expressions
-- Effects (inflate, explode, melt, etc.)
-- Fast generation (~30s for 3s clip)
+## Reliability Tips
 
-## Pricing
-
-- Via Fal.ai: ~$0.10-0.20 per generation
-- Consumer: 150 credits/month free
+- Use Fal queue webhooks or polling consistently
+- Store request IDs for retries and analytics
+- Promote winning shots to premium models if photoreal polish is needed

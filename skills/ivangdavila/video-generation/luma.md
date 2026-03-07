@@ -1,45 +1,25 @@
-# Luma AI (Dream Machine)
+# Luma Ray (Dream Machine API)
 
-**Best for:** Camera movements, cinematic shots, interpolation
+**Best for:** fast cinematic iteration and keyframe-driven motion.
 
-**API:** https://docs.lumalabs.ai/
+## Common API Models
 
-## Setup
+- `ray-2`
+- `ray-2-flash` (or equivalent flash tier)
 
-1. Get API key: https://lumalabs.ai/dream-machine/api/keys
-2. Use as Bearer token in requests
+## API Path
 
-## Quick Start (curl)
+Use Luma generation endpoints and poll generation status.
+Keyframe inputs and frame controls are central to quality.
 
-```bash
-curl -X POST https://api.lumalabs.ai/dream-machine/v1/generations \
-  -H "Authorization: Bearer luma-xxxx" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prompt": "an old lady laughing underwater",
-    "model": "ray-2",
-    "resolution": "720p",
-    "duration": "5s"
-  }'
-```
+## Practical Routing
 
-## Models
+- `ray-2` for final quality runs
+- flash tier for fast concept testing
+- extend successful generations instead of full reruns
 
-- `ray-2` — Current best
-- `ray-flash-2` — Faster, lower quality
+## Reliability Tips
 
-## Resolutions
-
-540p, 720p, 1080p, 4K
-
-## Features
-
-- `keyframes.frame0` / `frame1` — Start/end images
-- `loop: true` — Seamless loop
-- `concepts` — Camera motions (dolly_zoom, etc.)
-- Extend/interpolate existing generations
-
-## Pricing
-
-- ~$0.032 per second (ray-2)
-- ~$0.008 per second (ray-flash-2)
+- Use start/end keyframes for controlled transitions
+- Keep prompts concise and shot-specific
+- Download outputs immediately since URLs are time-limited

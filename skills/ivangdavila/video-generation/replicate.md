@@ -1,37 +1,32 @@
-# Replicate (Multi-Provider)
+# Replicate Routing
 
-**Best for:** Quick testing, model variety, pay-per-use
-
-**API:** https://replicate.com/
+**Best for:** rapid provider comparison and hosted access to many video models.
 
 ## Setup
 
 ```bash
-pip install replicate
 export REPLICATE_API_TOKEN=r8_xxx
 ```
 
-## Quick Start
+## Practical Usage Pattern
 
-```python
-import replicate
+1. Pick model slug from Replicate library
+2. Submit prediction request
+3. Poll until completion
+4. Download output before URL expiry
 
-output = replicate.run(
-    "stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438",
-    input={"input_image": open("image.png", "rb")}
-)
-```
+## Known Example
 
-## Available Models
+- `bytedance/seedance-1.5-pro` (text/image to video with synced audio support)
 
-- Stable Video Diffusion
-- Kling (v1.6)
-- Mochi 1
-- CogVideoX
-- Pyramid Flow
+## Routing Advice
 
-## Pricing
+- Use Replicate for model evaluation and fallback coverage
+- Do not hardcode temporary community aliases as stable IDs
+- Keep a provider-neutral abstraction so you can swap models quickly
 
-- Varies by model
-- Kling v1.6: ~$0.28 per 5 seconds
-- SVD: ~$0.10 per run
+## Reliability Tips
+
+- Persist prediction IDs for audits
+- Standardize timeout and retry policy
+- Validate output duration and fps before downstream edits
