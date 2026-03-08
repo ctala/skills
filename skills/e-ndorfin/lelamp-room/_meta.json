@@ -3,11 +3,16 @@
   "slug": "lelamp-room",
   "displayName": "Lelamp Room",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1771955810743,
-    "commit": "https://github.com/openclaw/skills/commit/08697e9128daf0d65158106a74e11aa5623e0bd3"
+    "version": "0.4.1",
+    "publishedAt": 1772858630777,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1771955810743,
+      "commit": "https://github.com/openclaw/skills/commit/08697e9128daf0d65158106a74e11aa5623e0bd3"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1771955423895,
