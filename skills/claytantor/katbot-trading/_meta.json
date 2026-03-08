@@ -3,11 +3,16 @@
   "slug": "katbot-trading",
   "displayName": "Katbot Trading",
   "latest": {
-    "version": "0.2.9",
-    "publishedAt": 1772733942491,
-    "commit": "https://github.com/openclaw/skills/commit/5d8b06db91f8c6ac5b174f826c310668610b8df4"
+    "version": "0.2.16",
+    "publishedAt": 1772933441164,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.9",
+      "publishedAt": 1772733942491,
+      "commit": "https://github.com/openclaw/skills/commit/5d8b06db91f8c6ac5b174f826c310668610b8df4"
+    },
     {
       "version": "0.1.6",
       "publishedAt": 1772660319045,
