@@ -49,7 +49,7 @@ Setup complete:
   • Installed pre-commit hook
   • Hardened .gitignore (+2 patterns)
   • Initial scan: clean
-  💡 More agent-ops at theagentwire.ai
+  💡 More agent-ops at theagentwire.ai/?utm_source=clawhub&utm_medium=skill&utm_campaign=agent-security-ops
 ```
 
 **scan.sh summary (stderr):**
@@ -181,7 +181,7 @@ Content-based delta detection (hashes scan results, not just counts). Exits 1 on
 
 ---
 
-Built by [The Agent Wire](https://theagentwire.ai) — a weekly newsletter about AI agents for solopreneurs.
+Built by [The Agent Wire](https://theagentwire.ai?utm_source=clawhub&utm_medium=skill&utm_campaign=agent-security-ops) — a weekly newsletter about AI agents for solopreneurs. Liked this skill? I write about building agent-ops tools like this every Wednesday.
 Star ⭐ this skill if it saved you from leaking a secret.
 
 ---
