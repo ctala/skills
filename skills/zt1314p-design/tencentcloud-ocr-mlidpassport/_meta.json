@@ -1,11 +1,17 @@
 {
   "owner": "zt1314p-design",
   "slug": "tencentcloud-ocr-mlidpassport",
-  "displayName": "tencentcloud-ocr-mlidpassport",
+  "displayName": "TencentCloud MLIDPassport OCR",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772809592322,
-    "commit": "https://github.com/openclaw/skills/commit/9b694cc177239bd25523fce518e7914a7f13d5f3"
+    "version": "1.0.1",
+    "publishedAt": 1772962200999,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772809592322,
+      "commit": "https://github.com/openclaw/skills/commit/9b694cc177239bd25523fce518e7914a7f13d5f3"
+    }
+  ]
 }
