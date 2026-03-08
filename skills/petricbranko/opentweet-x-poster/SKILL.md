@@ -1,7 +1,7 @@
 ---
 name: x-poster
 description: Post to X (Twitter) using the OpenTweet API. Create tweets, schedule posts, publish threads, upload media, access analytics, and manage your X content autonomously.
-version: 1.1.2
+version: 1.1.3
 homepage: https://opentweet.io/features/openclaw-twitter-posting
 user-invocable: true
 metadata: {"openclaw":{"requires":{"env":["OPENTWEET_API_KEY"]},"primaryEnv":"OPENTWEET_API_KEY"}}
@@ -253,6 +253,28 @@ Returns daily/weekly/monthly growth rates, growth acceleration, milestone predic
 - Tweet engagement analytics require the Advanced plan (returns 403 on Pro)
 - 403 = no subscription, 429 = rate limit or daily post limit hit
 - Check response status codes: 201=created, 200=success, 4xx=client error, 5xx=server error
+
+## Safety Guardrails
+
+**Publishing is irreversible** — once a tweet is posted to X it cannot be undone via the API.
+
+### Confirm before publishing
+- Before calling `/publish` or using `publish_now: true`, always tell the user which post(s) you are about to publish and ask for confirmation.
+- Show the tweet text (truncated if long) and the post ID so the user can verify.
+
+### Scheduled posts ≠ ready to publish
+- If a post has a `scheduled_date` in the future, it is meant to be published at that time by the scheduler — not right now.
+- NEVER call `/publish` on a post that has a future `scheduled_date` unless the user explicitly asks you to publish it immediately.
+- When the user asks to "publish" posts, clarify whether they want to publish NOW or schedule for later. Default to scheduling if dates are provided.
+
+### Batch operations — go slow
+- When creating or scheduling more than 5 posts, summarize the batch (count, date range, first/last tweet previews) and ask the user to confirm before proceeding.
+- Never bulk-create AND immediately publish in one go. Create as drafts or scheduled posts first, let the user review, then publish only on confirmation.
+- When using batch-schedule, show the user the list of dates before sending the request.
+
+### Don't loop publish calls
+- Never loop through a list of posts calling `/publish` on each one without explicit user approval for the full list.
+- If the user asks to "publish all my drafts" or similar, list them first and get confirmation.
 
 ## Full API docs
 For complete documentation: https://opentweet.io/api/v1/docs
