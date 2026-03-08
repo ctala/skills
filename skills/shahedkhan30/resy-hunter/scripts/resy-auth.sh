@@ -3,7 +3,7 @@
 # Usage: ./resy-auth.sh [--force]
 # Output: auth token string (stdout)
 #
-# Caches the token to ~/.openclaw/skills/resy-hunter/.resy-token
+# Caches the token to ~/.openclaw/data/resy-hunter/.resy-token
 # Returns cached token if less than 12 hours old (unless --force)
 #
 # Requires: RESY_API_KEY, RESY_EMAIL, RESY_PASSWORD
@@ -11,7 +11,15 @@
 set -euo pipefail
 
 SKILL_DIR="$HOME/.openclaw/skills/resy-hunter"
-TOKEN_FILE="${SKILL_DIR}/.resy-token"
+DATA_DIR="$HOME/.openclaw/data/resy-hunter"
+mkdir -p "$DATA_DIR"
+
+# Migrate old token file if it exists
+if [[ -f "${SKILL_DIR}/.resy-token" && ! -f "${DATA_DIR}/.resy-token" ]]; then
+  cp "${SKILL_DIR}/.resy-token" "${DATA_DIR}/.resy-token"
+fi
+
+TOKEN_FILE="${DATA_DIR}/.resy-token"
 MAX_AGE_SECONDS=43200  # 12 hours
 
 FORCE=false

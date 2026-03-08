@@ -3,16 +3,30 @@
 // Usage: node opentable-check.js <restaurant_id> <date> <party_size> [time]
 // Output: JSON with restaurant info and available slots
 //
-// Auto-logs in with OPENTABLE_EMAIL + OPENTABLE_PASSWORD.
-// Session is persisted to .playwright-state/opentable.json for reuse.
+// Uses saved session from opentable-login.js (manual login flow).
+// Session file: ~/.openclaw/data/resy-hunter/opentable-session.json
+// If session is missing or expired, returns {session_expired: true}.
 
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-const SKILL_DIR = path.join(process.env.HOME, '.openclaw/skills/resy-hunter');
-const STATE_DIR = path.join(SKILL_DIR, '.playwright-state');
-const STATE_FILE = path.join(STATE_DIR, 'opentable.json');
+const DATA_DIR = path.join(process.env.HOME, '.openclaw/data/resy-hunter');
+const SESSION_FILE = path.join(DATA_DIR, 'opentable-session.json');
+
+function formatTo12h(timeStr) {
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return { display: timeStr, time_24h: '00:00' };
+  const h = parseInt(match[1]);
+  const m = match[2];
+  const time_24h = `${String(h).padStart(2, '0')}:${m}`;
+  let display;
+  if (h === 0) display = `12:${m} AM`;
+  else if (h < 12) display = `${h}:${m} AM`;
+  else if (h === 12) display = `12:${m} PM`;
+  else display = `${h - 12}:${m} PM`;
+  return { display, time_24h };
+}
 
 async function main() {
   const args = process.argv.slice(2);
@@ -26,45 +40,37 @@ async function main() {
   const partySize = parseInt(args[2], 10);
   const time = args[3] || '19:00';
 
-  const email = process.env.OPENTABLE_EMAIL;
-  const password = process.env.OPENTABLE_PASSWORD;
-
-  if (!email || !password) {
-    console.error(JSON.stringify({ error: 'OPENTABLE_EMAIL and OPENTABLE_PASSWORD must be set' }));
-    process.exit(1);
+  // Check for saved session
+  if (!fs.existsSync(SESSION_FILE)) {
+    console.log(JSON.stringify({
+      platform: 'opentable',
+      restaurant_id: restaurantId,
+      date: date,
+      party_size: partySize,
+      slots: [],
+      session_expired: true,
+      message: 'No OpenTable session found. Run opentable-login.js to authenticate.',
+    }));
+    return;
   }
-
-  // Ensure state directory exists
-  fs.mkdirSync(STATE_DIR, { recursive: true });
 
   let browser;
   try {
-    // Launch with persistent storage state if it exists
-    const launchOpts = {
+    browser = await chromium.launch({
       headless: true,
       args: [
         '--disable-blink-features=AutomationControlled',
         '--no-sandbox',
       ],
-    };
+    });
 
-    browser = await chromium.launch(launchOpts);
-
-    // Create context with saved state if available
-    const contextOpts = {
+    // Load saved session
+    const context = await browser.newContext({
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       viewport: { width: 1280, height: 800 },
-    };
+      storageState: SESSION_FILE,
+    });
 
-    if (fs.existsSync(STATE_FILE)) {
-      try {
-        contextOpts.storageState = STATE_FILE;
-      } catch (e) {
-        // Corrupted state file, ignore
-      }
-    }
-
-    const context = await browser.newContext(contextOpts);
     const page = await context.newPage();
 
     // Collect availability data from network responses
@@ -72,7 +78,6 @@ async function main() {
 
     page.on('response', async (response) => {
       const url = response.url();
-      // Intercept availability API responses
       if (url.includes('/availability') || url.includes('/dtp') || url.includes('timeslots')) {
         try {
           const contentType = response.headers()['content-type'] || '';
@@ -94,21 +99,28 @@ async function main() {
 
     await page.goto(otUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-    // Check if we need to log in
-    const needsLogin = await detectLoginWall(page);
+    // Check if session expired (login wall detected)
+    await page.waitForTimeout(3000);
+    const sessionExpired = await detectLoginWall(page);
 
-    if (needsLogin) {
-      await performLogin(page, email, password);
-      // Save session state after login
-      await context.storageState({ path: STATE_FILE });
-      // Navigate again to the availability page after login
-      await page.goto(otUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    if (sessionExpired) {
+      console.log(JSON.stringify({
+        platform: 'opentable',
+        restaurant_id: restaurantId,
+        date: date,
+        party_size: partySize,
+        slots: [],
+        session_expired: true,
+        message: 'OpenTable session expired. Run opentable-login.js to re-authenticate.',
+      }));
+      await browser.close();
+      return;
     }
 
     // Wait for availability to load
     await page.waitForTimeout(5000);
 
-    // Try to extract slots from the page DOM as a fallback
+    // Extract slots
     let slots = [];
 
     if (availabilityData) {
@@ -116,18 +128,22 @@ async function main() {
     }
 
     if (slots.length === 0) {
-      // Fallback: extract from DOM
       slots = await extractSlotsFromDOM(page, date);
     }
 
-    // Save state for next run
+    // Refresh session for next run
     try {
-      await context.storageState({ path: STATE_FILE });
+      await context.storageState({ path: SESSION_FILE });
     } catch (e) {
       // Non-critical
     }
 
-    // Build output
+    // Convert times to 12-hour format
+    slots = slots.map(s => {
+      const fmt = formatTo12h(s.time_start);
+      return { ...s, time_start: fmt.display, time_24h: fmt.time_24h };
+    });
+
     const output = {
       platform: 'opentable',
       restaurant_id: restaurantId,
@@ -155,17 +171,12 @@ async function main() {
 
 async function detectLoginWall(page) {
   try {
-    // Check for common login indicators
-    const loginButton = await page.$('button[data-test="login-button"], a[href*="login"], #login-button, [data-test="sign-in"]');
-    if (loginButton) return true;
+    const isOnLogin = page.url().includes('login') || page.url().includes('signin') || page.url().includes('/auth/');
+    if (isOnLogin) return true;
 
-    // Check for login form
     const loginForm = await page.$('input[type="email"], input[name="email"], #Email');
-    const isOnLoginPage = page.url().includes('login') || page.url().includes('signin');
-    if (loginForm && isOnLoginPage) return true;
-
-    // Check if page redirected to login
-    if (page.url().includes('/auth/') || page.url().includes('/login')) return true;
+    const loginButton = await page.$('button[data-test="login-button"], a[href*="login"], #login-button, [data-test="sign-in"]');
+    if (loginForm && loginButton) return true;
 
     return false;
   } catch (e) {
@@ -173,74 +184,10 @@ async function detectLoginWall(page) {
   }
 }
 
-async function performLogin(page, email, password) {
-  try {
-    // Navigate to login page if not already there
-    if (!page.url().includes('login') && !page.url().includes('signin')) {
-      // Try clicking a sign-in link
-      const signInLink = await page.$('a[href*="login"], a[href*="signin"], button:has-text("Sign in"), button:has-text("Log in")');
-      if (signInLink) {
-        await signInLink.click();
-        await page.waitForTimeout(2000);
-      } else {
-        await page.goto('https://www.opentable.com/login', { waitUntil: 'domcontentloaded', timeout: 15000 });
-      }
-    }
-
-    // Wait for email input
-    await page.waitForSelector('input[type="email"], input[name="email"], #Email', { timeout: 10000 });
-
-    // Fill email
-    const emailInput = await page.$('input[type="email"], input[name="email"], #Email');
-    if (emailInput) {
-      await emailInput.fill(email);
-    }
-
-    // Look for a "Continue" or "Next" button before password
-    const continueBtn = await page.$('button:has-text("Continue"), button:has-text("Next"), button[type="submit"]');
-    if (continueBtn) {
-      await continueBtn.click();
-      await page.waitForTimeout(2000);
-    }
-
-    // Fill password
-    await page.waitForSelector('input[type="password"], input[name="password"], #Password', { timeout: 10000 });
-    const passwordInput = await page.$('input[type="password"], input[name="password"], #Password');
-    if (passwordInput) {
-      await passwordInput.fill(password);
-    }
-
-    // Submit login
-    const submitBtn = await page.$('button:has-text("Sign in"), button:has-text("Log in"), button[type="submit"]');
-    if (submitBtn) {
-      await submitBtn.click();
-    }
-
-    // Wait for login to complete (navigation or state change)
-    await page.waitForTimeout(5000);
-
-    // Verify login succeeded
-    const stillOnLogin = page.url().includes('login') || page.url().includes('signin');
-    if (stillOnLogin) {
-      const errorEl = await page.$('[class*="error"], [data-test*="error"], .alert-danger');
-      if (errorEl) {
-        const errorText = await errorEl.textContent();
-        throw new Error(`Login failed: ${errorText}`);
-      }
-    }
-  } catch (err) {
-    throw new Error(`OpenTable login failed: ${err.message}`);
-  }
-}
-
 function parseAvailabilityResponse(data, date) {
   const slots = [];
 
   try {
-    // OpenTable API returns availability in various formats
-    // Try common response structures
-
-    // Format 1: data.availability[]
     if (data.availability && Array.isArray(data.availability)) {
       for (const slot of data.availability) {
         const timeStr = slot.datetime || slot.time || slot.dateTime;
@@ -253,7 +200,6 @@ function parseAvailabilityResponse(data, date) {
       }
     }
 
-    // Format 2: data.times[]
     if (data.times && Array.isArray(data.times)) {
       for (const slot of data.times) {
         slots.push({
@@ -263,7 +209,6 @@ function parseAvailabilityResponse(data, date) {
       }
     }
 
-    // Format 3: data.data.availability or nested
     if (data.data) {
       const nested = data.data.availability || data.data.times || data.data.timeslots;
       if (Array.isArray(nested)) {
@@ -279,7 +224,6 @@ function parseAvailabilityResponse(data, date) {
       }
     }
 
-    // Format 4: Check for slot objects in root
     if (data.timeslots && Array.isArray(data.timeslots)) {
       for (const slot of data.timeslots) {
         slots.push({
@@ -289,7 +233,7 @@ function parseAvailabilityResponse(data, date) {
       }
     }
   } catch (e) {
-    // Parsing failed, return empty
+    // Parsing failed
   }
 
   return slots;
@@ -299,11 +243,8 @@ async function extractSlotsFromDOM(page, date) {
   const slots = [];
 
   try {
-    // Extract time slots from DOM elements
     const slotData = await page.evaluate((targetDate) => {
       const results = [];
-
-      // Look for time slot buttons/links
       const timeElements = document.querySelectorAll(
         '[data-test*="time"], [class*="timeslot"], [class*="time-slot"], ' +
         'button[class*="slot"], a[class*="slot"], ' +
@@ -316,7 +257,6 @@ async function extractSlotsFromDOM(page, date) {
         const dataTime = el.getAttribute('data-time') || el.getAttribute('data-timeslot') || el.getAttribute('data-datetime');
 
         if (timeText || dataTime) {
-          // Parse time from text like "7:30 PM"
           let time = dataTime || '';
           if (!time && timeText) {
             const match = timeText.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
@@ -331,7 +271,6 @@ async function extractSlotsFromDOM(page, date) {
           }
 
           if (time) {
-            // Get the area/type from parent or sibling
             const parent = el.closest('[class*="area"], [class*="section"], [data-test*="area"]');
             const type = parent?.getAttribute('data-area') || parent?.querySelector('[class*="area-name"], [class*="section-title"]')?.textContent?.trim() || 'Standard';
 
@@ -343,7 +282,6 @@ async function extractSlotsFromDOM(page, date) {
         }
       }
 
-      // Deduplicate
       const seen = new Set();
       return results.filter((s) => {
         const key = s.time_start;

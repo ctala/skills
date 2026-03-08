@@ -1,7 +1,7 @@
 ---
 name: resy-hunter
 description: "Monitor hard-to-get restaurant reservations on Resy, OpenTable, and Tock. Check availability, manage a watchlist, and get Telegram alerts when tables open up."
-version: 1.0.5
+version: 2.1.0
 metadata:
   openclaw:
     requires:
@@ -9,8 +9,6 @@ metadata:
         - RESY_API_KEY
         - RESY_EMAIL
         - RESY_PASSWORD
-        - OPENTABLE_EMAIL
-        - OPENTABLE_PASSWORD
       bins:
         - curl
         - jq
@@ -37,7 +35,7 @@ Monitor restaurant reservations across Resy, OpenTable, and Tock. Detect open ta
 | Platform | Script | Identifier | Auth Required | Notes |
 |----------|--------|------------|---------------|-------|
 | Resy | `resy-check.sh` | `venue_id` (integer) | Yes — `RESY_API_KEY` + `RESY_EMAIL` + `RESY_PASSWORD` | Auto-login via API, token cached 12h |
-| OpenTable | `opentable-check.js` | `restaurant_id` (integer) | Yes — `OPENTABLE_EMAIL` + `OPENTABLE_PASSWORD` | Auto-login via Playwright, session persisted |
+| OpenTable | `opentable-check.js` | `restaurant_id` (integer) | Yes — manual login via `opentable-login.js` | One-time visible browser login, session persisted |
 | Tock | `tock-check.js` | `slug` (URL slug) | No | Playwright bypasses Cloudflare |
 
 ## Parsing Natural Language Requests
@@ -247,13 +245,25 @@ Execute:
 
 ## Watchlist Management
 
-The watchlist lives at `~/.openclaw/skills/resy-hunter/watchlist.json`.
+The watchlist lives at `~/.openclaw/data/resy-hunter/watchlist.json` (separate from the skill directory so reinstalls don't wipe user data).
 
 - **List**: `bash ~/.openclaw/skills/resy-hunter/scripts/watchlist.sh list`
 - **Add**: `bash ~/.openclaw/skills/resy-hunter/scripts/watchlist.sh add '<json>'`
   - JSON must include: `name`, `platform` (resy/opentable/tock), platform identifier (`venue_id`/`restaurant_id`/`slug`), `party_size`, `dates` array
   - Optional: `preferred_times` object with `earliest` and `latest` in HH:MM format
 - **Remove**: `bash ~/.openclaw/skills/resy-hunter/scripts/watchlist.sh remove <id>`
+- **Set Priority**: `bash ~/.openclaw/skills/resy-hunter/scripts/watchlist.sh set-priority <id> <high|low>`
+
+### Priority Levels
+
+- **high** — Telegram alerts fire immediately when new slots appear
+- **low** — Slots are tracked (dedup works) but Telegram alerts only when the user explicitly asks for a sweep
+
+Default priority is `low` when adding entries. Set it to `high` for restaurants the user actively wants alerts on. The JSON report from `monitor.sh` always includes all priorities.
+
+### Default Time Window
+
+All entries default to a **6:00 PM – 10:00 PM** time window. Slots outside this window are filtered out. Override per restaurant via `preferred_times` when adding:
 
 Example add:
 ```bash
@@ -263,11 +273,17 @@ bash ~/.openclaw/skills/resy-hunter/scripts/watchlist.sh add '{
   "venue_id": 5286,
   "party_size": 2,
   "dates": ["2026-03-15", "2026-03-22"],
-  "preferred_times": {"earliest": "18:00", "latest": "21:30"}
+  "preferred_times": {"earliest": "18:00", "latest": "21:30"},
+  "priority": "high"
 }'
 ```
 
 ## Background Monitoring
+
+The monitor runs checks in parallel and staggers platforms by frequency:
+- **Resy** (curl): checked every sweep, up to 8 concurrent
+- **Tock** (Playwright): checked once per hour, up to 2 concurrent
+- **OpenTable** (Playwright): checked once per hour, up to 2 concurrent
 
 To set up cron monitoring, run:
 
@@ -279,6 +295,8 @@ openclaw cron add \
   --message "Run resy-hunter monitor. Execute bash ~/.openclaw/skills/resy-hunter/scripts/monitor.sh. If new availability is found in the output JSON (new_availability array is non-empty), format a clear alert listing each restaurant name, platform, date, available time slots, and party size. Include a direct booking link. If nothing new, respond only: No new availability." \
   --announce
 ```
+
+The 15-minute cron means Resy is checked every 15 minutes while Tock and OpenTable are automatically checked once per hour (the monitor tracks timestamps and skips platforms checked less than 60 minutes ago).
 
 For high-frequency sniping on a specific date (e.g., when reservations drop):
 
@@ -301,6 +319,20 @@ To run a one-time sweep of the entire watchlist:
 bash ~/.openclaw/skills/resy-hunter/scripts/monitor.sh
 ```
 
+To check only a specific platform (bypasses the hourly interval timer):
+
+```bash
+bash ~/.openclaw/skills/resy-hunter/scripts/monitor.sh --platform resy
+bash ~/.openclaw/skills/resy-hunter/scripts/monitor.sh --platform tock
+bash ~/.openclaw/skills/resy-hunter/scripts/monitor.sh --platform opentable
+```
+
+Multiple platforms can be combined:
+
+```bash
+bash ~/.openclaw/skills/resy-hunter/scripts/monitor.sh --platform resy --platform tock
+```
+
 Interpret the output JSON:
 - `new_availability` array: newly detected slots since last sweep
 - `total_checked`: number of restaurant+date combinations checked
@@ -317,7 +349,7 @@ This sends a Telegram message. The bot token is pulled from OpenClaw's Telegram 
 ## Booking Links
 
 When reporting availability, always include a direct booking link:
-- **Resy**: `https://resy.com/cities/<city>/<slug>?date=<YYYY-MM-DD>&seats=<party_size>`
+- **Resy**: `https://resy.com/cities/<city>-<region>/venues/<slug>?date=<YYYY-MM-DD>&seats=<party_size>`
 - **OpenTable**: `https://www.opentable.com/booking/widget?rid=<restaurant_id>&datetime=<ISO>&covers=<party_size>`
 - **Tock**: `https://www.exploretock.com/<slug>/search?date=<YYYY-MM-DD>&size=<party_size>`
 
@@ -325,7 +357,7 @@ When reporting availability, always include a direct booking link:
 
 - If a Resy request returns HTTP 419, the script automatically clears the cached token and re-authenticates. No manual action needed.
 - If Resy login fails (HTTP 401/403), check `RESY_EMAIL` and `RESY_PASSWORD`.
-- If OpenTable login fails, check `OPENTABLE_EMAIL` and `OPENTABLE_PASSWORD`. Delete `.playwright-state/opentable.json` to force a fresh login.
+- If OpenTable returns `session_expired: true`, run `node ~/.openclaw/skills/resy-hunter/scripts/opentable-login.js` to re-authenticate manually. The monitor will send a Telegram alert when this happens.
 - If Tock returns `blocked: true` in output, Cloudflare blocked even the Playwright browser. Return the URL for the user to check manually. This is rare — retrying usually works.
 
 ## Credential Setup
@@ -339,10 +371,12 @@ When reporting availability, always include a direct booking link:
 3. `RESY_PASSWORD` — your Resy account password
 4. Auth tokens are fetched and cached automatically (12-hour TTL). No manual token extraction needed.
 
-**OpenTable (auto-login via Playwright):**
-1. `OPENTABLE_EMAIL` — your OpenTable account email
-2. `OPENTABLE_PASSWORD` — your OpenTable account password
-3. Playwright logs in with a real browser, session cookies are saved to `.playwright-state/opentable.json` and reused across runs. No DevTools needed.
+**OpenTable (manual login via Playwright):**
+1. Run once: `node ~/.openclaw/skills/resy-hunter/scripts/opentable-login.js`
+2. A visible browser opens to OpenTable's login page
+3. Log in with your email + OTP code manually
+4. The script detects login and saves session cookies to `~/.openclaw/data/resy-hunter/opentable-session.json`
+5. Future runs use the saved session headlessly. If it expires, the monitor sends a Telegram alert telling you to re-run `opentable-login.js`.
 
 **Tock (no credentials):**
 No credentials needed. Playwright uses a real browser that passes Cloudflare Turnstile challenges automatically.

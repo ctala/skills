@@ -6,16 +6,23 @@
 #   ./watchlist.sh remove <id>           — Remove a restaurant by ID
 #   ./watchlist.sh get <id>              — Get a single restaurant by ID
 #
-# Watchlist file: ~/.openclaw/skills/resy-hunter/watchlist.json
+# Watchlist file: ~/.openclaw/data/resy-hunter/watchlist.json
 
 set -euo pipefail
 
-WATCHLIST_DIR="$HOME/.openclaw/skills/resy-hunter"
+OLD_DIR="$HOME/.openclaw/skills/resy-hunter"
+WATCHLIST_DIR="$HOME/.openclaw/data/resy-hunter"
+mkdir -p "$WATCHLIST_DIR"
+
+# Migrate old watchlist from skill dir to data dir
+if [[ -f "${OLD_DIR}/watchlist.json" && ! -f "${WATCHLIST_DIR}/watchlist.json" ]]; then
+  cp "${OLD_DIR}/watchlist.json" "${WATCHLIST_DIR}/watchlist.json"
+fi
+
 WATCHLIST_FILE="${WATCHLIST_DIR}/watchlist.json"
 
 # Initialize watchlist if it doesn't exist
 if [[ ! -f "$WATCHLIST_FILE" ]]; then
-  mkdir -p "$WATCHLIST_DIR"
   echo '{"restaurants":[]}' > "$WATCHLIST_FILE"
 fi
 
@@ -76,6 +83,9 @@ case "$ACTION" in
     max_id=$(jq '[.restaurants[].id // 0] | max // 0' "$WATCHLIST_FILE")
     next_id=$((max_id + 1))
 
+    # Default priority to "low" if not provided
+    ENTRY=$(echo "$ENTRY" | jq 'if .priority == null then . + {priority: "low"} else . end')
+
     # Add the entry with auto-generated fields
     added_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -126,8 +136,36 @@ case "$ACTION" in
     echo "$result"
     ;;
 
+  set-priority)
+    if [[ $# -lt 3 ]]; then
+      echo '{"error": "Usage: watchlist.sh set-priority <id> <high|low>"}' >&2
+      exit 1
+    fi
+    ID="$2"
+    PRIORITY="$3"
+
+    if [[ "$PRIORITY" != "high" && "$PRIORITY" != "low" ]]; then
+      echo '{"error": "Priority must be high or low"}' >&2
+      exit 1
+    fi
+
+    exists=$(jq --argjson id "$ID" '[.restaurants[] | select(.id == ($id | tonumber))] | length' "$WATCHLIST_FILE")
+    if [[ "$exists" == "0" ]]; then
+      echo "{\"error\": \"No entry with id ${ID}\"}" >&2
+      exit 1
+    fi
+
+    updated=$(jq --argjson id "$ID" --arg p "$PRIORITY" '
+      .restaurants = [.restaurants[] | if .id == ($id | tonumber) then .priority = $p else . end]
+    ' "$WATCHLIST_FILE")
+    echo "$updated" > "$WATCHLIST_FILE"
+
+    name=$(echo "$updated" | jq -r --argjson id "$ID" '.restaurants[] | select(.id == ($id | tonumber)) | .name')
+    echo "{\"updated\": \"${name}\", \"id\": ${ID}, \"priority\": \"${PRIORITY}\"}"
+    ;;
+
   *)
-    echo '{"error": "Usage: watchlist.sh list|add|remove|get"}' >&2
+    echo '{"error": "Usage: watchlist.sh list|add|remove|get|set-priority"}' >&2
     exit 1
     ;;
 esac

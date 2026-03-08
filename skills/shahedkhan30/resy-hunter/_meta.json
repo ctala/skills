@@ -3,11 +3,16 @@
   "slug": "resy-hunter",
   "displayName": "Resy Hunter",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1772858707224,
-    "commit": "https://github.com/openclaw/skills/commit/7a9bdf1c582bba00756b822e7cfd2ecee328c8d3"
+    "version": "2.1.0",
+    "publishedAt": 1772866606033,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1772858707224,
+      "commit": "https://github.com/openclaw/skills/commit/7a9bdf1c582bba00756b822e7cfd2ecee328c8d3"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1772857172182,

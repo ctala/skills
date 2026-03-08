@@ -10,6 +10,7 @@ set -euo pipefail
 
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPTS_DIR")"
+DATA_DIR="$HOME/.openclaw/data/resy-hunter"
 
 if [[ $# -lt 3 ]]; then
   echo '{"error": "Usage: resy-check.sh <venue_id> <date> <party_size>"}' >&2
@@ -49,7 +50,7 @@ body=$(echo "$response" | sed '$d')
 
 # On 419 (token expired), force re-auth and retry once
 if [[ "$http_code" == "419" ]]; then
-  rm -f "${SKILL_DIR}/.resy-token"
+  rm -f "${DATA_DIR}/.resy-token"
   RESY_AUTH_TOKEN=$(bash "${SCRIPTS_DIR}/resy-auth.sh" --force 2>&1) || {
     echo "$RESY_AUTH_TOKEN" >&2
     exit 1
@@ -64,18 +65,32 @@ if [[ "$http_code" != "200" ]]; then
   exit 1
 fi
 
-echo "$body" | jq --arg date "$DATE" --argjson party_size "$PARTY_SIZE" '{
+echo "$body" | jq --arg date "$DATE" --argjson party_size "$PARTY_SIZE" '
+def to12h:
+  split(":") | (.[0] | tonumber) as $h | .[1] as $m |
+  if $h == 0 then "12:\($m) AM"
+  elif $h < 12 then "\($h):\($m) AM"
+  elif $h == 12 then "12:\($m) PM"
+  else "\($h - 12):\($m) PM"
+  end;
+def get_24h:
+  split(" ") | last | split("T") | last | split(":") | .[0:2] | join(":");
+def fmt_time:
+  get_24h | to12h;
+{
   platform: "resy",
   venue_id: (.results.venues[0].venue.id.resy // null),
   venue_name: (.results.venues[0].venue.name // "unknown"),
-  venue_slug: (.results.venues[0].venue.slug // null),
+  venue_slug: (.results.venues[0].venue.slug // .results.venues[0].venue.url_slug // null),
   venue_city: (.results.venues[0].venue.location.city // null),
+  venue_region: (.results.venues[0].venue.location.region // null),
   date: $date,
   party_size: $party_size,
   slots: [
     (.results.venues[0].slots // [])[] | {
-      time_start: .date.start,
-      time_end: .date.end,
+      time_start: (.date.start | fmt_time),
+      time_end: (.date.end | fmt_time),
+      time_24h: (.date.start | get_24h),
       type: .config.type,
       config_token: .config.token,
       deposit_fee: (.payment.deposit_fee // null)

@@ -8,6 +8,20 @@
 
 const { chromium } = require('playwright');
 
+function formatTo12h(timeStr) {
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return { display: timeStr, time_24h: '00:00' };
+  const h = parseInt(match[1]);
+  const m = match[2];
+  const time_24h = `${String(h).padStart(2, '0')}:${m}`;
+  let display;
+  if (h === 0) display = `12:${m} AM`;
+  else if (h < 12) display = `${h}:${m} AM`;
+  else if (h === 12) display = `12:${m} PM`;
+  else display = `${h - 12}:${m} PM`;
+  return { display, time_24h };
+}
+
 async function main() {
   const args = process.argv.slice(2);
   if (args.length < 3) {
@@ -122,6 +136,12 @@ async function main() {
         // Confirmed: no availability
       }
     }
+
+    // Convert all times to 12-hour AM/PM format
+    slots = slots.map(s => {
+      const fmt = formatTo12h(s.time_start);
+      return { ...s, time_start: fmt.display, time_24h: fmt.time_24h };
+    });
 
     const output = {
       platform: 'tock',
