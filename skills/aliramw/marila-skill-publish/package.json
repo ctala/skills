@@ -1,7 +1,7 @@
 {
   "name": "marila-skill-publish",
-  "version": "1.0.2",
-  "description": "马锐拉的 ClawHub 技能发布流程与经验总结",
+  "version": "1.0.7",
+  "description": "发布和更新 OpenClaw 技能到 ClawHub，并同步 GitHub Release、Git 安装、GitHub 鉴权与发布前检查的流程与规范",
   "keywords": [
     "clawhub",
     "skill-publish",
@@ -16,7 +16,7 @@
     "url": "https://github.com/aliramw/marila-skill-publish.git"
   },
   "clawhub": {
-    "requiresBinaries": ["clawhub", "git"]
+    "requiresBinaries": ["clawhub", "git", "gh"]
   },
   "scripts": {
     "test": "echo \"No tests\" && exit 0"
