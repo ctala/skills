@@ -10,6 +10,12 @@ Run `scripts/codex_auth.py` to generate a login URL and apply callback URL token
 - `/codex_auth <profile>`
 - `/codex_auth finish <profile> <callback_url>`
 
+## Interaction adapter
+- If inline buttons are supported: show selector buttons.
+- If inline buttons are not supported: send text fallback (`default | <profile>`).
+- Callback message handling must never echo full callback URLs (treat as sensitive).
+- Use callback_data namespace prefix `codex_auth_*` to avoid collisions.
+
 ## How to run
 Start flow:
 
