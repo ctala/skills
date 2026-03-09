@@ -1,0 +1,11 @@
+{
+  "owner": "maverick-software",
+  "slug": "cloudflare-access-vps",
+  "displayName": "Cloudflare Access VPS",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772998856820,
+    "commit": null
+  },
+  "history": []
+}
