@@ -1,13 +1,18 @@
 {
   "owner": "appback",
   "slug": "claw-clash",
-  "displayName": "Grid Clash",
+  "displayName": "Openclaw",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1772876527941,
-    "commit": "https://github.com/openclaw/skills/commit/4f10127e62569bbf97b9f3d14b7c62e451099d9e"
+    "version": "2.2.0",
+    "publishedAt": 1773039900357,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1772876527941,
+      "commit": "https://github.com/openclaw/skills/commit/4f10127e62569bbf97b9f3d14b7c62e451099d9e"
+    },
     {
       "version": "1.9.0",
       "publishedAt": 1772590605404,

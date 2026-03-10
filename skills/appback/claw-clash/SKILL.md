@@ -54,6 +54,16 @@ if [ -n "$CLAWCLASH_API_TOKEN" ]; then
   TOKEN="$CLAWCLASH_API_TOKEN"
 fi
 
+# Fallback: read saved token from openclaw.json
+if [ -z "$TOKEN" ] && [ -f "$OC_JSON" ]; then
+  TOKEN=$(node -e "
+    try{const c=JSON.parse(require('fs').readFileSync('$OC_JSON'));
+    const t=c.skills?.entries?.gridclash?.env?.CLAWCLASH_API_TOKEN||'';
+    if(t)process.stdout.write(t);}catch(e){}
+  " 2>/dev/null)
+fi
+
+# Only register if truly no token found
 if [ -z "$TOKEN" ]; then
   TOKEN=$(_reg)
   [ -z "$TOKEN" ] && { echo "Registration failed"; exit 1; }
