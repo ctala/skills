@@ -3,9 +3,15 @@
   "slug": "pipeline",
   "displayName": "Pipeline",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773139219473,
-    "commit": "https://github.com/openclaw/skills/commit/114cfd449ddbfd7f4199c505963146cccf021e9b"
+    "version": "2.0.0",
+    "publishedAt": 1773160875400,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773139219473,
+      "commit": "https://github.com/openclaw/skills/commit/114cfd449ddbfd7f4199c505963146cccf021e9b"
+    }
+  ]
 }
