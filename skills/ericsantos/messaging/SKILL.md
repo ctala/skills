@@ -210,4 +210,5 @@ All outgoing messages are automatically scanned — detected secrets are replace
 
 - **HTTP API (curl):** `{baseDir}/references/api.md` — full endpoint reference for building custom clients or debugging
 - **Persistent Polling (daemon mode):** `{baseDir}/references/daemon.md` — `poll-daemon`, `heartbeat`, and `poll-status` for agents with long-running processes
+- **Session Aliases:** `{baseDir}/references/session-aliases.md` — manage multiple sessions with short names (`alias`, `unalias`, `ls`, `poll-all`)
 <!-- /openclaw-only -->
