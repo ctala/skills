@@ -107,24 +107,35 @@ npx -y -p asrai-mcp asrai indicator_guide ALSAT
 
 ## Tools
 
+
 | Tool | What it does | Cost |
 |---|---|---|
-| `market_overview` | Trending, gainers/losers, RSI, sentiment, 9 screeners | $0.095 |
-| `technical_analysis(symbol, timeframe)` | Signals, ALSAT, SuperALSAT, Elliott Wave, Ichimoku | $0.06 |
-| `sentiment` | CBBI, CMC sentiment, AI insights | $0.015 |
-| `forecast(symbol)` | AI price forecast | $0.005 |
-| `screener(type)` | Find coins by criteria | $0.005 |
-| `smart_money(symbol, timeframe)` | Order blocks, FVGs, support/resistance | $0.01 |
+| `market_overview` | Full brief: trending, gainers/losers, RSI, screeners, sentiment, cashflow — use for complete reports only | $0.095 |
+| `trending` | Currently trending coins | $0.005 |
+| `gainers_losers` | Top gainers and losers | $0.005 |
+| `top_bottom` | RSI extremes, top/bottom signals, bounce/dip candidates | $0.015 |
+| `volume_spikes` | Coins with unusually high volume | $0.005 |
+| `high_volume_low_cap` | Low market cap coins with high volume | $0.005 |
+| `ath_tracker` | Coins near or at all-time high | $0.005 |
+| `dominance` | BTC & altcoin dominance signals | $0.01 |
+| `macro` | S&P 500 & Nasdaq signals — global market context | $0.01 |
+| `sentiment` | CBBI, CMC sentiment, AI insights, channel news, Galaxy Score, social dominance | $0.03 |
+| `late_unlocked_coins` | Post-vesting coins with low remaining selling pressure | $0.005 |
+| `trade_signals` | Trade setups: trending movers, bounces, SAR & MACD entries | $0.025 |
+| `technical_analysis(symbol, timeframe)` | Signals, ALSAT, SuperALSAT, PSAR, MACD-DEMA, AlphaTrend, TD, SMC, S/R, Elliott Wave, Ichimoku | $0.06 |
+| `forecast(symbol)` | AI 3-7 day price prediction | $0.005 |
+| `screener(type)` | Find coins by criteria (ichimoku-trend, rsi, vwap, volume, bounce-dip...) | $0.005 |
+| `smart_money(symbol, timeframe)` | Order blocks, fair value gaps, support/resistance | $0.01 |
 | `elliott_wave(symbol, timeframe)` | Elliott Wave analysis | $0.005 |
-| `ichimoku(symbol, timeframe)` | Ichimoku cloud | $0.005 |
-| `cashflow(mode, symbol)` | Capital flow | $0.005 |
-| `coin_info(symbol)` | Stats, price, CMC AI, DEX data | $0.025–$0.03 |
-| `dexscreener(contract)` | DEX data | $0.005 |
-| `chain_tokens(chain, max_mcap)` | Low-cap tokens on chain | $0.005 |
-| `portfolio` | Abu's curated model portfolio | $0.005 |
-| `channel_summary` | Latest narratives | $0.005 |
-| `ask_ai(question)` | AI analyst — natural language answer | $0.01 |
-| `indicator_guide(name)` | Guide for custom indicators (ALSAT, SuperALSAT, etc.) | FREE |
+| `ichimoku(symbol, timeframe)` | Ichimoku cloud analysis | $0.005 |
+| `cashflow(mode, symbol)` | Capital flow data | $0.005 |
+| `coin_info(symbol)` | Stats, price, tags, CMC AI + auto DEX data | $0.025–$0.03 |
+| `dexscreener(contract)` | DEX trading data | $0.005 |
+| `chain_tokens(chain, max_mcap)` | Low-cap tokens on a specific chain | $0.005 |
+| `portfolio` | Abu's curated model portfolio — investment reference | $0.005 |
+| `ask_ai(question)` | AI analyst freeform answer | $0.01 |
+| `indicator_guide(name)` | Reference guide for Asrai-specific indicators | FREE |
+
 
 Session spend cap: $2.00 USDC (configurable via `ASRAI_MAX_SPEND` env var).
 
