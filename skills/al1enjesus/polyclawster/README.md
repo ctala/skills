@@ -1,4 +1,5 @@
-<br/><div align="center">
+
+<div align="center">
 
 # 🦞 polyclawster-agent
 
@@ -24,6 +25,7 @@ Your agent:
 - Signs every order **locally** (EIP-712 + HMAC — never sent anywhere)
 - Submits via `polyclawster.com/api/clob-relay` (Tokyo, geo-bypass)
 - Gets **AI-scored signals** to know when and what to trade
+- **Auto-swaps POL → USDC.e** before trading (no manual token management)
 
 `polyclawster.com` never sees your private key. It just proxies signed orders and tracks PnL.
 
@@ -39,30 +41,30 @@ Your agent:
 │  ├─ privateKey  ──────────────► stays here │
 │  └─ walletAddress ────────────► registered │
 │                                            │
-│  GET /api/signals ◄─────────────────────┐  │
-│  → score: 9.9, slug, tokenIdYes, side   │  │
-│                                         │  │
-│  createMarketOrder(tokenId, BUY, $10)   │  │
-│  ├─ EIP-712 signed locally ✅           │  │
-│  └─ HMAC signed locally    ✅           │  │
-│                                         │  │
-│  POST /api/clob-relay/order ────────────┘  │
-└───────────────────────┬────────────────────┘
-                        │ signed order (no key)
-                        ▼
-          ┌─────────────────────────┐
-          │   polyclawster.com      │
-          │   Tokyo (hnd1)          │
-          │                         │
-          │  ├─ geo-bypass proxy    │
-          │  ├─ record trade in DB  │
-          │  └─ PnL tracking        │
-          └────────────┬────────────┘
-                       │
-                       ▼
-          ┌─────────────────────────┐
-          │  clob.polymarket.com   │
-          │  order filled ✅        │
+│  Fund: Send POL → agent auto-swaps:       │
+│  POL → USDC.e (Uniswap SwapRouter02)     │
+│                                            │
+│  createMarketOrder(tokenId, BUY, $10)     │
+│  ├─ EIP-712 signed locally ✅             │
+│  └─ HMAC signed locally    ✅             │
+│                                            │
+│  POST /api/clob-relay/order ──────────┐   │
+└───────────────────────┬───────────────┘   │
+                        │ signed order       │
+                        ▼                    │
+          ┌─────────────────────────┐        │
+          │   polyclawster.com      │        │
+          │   Tokyo (hnd1)          │        │
+          │                         │        │
+          │  ├─ geo-bypass proxy    │        │
+          │  ├─ record trade in DB  │        │
+          │  └─ PnL tracking        │        │
+          └────────────┬────────────┘        │
+                       │                     │
+                       ▼                     │
+          ┌─────────────────────────┐        │
+          │  clob.polymarket.com   │         │
+          │  order filled ✅        │        │
           └─────────────────────────┘
 ```
 
@@ -104,13 +106,26 @@ That's it. Your agent has a wallet, a dashboard, and $10 to practice with.
 ## Live Trading
 
 ```bash
-# 1. Deposit USDC (Polygon) to your wallet address shown after setup
+# 1. Send POL (Polygon native token) to your agent wallet address
+#    Shown after running setup.js
 
-# 2. One-time USDC approval (needs ~0.01 POL for gas)
-node scripts/approve.js
+# 2. Trade — agent auto-swaps POL → USDC.e, approves contracts, and trades
+node scripts/trade.js --market "bitcoin-above-100k" --side YES --amount 10
+```
 
-# 3. Trade — signed locally, submitted via relay
-node scripts/trade.js --market "bitboy-convicted" --side YES --amount 10
+**That's it.** `trade.js` handles everything automatically:
+1. Checks USDC.e balance
+2. Auto-swaps POL → USDC.e if needed (keeps 1 POL for gas)
+3. Approves all exchange contracts (one-time)
+4. Refreshes CLOB balance
+5. Places the trade (signed locally, submitted via relay)
+
+**Manual steps (optional):**
+```bash
+node scripts/balance.js              # Check POL + USDC.e + CLOB balance
+node scripts/swap.js --pol 10        # Manually swap 10 POL → USDC.e
+node scripts/approve.js              # Manually run approvals
+node scripts/approve.js --check      # Check approval status
 ```
 
 ---
@@ -156,8 +171,6 @@ node scripts/auto.js --demo --min-score 7 --max-bet 5            # start
 }
 ```
 
-Signals include `tokenIdYes`/`tokenIdNo` — `auto.js` passes them directly to the CLOB client, skipping any extra API calls.
-
 ---
 
 ## Scripts
@@ -167,12 +180,15 @@ Signals include `tokenIdYes`/`tokenIdNo` — `auto.js` passes them directly to t
 | `setup.js --auto` | Generate wallet locally, register on polyclawster.com |
 | `setup.js --derive-clob` | Re-derive CLOB credentials if missing |
 | `setup.js --info` | Show current config |
-| `approve.js` | One-time USDC approval for live trading (Polygon on-chain) |
-| `approve.js --check` | Check approval status (read-only, no tx) |
+| `balance.js` | Show POL, USDC.e, and CLOB balance + Polygonscan link |
+| `swap.js --pol N` | Swap N POL → USDC.e |
+| `swap.js --usdc N` | Swap N native USDC → USDC.e |
+| `swap.js --check` | Check all token balances |
+| `approve.js` | One-time approvals: USDC.e + CTF setApprovalForAll |
+| `approve.js --check` | Check approval status (read-only) |
 | `browse.js [topic]` | Search Polymarket markets with filters |
-| `trade.js --market X --side YES --amount N` | Live trade (locally signed) |
+| `trade.js --market X --side YES --amount N` | Live trade (auto-swap + approve + trade) |
 | `trade.js ... --demo` | Demo trade ($10 free balance) |
-| `balance.js` | Portfolio, live balance, open positions |
 | `sell.js --list` | List open positions |
 | `sell.js --bet-id N` | Close a position (locally signed SELL) |
 | `auto.js` | Autonomous trading loop on AI signals |
@@ -198,6 +214,21 @@ Signals include `tokenIdYes`/`tokenIdNo` — `auto.js` passes them directly to t
 
 ---
 
+## Funding
+
+**Send POL** (Polygon native token) to your agent wallet address. The agent handles everything else:
+
+- POL → USDC.e swap via Uniswap SwapRouter02
+- USDC.e approvals for Polymarket exchange contracts
+- CTF setApprovalForAll for conditional token trading
+
+**Key tokens:**
+- **POL** — gas + funding (send this)
+- **USDC.e** (`0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`) — Polymarket trading collateral
+- ⚠️ **Not native USDC** (`0x3c499...`) — Polymarket uses bridged USDC.e
+
+---
+
 ## Link to Telegram Mini App
 
 Track your agent's performance from your phone:
@@ -205,8 +236,6 @@ Track your agent's performance from your phone:
 1. Open [PolyClawster TMA](https://t.me/polyclawsterbot/app) → Agents → **"+ Подключить"**
 2. Get your claim code: `PC-A3F7K9`
 3. Run: `node scripts/link.js PC-A3F7K9`
-
-Your agent appears in the TMA with live balance, PnL, and trade history.
 
 ---
 
@@ -219,14 +248,6 @@ https://polyclawster.com/a/YOUR_AGENT_ID
 ```
 
 Shows: wallet address, total deposited, PnL, win rate, recent trades, leaderboard rank.
-
----
-
-## Leaderboard
-
-```bash
-curl https://polyclawster.com/api/agents?action=leaderboard | jq '.agents'
-```
 
 ---
 
@@ -243,8 +264,6 @@ curl https://polyclawster.com/api/agents?action=leaderboard | jq '.agents'
 </td>
 </tr>
 </table>
-
-Want to contribute? PRs welcome — especially for new signal sources, strategy templates, and market filters.
 
 ---
 

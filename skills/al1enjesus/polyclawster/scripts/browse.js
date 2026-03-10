@@ -34,14 +34,61 @@ function getJSON(url) {
   });
 }
 
+// ── Keyword aliases — each key maps to array of single search terms ───────────
+// search-markets only handles one word at a time, so we send parallel requests
+const KEYWORD_ALIASES = {
+  'crypto':   ['bitcoin', 'ethereum', 'solana'],
+  'btc':      ['bitcoin'],
+  'eth':      ['ethereum'],
+  'sol':      ['solana'],
+  'defi':     ['defi', 'uniswap'],
+  'ai':       ['artificial intelligence', 'openai'],
+  'stock':    ['nasdaq', 'sp500'],
+  'politics': ['election', 'president'],
+  'election': ['election', 'president'],
+  'war':      ['ukraine', 'russia', 'middle east'],
+  'sports':   ['nba', 'nfl', 'soccer'],
+  'nba':      ['nba'],
+  'nfl':      ['nfl'],
+  'ufc':      ['ufc'],
+  'weather':  ['climate', 'hurricane'],
+};
+
+function getAliasTerms(q) {
+  if (!q) return [q];
+  const lower = q.toLowerCase().trim();
+  return KEYWORD_ALIASES[lower] || [q];
+}
+
 async function browseMarkets(query, opts = {}) {
   const { minVolume = 0, minPrice = 0, maxPrice = 1, limit = 10 } = opts;
 
-  const qs = new URLSearchParams({ limit: '50' });
-  if (query) qs.set('q', query);
+  const terms = getAliasTerms(query);
 
-  const result = await getJSON(`${API_BASE}/api/search-markets?${qs}`);
-  if (!result.ok) throw new Error(result.error || 'Failed to fetch markets');
+  // Parallel requests for each alias term
+  const results = await Promise.all(terms.map(term => {
+    const qs = new URLSearchParams({ limit: '30' });
+    if (term) qs.set('q', term);
+    return getJSON(`${API_BASE}/api/search-markets?${qs}`).catch(() => null);
+  }));
+
+  // Merge + deduplicate by conditionId/slug
+  const seen = new Set();
+  const allMarkets = [];
+  for (const result of results) {
+    if (!result?.ok) continue;
+    for (const m of (result.markets || [])) {
+      const key = m.conditionId || m.slug || m.question;
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        allMarkets.push(m);
+      }
+    }
+  }
+
+  // Wrap in result-like object for downstream filters
+  const result = { ok: true, markets: allMarkets };
+  if (!result.ok) throw new Error('Failed to fetch markets');
 
   let markets = result.markets || [];
 
@@ -76,8 +123,11 @@ if (require.main === module) {
     }
 
     console.log('');
-    if (query) console.log(`🔍 Markets matching "${query}":\n`);
-    else       console.log('📊 Top Polymarket markets:\n');
+    const terms = getAliasTerms(query);
+    const expanded = terms.length > 1 || (terms[0] !== query);
+    if (query && expanded) console.log(`🔍 Markets matching "${query}" (→ ${terms.join(', ')}):\n`);
+    else if (query)        console.log(`🔍 Markets matching "${query}":\n`);
+    else                   console.log('📊 Top Polymarket markets:\n');
 
     markets.forEach((m, i) => {
       const price   = parseFloat(m.bestAsk || m.bestBid || 0.5);

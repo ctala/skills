@@ -1,6 +1,6 @@
 ---
 name: polyclawster-agent
-description: Trade on Polymarket prediction markets. Non-custodial — your agent generates a Polygon wallet locally, signs orders with its own private key, and submits via polyclawster.com relay (geo-bypass). Private key never leaves your machine.
+description: Trade on Polymarket prediction markets. Non-custodial — your agent generates a Polygon wallet, signs orders locally, and submits via polyclawster.com relay (geo-bypass). Private key never leaves your machine. Fund with POL — agent auto-swaps to USDC.e.
 metadata:
   {
     "openclaw": {
@@ -8,20 +8,15 @@ metadata:
       "permissions": {
         "network": [
           "polyclawster.com",
-          "polygon-rpc.com"
+          "polygon-bor-rpc.publicnode.com",
+          "clob.polymarket.com",
+          "gamma-api.polymarket.com"
         ],
         "fs": {
           "write": ["~/.polyclawster/config.json"],
           "read":  ["~/.polyclawster/config.json"]
         }
-      },
-      "credentials": [
-        {
-          "key": "POLYCLAWSTER_API_KEY",
-          "description": "Agent API key (auto-generated at setup, stored in ~/.polyclawster/config.json). Not a private key — just for polyclawster.com portfolio/demo API.",
-          "required": false
-        }
-      ]
+      }
     }
   }
 ---
@@ -30,133 +25,96 @@ metadata:
 
 Trade on [Polymarket](https://polymarket.com) prediction markets with your OpenClaw agent.
 
-## How to use with OpenClaw
-
-After installing this skill, just talk to your agent naturally:
-
-```
-"Set me up to trade Polymarket in demo mode"
-→ runs: node scripts/setup.js --auto
-
-"Browse crypto markets on Polymarket"
-→ runs: node scripts/browse.js "crypto"
-
-"Place a $2 demo bet on bitcoin reaching 100k"
-→ runs: node scripts/trade.js --market "bitcoin-100k" --side YES --amount 2 --demo
-
-"Show my Polymarket balance"
-→ runs: node scripts/balance.js
-
-"Auto-trade Polymarket every hour with score above 8"
-→ sets up OpenClaw cron: node scripts/auto.js --min-score 8 --max-bet 5 --demo
-```
-
-Your agent understands the skill context and can chain commands — e.g. browse → pick market → trade.
-
-## OpenClaw Cron Setup
-
-Ask your agent to set up autonomous trading:
-
-> *"Run polyclawster auto-trade every 30 minutes in demo mode"*
-
-Or set up manually — tell your agent:
-
-```
-Create a cron job that runs every 30 minutes:
-  node /path/to/polyclawster/scripts/auto.js --demo --min-score 7 --max-bet 5
-```
-
-The agent will handle the cron setup via the `cron` tool automatically.
-
-## Architecture — Non-Custodial
-
-**Your private key stays on your machine. Always.**
-
-```
-Your Agent Container:
-  ├─ generates wallet locally (ethers.Wallet.createRandom())
-  ├─ signs orders locally (EIP-712 with private key)
-  ├─ signs requests locally (HMAC with api_secret)
-  └─ private key: ~/.polyclawster/config.json (chmod 600) only
-
-polyclawster.com:
-  ├─ stores: wallet_address, demo_balance, trade_history
-  ├─ does NOT store: private key, CLOB api_secret
-  ├─ /api/clob-relay: geo-bypass proxy → clob.polymarket.com (Tokyo)
-  ├─ /api/signals: AI-scored trading opportunities
-  └─ /api/agents: portfolio, leaderboard, TMA visibility
-
-Polymarket CLOB:
-  └─ receives already-signed orders, verifies EIP-712 signature
-```
-
 ## Quick Start
 
-### 1. Setup (generates wallet locally)
+```
+"Set me up to trade Polymarket"
+→ runs: node scripts/setup.js --auto
+→ shows wallet address — send POL to fund it
+```
+
+## How It Works
+
+1. **Setup** → generates Polygon wallet + registers agent on polyclawster.com
+2. **Fund** → send POL (Polygon native token) to agent wallet address
+3. **Trade** → agent auto-swaps POL → USDC.e, approves contracts, places orders
+
+All signing happens locally. Private key never leaves the machine.
+Orders go through polyclawster.com relay (Tokyo) for Polymarket geo-bypass.
+
+## Scripts
+
+### `setup.js --auto`
+Generate wallet, register agent, derive CLOB API credentials.
 ```bash
 node scripts/setup.js --auto
 ```
 
-### 2. Browse markets
-```bash
-node scripts/browse.js "bitcoin"
-node scripts/browse.js "election" --min-volume 100000
-```
-
-### 3. Demo trade (free $10 balance)
-```bash
-node scripts/trade.js --market "bitboy-convicted" --side YES --amount 2 --demo
-```
-
-### 4. Check balance & open positions
+### `balance.js`
+Check all balances: POL, USDC.e, CLOB available.
 ```bash
 node scripts/balance.js
 ```
 
-### 5. Live trading (after depositing USDC to your wallet)
+### `swap.js`
+Convert POL or native USDC to USDC.e (Polymarket's trading token).
 ```bash
-node scripts/approve.js         # one-time USDC approval (~0.01 POL gas)
-node scripts/trade.js --market "bitboy-convicted" --side YES --amount 10
+node scripts/swap.js              # auto-detect and swap
+node scripts/swap.js --pol 10     # swap 10 POL → USDC.e
+node scripts/swap.js --check      # check balances only
 ```
 
-### 6. Auto-trade on AI signals
+### `approve.js`
+One-time on-chain approvals for Polymarket contracts.
+Called automatically by `trade.js` when needed.
 ```bash
-node scripts/auto.js --dry-run                         # preview
-node scripts/auto.js --demo --min-score 7 --max-bet 5  # demo mode
-node scripts/auto.js --min-score 8 --max-bet 10        # live mode
+node scripts/approve.js           # approve all
+node scripts/approve.js --check   # check status only
 ```
 
-## Security Model
+### `browse.js`
+Search Polymarket markets.
+```bash
+node scripts/browse.js "bitcoin"
+node scripts/browse.js "politics"
+```
 
-| What | Where stored | Who can see it |
-|------|-------------|----------------|
-| Private key | `~/.polyclawster/config.json` (chmod 600) | Only your machine |
-| CLOB api_secret | `~/.polyclawster/config.json` | Only your machine |
-| CLOB api_key | `~/.polyclawster/config.json` | Your machine + Polymarket |
-| Wallet address | polyclawster.com + Polygon chain | Public |
-| Trade history | polyclawster.com Supabase | polyclawster.com |
+### `trade.js`
+Place a trade. Live by default — add `--demo` for paper trading.
+Before live trades, auto-checks: USDC.e balance, swaps if needed, approves if needed.
+```bash
+node scripts/trade.js --market "bitcoin-100k" --side YES --amount 5
+node scripts/trade.js --market "trump-win" --side NO --amount 2 --demo
+```
 
-## Scripts Reference
+### `sell.js`
+Close/sell an existing position.
+```bash
+node scripts/sell.js --bet-id 123
+```
 
-| Script | Description |
-|--------|-------------|
-| `setup.js --auto` | Generate wallet, derive CLOB creds, register |
-| `setup.js --derive-clob` | Re-derive CLOB credentials |
-| `setup.js --info` | Show current config |
-| `approve.js` | One-time on-chain USDC approval for live trading |
-| `approve.js --check` | Check approval status (no tx) |
-| `browse.js [topic]` | Search Polymarket markets |
-| `trade.js --market X --side YES --amount N` | Live trade (locally signed) |
-| `trade.js ... --demo` | Demo trade |
-| `balance.js` | Portfolio & balance |
-| `sell.js --list` | List open positions |
-| `sell.js --bet-id N` | Close a position |
-| `auto.js` | Autonomous trading loop on AI signals |
-| `auto.js --dry-run` | Simulate without trading |
-| `link.js PC-XXXXX` | Link to TMA account |
+## Architecture
 
-## Agent Dashboard
+```
+Agent (your machine)          polyclawster.com           Polymarket
+─────────────────           ─────────────────          ──────────────
+Private key (local)    →    /api/clob-relay (Tokyo)  → CLOB order book
+Signs orders locally        Geo-bypass proxy            Matches + settles
+                            Records in Supabase
+                            Leaderboard / dashboard
+```
 
-After setup: `https://polyclawster.com/a/YOUR_AGENT_ID`
+- **Wallet**: Polygon EOA, generated locally
+- **Trading token**: USDC.e (bridged USDC on Polygon) — `0x2791Bca1...`
+- **Funding**: send POL → agent swaps to USDC.e via Uniswap
+- **Relay**: polyclawster.com/api/clob-relay (deployed in Tokyo, not geo-blocked)
+- **Dashboard**: polyclawster.com/a/{wallet_address}
 
-Built by [Virix Labs](https://virixlabs.com) · [polyclawster.com](https://polyclawster.com)
+## Funding
+
+Send **POL** (Polygon native token) to your agent's wallet address.
+The agent automatically converts POL → USDC.e when placing live trades.
+
+You can also send USDC.e directly if you prefer — no swap needed.
+
+**Do NOT send native USDC** — Polymarket uses USDC.e (bridged). If you accidentally send native USDC, run `node scripts/swap.js` to convert it.
