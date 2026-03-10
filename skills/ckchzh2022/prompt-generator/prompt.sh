@@ -607,6 +607,16 @@ Commands:
 
   batch "subject" --count N         Generate N prompt variants (default 5)
 
+  style "style_name"                Show style-specific keyword library
+                                    Styles: cyberpunk, chinese, oil, watercolor,
+                                            anime, fantasy, scifi, minimal, horror
+
+  negative                          Complete negative prompt reference
+
+  workflow "scene"                  Full workflow from concept to final image
+
+  upscale "description"             Upgrade a simple description to pro prompt
+
   help                              Show this help message
 
 Examples:
@@ -618,12 +628,549 @@ Examples:
   prompt.sh enhance "a cat sitting on a windowsill"
   prompt.sh batch "dragon" --count 3
   prompt.sh image "森林中的城堡" --style fantasy
+  prompt.sh style "cyberpunk"
+  prompt.sh negative
+  prompt.sh workflow "portrait"
+  prompt.sh upscale "a cat in rain"
 
 Notes:
   - Image prompts are always in English (AI art standard)
   - Chinese subjects are auto-translated
   - All generation is local (no API calls)
 """)
+
+
+def cmd_style(style_name):
+    """Show style-specific keyword library."""
+    style_name_lower = style_name.lower()
+
+    style_libraries = {
+        "cyberpunk": {
+            "name": "Cyberpunk / 赛博朋克",
+            "core_tags": [
+                "cyberpunk", "neon-lit", "futuristic dystopia", "high tech low life",
+                "cyberpunk 2077", "cyber aesthetic", "sci-fi noir",
+            ],
+            "atmosphere": [
+                "neon glow", "holographic displays", "chrome reflections",
+                "rain-soaked streets", "smog-filled skies", "electric blue",
+                "glitch effect", "digital rain", "dark alleyways",
+            ],
+            "subjects": [
+                "augmented human", "android", "hacker", "neon signs",
+                "flying cars", "megacity", "corporate tower", "cybernetic implants",
+            ],
+            "colors": [
+                "neon pink", "electric blue", "toxic green", "deep purple",
+                "magenta", "cyan glow", "warm orange neon",
+            ],
+            "artists": [
+                "Syd Mead", "Blade Runner aesthetic", "Ghost in the Shell style",
+                "Akira inspired", "Simon Stalenhag",
+            ],
+        },
+        "chinese": {
+            "name": "Chinese Art / 国风",
+            "core_tags": [
+                "Chinese ink painting", "traditional Chinese art", "guo hua",
+                "xieyi style", "classical Chinese aesthetic", "Song dynasty painting",
+            ],
+            "atmosphere": [
+                "misty mountains", "flowing water", "bamboo forest",
+                "plum blossom", "moonlight", "ink wash", "ethereal fog",
+                "traditional architecture", "silk scroll",
+            ],
+            "subjects": [
+                "scholar", "crane", "dragon", "phoenix", "lotus",
+                "koi fish", "ancient palace", "pagoda", "tea ceremony",
+            ],
+            "colors": [
+                "ink black", "vermillion red", "jade green", "gold leaf",
+                "indigo blue", "celadon", "warm sepia",
+            ],
+            "artists": [
+                "Qi Baishi style", "Zhang Daqian inspired",
+                "Wu Guanzhong aesthetic", "traditional shanshui",
+            ],
+        },
+        "oil": {
+            "name": "Oil Painting / 油画",
+            "core_tags": [
+                "oil painting", "oil on canvas", "classical oil painting",
+                "impasto technique", "brushstroke texture", "fine art",
+            ],
+            "atmosphere": [
+                "rich textures", "warm palette", "dramatic chiaroscuro",
+                "museum quality", "gallery painting", "canvas texture visible",
+                "thick paint application", "glazing technique",
+            ],
+            "subjects": [
+                "portrait", "still life", "landscape", "figure study",
+                "historical scene", "allegorical painting",
+            ],
+            "colors": [
+                "burnt sienna", "ultramarine blue", "cadmium yellow",
+                "titanium white", "alizarin crimson", "raw umber",
+            ],
+            "artists": [
+                "Rembrandt lighting", "Monet impressionism", "Van Gogh style",
+                "Vermeer composition", "Caravaggio chiaroscuro",
+            ],
+        },
+        "watercolor": {
+            "name": "Watercolor / 水彩",
+            "core_tags": [
+                "watercolor painting", "watercolor illustration",
+                "wet on wet technique", "delicate washes", "transparent layers",
+            ],
+            "atmosphere": [
+                "soft edges", "flowing colors", "paper texture visible",
+                "watercolor splashes", "gentle blending", "light washes",
+                "wet paper effect", "color bleeding",
+            ],
+            "subjects": [
+                "floral arrangement", "landscape scene", "botanical illustration",
+                "portrait sketch", "urban sketching", "nature study",
+            ],
+            "colors": [
+                "soft pastels", "transparent hues", "muted tones",
+                "bleeding edges", "granulating pigments", "luminous washes",
+            ],
+            "artists": [
+                "J.M.W. Turner style", "Winslow Homer influenced",
+                "botanical illustration style", "urban sketcher aesthetic",
+            ],
+        },
+        "anime": {
+            "name": "Anime / 动漫",
+            "core_tags": [
+                "anime style", "anime key visual", "manga style",
+                "cel shading", "anime aesthetic", "Japanese animation",
+            ],
+            "atmosphere": [
+                "clean lineart", "vibrant anime colors", "detailed anime eyes",
+                "dynamic pose", "sparkle effect", "soft glow",
+                "dramatic wind effect", "cherry blossom petals",
+            ],
+            "subjects": [
+                "magical girl", "mecha", "school setting", "fantasy warrior",
+                "idol", "slice of life", "bishojo", "chibi",
+            ],
+            "colors": [
+                "vibrant saturated", "pastel pink", "sky blue",
+                "golden highlight", "deep shadow", "gradient hair",
+            ],
+            "artists": [
+                "Makoto Shinkai style", "Studio Ghibli aesthetic",
+                "Kyoto Animation quality", "Ufotable action style",
+            ],
+        },
+        "fantasy": {
+            "name": "Fantasy / 奇幻",
+            "core_tags": [
+                "epic fantasy", "high fantasy", "fantasy art",
+                "magical realm", "enchanted", "mythical",
+            ],
+            "atmosphere": [
+                "magical particles", "glowing runes", "ethereal light",
+                "ancient forest", "floating islands", "crystal caves",
+                "dragon fire", "mystical fog",
+            ],
+            "subjects": [
+                "dragon", "wizard", "elf", "castle", "enchanted forest",
+                "magical creature", "ancient ruins", "treasure",
+            ],
+            "colors": [
+                "mystical purple", "enchanted green", "golden glow",
+                "frost blue", "fire orange", "shadow black",
+            ],
+            "artists": [
+                "Frank Frazetta style", "Alan Lee inspired",
+                "Tolkien illustration style", "Magic: The Gathering art",
+            ],
+        },
+        "scifi": {
+            "name": "Sci-Fi / 科幻",
+            "core_tags": [
+                "science fiction", "futuristic", "space opera",
+                "hard sci-fi", "space exploration", "alien world",
+            ],
+            "atmosphere": [
+                "zero gravity", "starfield", "nebula background",
+                "space station interior", "warp speed", "holographic interface",
+                "plasma energy", "cryogenic chamber",
+            ],
+            "subjects": [
+                "spaceship", "space station", "alien landscape", "astronaut",
+                "AI robot", "terraformed planet", "dyson sphere",
+            ],
+            "colors": [
+                "deep space black", "nebula purple", "star white",
+                "plasma blue", "warning red", "hologram green",
+            ],
+            "artists": [
+                "Chris Foss style", "Moebius influenced",
+                "Ralph McQuarrie aesthetic", "concept art style",
+            ],
+        },
+        "minimal": {
+            "name": "Minimalist / 极简",
+            "core_tags": [
+                "minimalist", "minimal design", "clean composition",
+                "negative space", "simple elegance", "less is more",
+            ],
+            "atmosphere": [
+                "white space", "geometric shapes", "single focal point",
+                "muted background", "clean lines", "subtle shadows",
+                "flat design elements",
+            ],
+            "subjects": [
+                "single object", "abstract shape", "architectural detail",
+                "product photography", "brand visual", "icon design",
+            ],
+            "colors": [
+                "monochrome", "white dominant", "single accent color",
+                "neutral palette", "black and white", "earth tones",
+            ],
+            "artists": [
+                "Dieter Rams inspired", "Japanese wabi-sabi",
+                "Bauhaus aesthetic", "Swiss design style",
+            ],
+        },
+        "horror": {
+            "name": "Horror / 恐怖",
+            "core_tags": [
+                "dark horror", "gothic horror", "supernatural",
+                "eerie", "macabre", "nightmarish",
+            ],
+            "atmosphere": [
+                "dark shadows", "fog and mist", "moonlit cemetery",
+                "abandoned building", "flickering candlelight",
+                "creaking doors", "blood red accents",
+            ],
+            "subjects": [
+                "haunted house", "ghost", "skeleton", "dark forest",
+                "creepy doll", "ancient ritual", "eldritch creature",
+            ],
+            "colors": [
+                "deep black", "blood red", "sickly green",
+                "pale moonlight", "bruise purple", "bone white",
+            ],
+            "artists": [
+                "H.R. Giger style", "Beksinski inspired",
+                "Junji Ito aesthetic", "Zdzislaw Beksinski",
+            ],
+        },
+    }
+
+    if style_name_lower not in style_libraries:
+        print("Available styles / 可用风格:")
+        for key, data in sorted(style_libraries.items()):
+            print("  {:12s} {}".format(key, data["name"]))
+        print()
+        print("Usage: prompt.sh style \"{}\"".format(list(style_libraries.keys())[0]))
+        return
+
+    lib = style_libraries[style_name_lower]
+
+    print("=" * 60)
+    print("  Style Library: {}".format(lib["name"]))
+    print("=" * 60)
+
+    sections = [
+        ("Core Tags", "core_tags"),
+        ("Atmosphere & Effects", "atmosphere"),
+        ("Recommended Subjects", "subjects"),
+        ("Color Palette", "colors"),
+        ("Artist References", "artists"),
+    ]
+
+    for title, key in sections:
+        print()
+        print("[{}]".format(title))
+        for item in lib[key]:
+            print("  - {}".format(item))
+
+    # Generate a sample prompt
+    sample_parts = (
+        random.sample(lib["core_tags"], min(2, len(lib["core_tags"])))
+        + ["a beautiful scene"]
+        + random.sample(lib["atmosphere"], min(2, len(lib["atmosphere"])))
+        + random.sample(lib["colors"], min(1, len(lib["colors"])))
+        + pick(QUALITY_BOOSTERS, 2)
+    )
+    sample = ", ".join(sample_parts)
+    print()
+    print("[Sample Prompt]")
+    print(sample)
+    print()
+    print("=" * 60)
+
+
+def cmd_negative():
+    """Show comprehensive negative prompt reference."""
+    categories = {
+        "Quality Issues": [
+            "low quality", "worst quality", "lowres", "jpeg artifacts",
+            "compression artifacts", "pixelated", "grainy", "noisy",
+            "blurry", "out of focus", "motion blur", "overexposed",
+            "underexposed", "oversaturated", "washed out",
+        ],
+        "Anatomy Problems": [
+            "bad anatomy", "bad proportions", "deformed", "disfigured",
+            "mutation", "mutated", "extra limbs", "extra arms",
+            "extra legs", "extra fingers", "missing fingers",
+            "fused fingers", "too many fingers", "long neck",
+            "malformed limbs", "malformed hands", "poorly drawn hands",
+            "poorly drawn face", "poorly drawn eyes", "cross-eyed",
+            "asymmetric eyes", "missing teeth",
+        ],
+        "Composition Issues": [
+            "cropped", "out of frame", "cut off", "truncated",
+            "bad framing", "tilted", "dutch angle (if unwanted)",
+            "cluttered background", "distracting elements",
+        ],
+        "Unwanted Elements": [
+            "watermark", "text", "signature", "logo", "username",
+            "banner", "border", "frame", "stamp", "copyright",
+            "url", "website",
+        ],
+        "Style Conflicts (choose as needed)": [
+            "photorealistic (for art styles)",
+            "3d render (for 2d styles)",
+            "anime (for realistic styles)",
+            "cartoon (for realistic styles)",
+            "painting (for photo styles)",
+            "illustration (for photo styles)",
+            "sketch (for finished styles)",
+            "cgi (for traditional art)",
+        ],
+        "Character Issues": [
+            "ugly", "duplicate", "morbid", "mutilated",
+            "bad facial features", "unnatural skin", "plastic skin",
+            "uncanny valley", "dead eyes", "zombie eyes",
+        ],
+    }
+
+    print("=" * 60)
+    print("  Negative Prompt Reference / 负面提示词大全")
+    print("=" * 60)
+
+    for category, terms in categories.items():
+        print()
+        print("[{}]".format(category))
+        # Print in rows of 4
+        for i in range(0, len(terms), 3):
+            row = terms[i:i+3]
+            print("  " + ", ".join(row))
+
+    # Ready-to-use combos
+    print()
+    print("=" * 60)
+    print("  Ready-to-Use Combos / 即用组合")
+    print("=" * 60)
+
+    combos = {
+        "Universal (safe default)": "low quality, worst quality, blurry, watermark, text, signature, deformed, bad anatomy, extra limbs, mutated hands, poorly drawn face, ugly, cropped",
+        "Realistic Photo": "low quality, worst quality, blurry, watermark, text, signature, deformed, bad anatomy, cartoon, anime, illustration, painting, drawing, cgi, 3d render, plastic skin, uncanny valley",
+        "Anime/Illustration": "low quality, worst quality, blurry, watermark, text, signature, deformed, bad anatomy, extra limbs, photorealistic, 3d render, western cartoon, bad proportions, ugly",
+        "Landscape/Scenery": "low quality, worst quality, blurry, watermark, text, signature, cropped, out of frame, people, human, person, cluttered, ugly",
+    }
+
+    for name, combo in combos.items():
+        print()
+        print("[{}]".format(name))
+        print(combo)
+
+    print()
+    print("=" * 60)
+
+
+def cmd_workflow(scene):
+    """Generate a complete workflow from concept to final image."""
+    scene_en = ensure_english(scene)
+
+    workflows = {
+        "portrait": {
+            "name": "Portrait / 人像",
+            "concept": "A detailed character portrait with professional lighting",
+            "positive": "portrait of a person, {scene}, masterpiece, best quality, highly detailed, sharp focus, realistic skin texture, detailed eyes, professional studio lighting, shallow depth of field, 85mm lens, bokeh background, high resolution",
+            "negative": "low quality, worst quality, blurry, deformed, bad anatomy, extra limbs, mutated hands, poorly drawn face, ugly, watermark, text, signature, cropped, cartoon, anime",
+            "settings": {"Steps": "30-50", "CFG Scale": "7-9", "Sampler": "DPM++ 2M Karras", "Size": "768x1024 (portrait)", "Denoising": "0.7"},
+            "tips": [
+                "Use face restoration (GFPGAN/CodeFormer) after generation",
+                "ADetailer extension helps fix face/hand details",
+                "85mm lens gives natural portrait proportions",
+                "Add specific ethnicity/age/expression for better results",
+            ],
+        },
+        "landscape": {
+            "name": "Landscape / 风景",
+            "concept": "A breathtaking landscape with dramatic atmosphere",
+            "positive": "{scene}, epic landscape, masterpiece, best quality, ultra detailed, panoramic view, golden hour lighting, dramatic sky, vivid colors, rule of thirds, high resolution, 8k uhd, national geographic style, stunning scenery",
+            "negative": "low quality, worst quality, blurry, watermark, text, signature, people, human, person, cropped, out of frame, ugly, deformed, cluttered",
+            "settings": {"Steps": "25-40", "CFG Scale": "8-12", "Sampler": "Euler a", "Size": "1024x576 (16:9)", "Denoising": "0.7"},
+            "tips": [
+                "Wide aspect ratios (16:9, 21:9) work best for landscapes",
+                "Mention specific time of day for consistent lighting",
+                "Use ControlNet with depth maps for precise composition",
+                "Upscale with Real-ESRGAN for print-quality output",
+            ],
+        },
+        "product": {
+            "name": "Product / 商品",
+            "concept": "Clean product photography for commercial use",
+            "positive": "{scene}, product photography, studio lighting, white background, clean composition, commercial quality, sharp focus, high resolution, minimalist, professional product shot, soft shadows, gradient background",
+            "negative": "low quality, worst quality, blurry, watermark, text, signature, cluttered background, distracting elements, overexposed, underexposed, noise, grain",
+            "settings": {"Steps": "30-50", "CFG Scale": "7-9", "Sampler": "DPM++ 2M Karras", "Size": "1024x1024 (square)", "Denoising": "0.6"},
+            "tips": [
+                "White or gradient backgrounds are standard for e-commerce",
+                "Use img2img with a photo reference for consistent angles",
+                "Add 'product hero shot' for dramatic presentation",
+                "Inpainting can fix specific details without regenerating",
+            ],
+        },
+        "character": {
+            "name": "Character Design / 角色设计",
+            "concept": "Full character design with details",
+            "positive": "{scene}, character design, full body, detailed outfit, character concept art, masterpiece, best quality, highly detailed, clean background, multiple views, character sheet, reference sheet, anime style",
+            "negative": "low quality, worst quality, blurry, watermark, text, signature, deformed, bad anatomy, extra limbs, extra fingers, mutated, ugly, cropped, partial body",
+            "settings": {"Steps": "30-50", "CFG Scale": "7-10", "Sampler": "DPM++ 2M Karras", "Size": "1024x1024", "Denoising": "0.7"},
+            "tips": [
+                "Add 'character sheet' or 'turnaround' for multi-view",
+                "Specify outfit details: color, material, accessories",
+                "Use T2I-Adapter for pose control",
+                "Generate multiple iterations and pick best elements",
+            ],
+        },
+    }
+
+    # Match scene to closest workflow, or use default
+    scene_lower = scene_en.lower()
+    matched = None
+    for key in workflows:
+        if key in scene_lower:
+            matched = key
+            break
+    if matched is None:
+        # Default to landscape-like
+        matched = "landscape"
+
+    wf = workflows[matched]
+
+    print("=" * 60)
+    print("  Complete Workflow: {}".format(wf["name"]))
+    print("  Scene: {}".format(scene))
+    print("=" * 60)
+
+    print()
+    print("STEP 1: Concept / 构思")
+    print("  {}".format(wf["concept"]))
+    print("  Subject: {}".format(scene_en))
+
+    print()
+    print("STEP 2: Positive Prompt")
+    print("  {}".format(wf["positive"].format(scene=scene_en)))
+
+    print()
+    print("STEP 3: Negative Prompt")
+    print("  {}".format(wf["negative"]))
+
+    print()
+    print("STEP 4: Recommended Settings")
+    for key, val in wf["settings"].items():
+        print("  {:15s} {}".format(key + ":", val))
+
+    print()
+    print("STEP 5: Post-Processing Tips")
+    for i, tip in enumerate(wf["tips"], 1):
+        print("  {}. {}".format(i, tip))
+
+    print()
+    print("STEP 6: Iteration Strategy")
+    print("  1. Generate 4 images with these settings")
+    print("  2. Pick the best composition")
+    print("  3. Use img2img on it with lower denoising (0.3-0.5)")
+    print("  4. Inpaint problem areas (hands, faces)")
+    print("  5. Upscale final result 2x-4x")
+
+    if is_chinese(scene):
+        print()
+        print("(Scene translated: {} -> {})".format(scene, scene_en))
+    print()
+    print("=" * 60)
+
+
+def cmd_upscale(description):
+    """Upgrade a simple description into a professional prompt."""
+    desc_en = ensure_english(description)
+
+    # Level 1: Basic
+    level1 = desc_en
+
+    # Level 2: Add quality
+    quality = pick(QUALITY_BOOSTERS, 3)
+    level2_parts = [desc_en] + quality
+    level2 = ", ".join(level2_parts)
+
+    # Level 3: Add style and lighting
+    lighting = pick(LIGHTING_TERMS, 2)
+    composition = pick(COMPOSITION_TERMS, 1)
+    atmosphere = pick(ATMOSPHERE_TERMS)
+    level3_parts = level2_parts + lighting + composition + [atmosphere]
+    level3 = ", ".join(level3_parts)
+
+    # Level 4: Full professional
+    color = pick(COLOR_TERMS)
+    detail = pick(DETAIL_TERMS, 2)
+    camera = pick(CAMERA_TERMS)
+    level4_parts = level3_parts + [color] + detail + [camera]
+    level4 = ", ".join(level4_parts)
+
+    # Negative
+    negative = ", ".join(pick(NEGATIVE_PROMPTS, 10))
+
+    print("=" * 60)
+    print("  Prompt Upscale / 提示词升级")
+    print("  Original: {}".format(description))
+    print("=" * 60)
+
+    print()
+    print("--- Level 1: Basic (your input) ---")
+    print(level1)
+
+    print()
+    print("--- Level 2: + Quality Boosters ---")
+    print(level2)
+
+    print()
+    print("--- Level 3: + Lighting & Composition ---")
+    print(level3)
+
+    print()
+    print("--- Level 4: Full Professional ---")
+    print(level4)
+
+    print()
+    print("--- Matching Negative Prompt ---")
+    print(negative)
+
+    print()
+    print("---")
+    print("Enhancements applied:")
+    print("  + Quality: {}".format(", ".join(quality)))
+    print("  + Lighting: {}".format(", ".join(lighting)))
+    print("  + Composition: {}".format(", ".join(composition)))
+    print("  + Atmosphere: {}".format(atmosphere))
+    print("  + Color: {}".format(color))
+    print("  + Detail: {}".format(", ".join(detail)))
+    print("  + Camera: {}".format(camera))
+
+    if is_chinese(description):
+        print()
+        print("(Translated: {} -> {})".format(description, desc_en))
+    print()
+    print("=" * 60)
 
 
 # ============================================================
@@ -721,6 +1268,28 @@ def parse_args(argv):
                     count = 5
         cmd_batch(subject, count)
 
+    elif command == "style":
+        if len(argv) < 3:
+            print("Error: 'style' requires a style name. Usage: prompt.sh style \"cyberpunk\"")
+            cmd_style("")  # will show available styles
+            sys.exit(1)
+        cmd_style(argv[2])
+
+    elif command == "negative" or command == "neg":
+        cmd_negative()
+
+    elif command == "workflow":
+        if len(argv) < 3:
+            print("Error: 'workflow' requires a scene. Usage: prompt.sh workflow \"portrait\"")
+            sys.exit(1)
+        cmd_workflow(argv[2])
+
+    elif command == "upscale":
+        if len(argv) < 3:
+            print("Error: 'upscale' requires a description. Usage: prompt.sh upscale \"a cat in rain\"")
+            sys.exit(1)
+        cmd_upscale(argv[2])
+
     else:
         print("Unknown command: '{}'".format(command))
         print("Run 'prompt.sh help' to see available commands.")
@@ -730,3 +1299,5 @@ def parse_args(argv):
 if __name__ == "__main__":
     parse_args(sys.argv)
 PYTHON_SCRIPT
+echo ""
+echo "  Powered by BytesAgain | bytesagain.com | hello@bytesagain.com"

@@ -1,11 +1,17 @@
 {
   "owner": "ckchzh2022",
   "slug": "prompt-generator",
-  "displayName": "Prompt Generator",
+  "displayName": "prompt-generator",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773092889703,
-    "commit": "https://github.com/openclaw/skills/commit/579ceb897b57c2c05668c11c77a3be70d4d65050"
+    "version": "1.5.1",
+    "publishedAt": 1773152689992,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773092889703,
+      "commit": "https://github.com/openclaw/skills/commit/579ceb897b57c2c05668c11c77a3be70d4d65050"
+    }
+  ]
 }

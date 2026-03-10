@@ -1,6 +1,6 @@
 ---
 name: prompt-generator
-description: "AI prompt generator for image and text. AI绘画提示词、AI画图、Midjourney提示词、MJ提示词、Stable Diffusion提示词、SD提示词、DALL-E提示词、AI绘图、AI生图、AI画画、文生图提示词、text-to-image prompt、写作提示词、ChatGPT提示词、Claude提示词、prompt engineering、提示词工程、提示词优化、负面提示词、negative prompt、画风提示词、风格提示词。Generate image prompts for Midjourney/SD/DALL-E and writing prompts for ChatGPT/Claude. Use when: (1) generating AI image/art prompts, (2) creating Midjourney/Stable Diffusion/DALL-E prompts, (3) translating Chinese descriptions to English prompts, (4) enhancing or optimizing existing prompts, (5) batch generating prompt variations, (6) creating writing prompts, (7) any AI art or prompt engineering task. 适用场景：生成AI绘画提示词、Midjourney出图、SD出图、中文转英文提示词、优化提示词、批量生成提示词变体。纯本地模板生成，不依赖外部API。"
+description: "AI prompt generator for image and text. AI绘画提示词、AI画图、Midjourney提示词、MJ提示词、Stable Diffusion提示词、SD提示词、DALL-E提示词、AI绘图、AI生图、AI画画、文生图提示词、text-to-image prompt、写作提示词、ChatGPT提示词、Claude提示词、prompt engineering、提示词工程、提示词优化、负面提示词、negative prompt、画风提示词、风格提示词、风格词库、工作流、提示词升级。Generate image prompts for Midjourney/SD/DALL-E and writing prompts for ChatGPT/Claude. Use when: (1) generating AI image/art prompts, (2) creating Midjourney/Stable Diffusion/DALL-E prompts, (3) translating Chinese descriptions to English prompts, (4) enhancing or optimizing existing prompts, (5) batch generating prompt variations, (6) creating writing prompts, (7) browsing style-specific keyword libraries, (8) getting comprehensive negative prompt reference, (9) following complete image generation workflows, (10) upgrading simple descriptions to professional prompts, (11) any AI art or prompt engineering task. 适用场景：生成AI绘画提示词、Midjourney出图、SD出图、中文转英文提示词、优化提示词、批量生成提示词变体、风格词库查询、负面提示词参考、完整出图工作流、提示词升级优化。纯本地模板生成，不依赖外部API。"
 ---
 
 # Prompt Generator
@@ -39,6 +39,18 @@ prompt.sh enhance "基础提示词"
 
 # 批量生成变体
 prompt.sh batch "主题" --count 5
+
+# 风格词库（赛博朋克/国风/油画/水彩/动漫/奇幻/科幻/极简/恐怖）
+prompt.sh style "cyberpunk"
+
+# 负面提示词大全
+prompt.sh negative
+
+# 完整工作流（构思→参数→出图→后处理）
+prompt.sh workflow "portrait"
+
+# 提示词升级（简单→专业，4级递进）
+prompt.sh upscale "a cat in rain"
 
 # 帮助
 prompt.sh help
