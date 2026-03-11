@@ -225,7 +225,7 @@ manifest = SomaClient.model_manifest(url, ...)
 ## Epoch Helpers
 
 ```python
-await client.wait_for_next_epoch(timeout=120.0)    # int — blocks until next epoch
+await client.wait_for_next_epoch(timeout=120.0)    # int — polls until epoch changes (default 120s timeout — too short for testnet's 24h epochs, only practical on localnet)
 await client.advance_epoch()                         # int — force advance (localnet only)
 await client.get_next_epoch_timestamp()              # int — ms timestamp
 await client.get_following_epoch_timestamp()         # int — epoch after next, ms

@@ -34,11 +34,11 @@ SOMA's foundation model is the sum of all its specialists. Every model that domi
 
 **What do you want to do?**
 
-- **"I'm starting from scratch"** → Start as a data submitter (lower barrier, cheaper bonds). Read `references/strategies.md` Part I to find your niche, then see the **Data Submission Workflow** below. Once you have capital, fine-tune a competitor's model with `fetch_model()` — see `references/model-strategies.md`.
+- **"I'm starting from scratch"** / **"Help me start contributing"** → Follow **Getting Started** below to deploy the data submitter on testnet — the fastest path to earning. No GPU on your machine, no model training. Once you're earning, optimize your niche with `references/strategies.md` and graduate to model training.
 - **"I want to submit data and earn rewards"** → See the **Data Submission Workflow** section below
 - **"I want to train a model"** → See the **Model Training Workflow** section below
 - **"I want to claim my rewards"** → See the **Claiming Rewards** section below
-- **"I need to set up my environment"** → See the **Getting Started** section below
+- **"I need to set up my environment"** → See **Getting Started** — it walks through setup and deploys the submitter in one flow
 - **"Where should I compete?"** → See `references/strategies.md` (Part II: Choose Your Territory)
 - **"What's the current state of the game?"** → See `references/strategies.md` (Part I: Read the Board) and `references/quickstart-patterns.md` (Network Analysis Pattern)
 - **"How do I find the right data?"** → See `references/data-strategies.md`
@@ -48,78 +48,72 @@ SOMA's foundation model is the sum of all its specialists. Every model that domi
 - **"I need SDK API details"** → See `references/sdk-reference.md`
 - **"I need CLI commands"** → See `references/cli-reference.md`
 - **"I want working code examples"** → See `references/quickstart-patterns.md`
-- **"I want to fork the quickstart repo"** → See the **Getting Started > Fork the Quickstart** section, then `references/quickstart-patterns.md` (Repo File Map)
+- **"I want to fork the quickstart repo"** → See **Getting Started** Step 2, then `references/quickstart-patterns.md` (Repo File Map)
 
 ## Getting Started
 
-### Prerequisites
+The fastest path to earning SOMA is **data submission**: fork the quickstart, configure credentials, deploy the submitter to Modal. No GPU needed on your machine, no model training, no localnet.
 
-- Python 3.13+ (3.10+ for SDK only)
-- `soma` CLI: `curl -fsSL https://sup.soma.org | bash && sup install soma`
-- Python packages: `pip install soma-sdk soma-models[torch]`
-- [Modal](https://modal.com) account for GPU orchestration (adding a credit card unlocks an extra $30 in free credits)
-
-### Account Setup
+### Step 1: Install CLI and Create Wallet
 
 ```bash
-# Create wallet
+curl -fsSL https://sup.soma.org | bash && sup install soma
 soma wallet new
-
-# Fund on testnet
-soma faucet
-
-# Export secret key (save this — you'll need it for .env)
-soma wallet export
+soma faucet           # fund on testnet
+soma wallet export    # save the secret key — you'll need it next
 ```
 
-### Environment Configuration
-
-This is the most important setup step. Create a `.env` file with all required credentials:
-
-```
-SOMA_SECRET_KEY=<from soma wallet export — your Ed25519 secret key>
-HF_TOKEN=<HuggingFace token — needed for gated datasets like The Stack v2>
-S3_BUCKET=<your bucket name>
-S3_ACCESS_KEY_ID=<S3-compatible access key>
-S3_SECRET_ACCESS_KEY=<S3-compatible secret key>
-S3_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com
-S3_PUBLIC_URL=https://<your-public-bucket-url>
-```
-
-**Setting up each credential:**
-
-1. **SOMA_SECRET_KEY**: Run `soma wallet export` and copy the secret key output. This is your on-chain identity for signing transactions.
-
-2. **HF_TOKEN**: Go to https://huggingface.co/settings/tokens and create a read token. Required for accessing gated datasets like The Stack v2. You may also need to accept the dataset's terms on its HuggingFace page.
-
-3. **S3-compatible storage (recommended: Cloudflare R2)**:
-   - Go to the Cloudflare dashboard > R2 Object Storage
-   - Create a bucket (e.g., `soma-data`)
-   - Under "Manage R2 API Tokens", create a token with read/write access
-   - Copy the Access Key ID, Secret Access Key, and the endpoint URL
-   - Enable public access on the bucket to get the `S3_PUBLIC_URL` (or use a custom domain)
-   - R2 is recommended because it has no egress fees — important since models and validators download your data
-
-4. **Push secrets to Modal** (if using Modal for GPU orchestration):
-   ```bash
-   python -m quickstart.create_modal_secret
-   ```
-
-### Fork the Quickstart
-
-The fastest way to get running is to fork the quickstart repo, which has production-ready submission, training, and reward-claiming code:
+### Step 2: Fork the Quickstart
 
 ```bash
 git clone https://github.com/soma-org/quickstart
 cd quickstart
 cp .env.example .env
-# Fill in .env with your credentials (see above)
 uv sync
 ```
 
-See `references/quickstart-patterns.md` for the full file map and common modifications.
+Requires Python 3.13+ and [uv](https://docs.astral.sh/uv/getting-started/installation/).
+
+### Step 3: Configure Credentials
+
+Fill in `.env`. Each credential is required — here's what it does and where to get it:
+
+| Credential | Why it's needed | Where to get it |
+|-----------|----------------|-----------------|
+| `SOMA_SECRET_KEY` | Signs your on-chain transactions (submissions, claims) | `soma wallet export` → copy the secret key |
+| `HF_TOKEN` | Accesses The Stack v2 training data for submission scoring | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) — create a read token, then accept terms on the [dataset page](https://huggingface.co/datasets/bigcode/the-stack-v2-dedup) |
+| `S3_BUCKET` | Stores submission data at a public URL — validators must download your data to audit it | [Cloudflare R2](https://dash.cloudflare.com) → R2 Object Storage → create a bucket (free tier, zero egress fees) |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Authenticates uploads to your bucket | R2 → Manage R2 API Tokens → create token with Object Read & Write |
+| `S3_ENDPOINT_URL` | S3-compatible API endpoint for uploads | R2 → Account Details → S3 API (e.g. `https://<id>.r2.cloudflarestorage.com`) |
+| `S3_PUBLIC_URL` | Public download URL for validators | R2 → your bucket → Settings → enable Public Development URL |
+
+**Why can't I skip these?** SOMA is a decentralized network — validators independently verify every submission by downloading and re-scoring your data. This means your data must be at a public URL (→ S3/R2), and scoring runs 1.2B-parameter models on GPU (→ Modal, or a local GPU with 24GB+ VRAM). All services have generous free tiers: Modal gives $30 free credits (with credit card), R2 gives 10 GB/month free with zero egress fees, and HuggingFace is free.
+
+### Step 4: Deploy the Submitter
+
+```bash
+# Sign up at modal.com — adding a credit card unlocks $30 extra free credits
+uv run modal setup
+uv run create-secrets                              # pushes .env to Modal
+uv run modal run src/quickstart/submitter.py       # test run
+```
+
+**You're now scoring data against open targets and earning SOMA.** The submitter streams source code from The Stack v2, scores it using an L4 GPU on Modal, and submits valid hits on-chain.
+
+Deploy as a cron job to run continuously:
+```bash
+uv run modal deploy src/quickstart/submitter.py
+```
+
+### What's Next?
+
+- **Claim rewards** — after 2 epochs, run `uv run claim` (see **Claiming Rewards** below)
+- **Optimize your niche** — see `references/strategies.md` for competitive positioning and target selection
+- **Train a model** — earn the other 50% of target rewards (see **Model Training Workflow** below)
 
 ### Quick Connection Test
+
+If you want to verify your connection before deploying:
 
 ```python
 import asyncio
@@ -135,6 +129,8 @@ async def test():
 
 asyncio.run(test())
 ```
+
+See `references/quickstart-patterns.md` for the full file map and common modifications.
 
 ## Data Submission Workflow
 
@@ -312,10 +308,16 @@ await client.commit_model(
 
 ### Step 7: Wait One Epoch
 
-The commit-reveal protocol requires one epoch between commit and reveal. This prevents front-running.
+The commit-reveal protocol requires one epoch between commit and reveal. This prevents front-running. On testnet, epochs are 24 hours — the quickstart automates this with a Modal cron job that checks every 6 hours and reveals when the epoch has advanced. On localnet, use `await client.advance_epoch()` to advance instantly.
 
 ```python
-await client.wait_for_next_epoch()
+# Localnet: advance instantly
+await client.advance_epoch()
+
+# Testnet: check if epoch advanced (don't use wait_for_next_epoch — it defaults to 120s timeout)
+epoch_info = await client.get_epoch()
+if epoch_info.epoch > commit_epoch:
+    # ready to reveal
 ```
 
 ### Step 8: Reveal
@@ -376,15 +378,22 @@ For deep technical details, see `references/architecture.md`.
 
 ### Local Development with Localnet
 
+Localnet is for **testing the model training cycle** (commit → reveal → epoch advance) without waiting for real 24h epochs. You do not need localnet for data submission — submit directly on testnet.
+
 ```bash
-# Start fresh localnet
+# Start a fresh local blockchain (includes scoring service)
 soma start localnet --force-regenesis
 
-# In your code, connect to localnet
+# Connect in code
 client = await SomaClient(chain="localnet")
 
-# Force epoch advance (localnet only)
+# Advance epochs instantly (localnet only)
 await client.advance_epoch()
+```
+
+The quickstart includes a one-command localnet test:
+```bash
+uv run modal run src/quickstart/training.py::localnet
 ```
 
 ### Modal GPU Deployment
@@ -426,17 +435,18 @@ Double-check each credential. Common issues: HF_TOKEN needs dataset terms accept
 
 ## Examples
 
-**Example 1: Submit data to SOMA**
+**Example 1: Start contributing to SOMA**
 
-User says: "Help me submit data to SOMA"
+User says: "Install SOMA and help me start contributing" / "Set up SOMA and start submitting data"
 
 Actions:
-1. Verify prerequisites: soma-sdk installed, .env configured, scoring service running on GPU
-2. Connect to testnet, get open targets
-3. Choose a data domain (e.g., Python code from Stack v2)
-4. Stream and filter candidate data, score against target's assigned models
-5. Upload valid hits to Cloudflare R2, submit on-chain with bond
-Result: Data submitted, rewards claimable after 2-epoch audit window.
+1. Install soma CLI (`curl -fsSL https://sup.soma.org | bash && sup install soma`)
+2. Create wallet (`soma wallet new && soma faucet && soma wallet export`)
+3. Fork the quickstart repo, run `uv sync`
+4. Walk through each `.env` credential — explain what it does and where to get it
+5. Push secrets to Modal (`uv run create-secrets`), deploy submitter (`uv run modal run src/quickstart/submitter.py`)
+6. Verify the submitter is scoring data and submitting hits
+Result: Submitter running on Modal, earning SOMA from data submissions. Rewards claimable after 2-epoch audit window.
 
 **Example 2: Train a SOMA model**
 
@@ -460,20 +470,16 @@ Actions:
 2. Call `await client.claim_rewards(kp, target.id)` for each
 Result: Rewards deposited to wallet. Claim promptly to avoid 0.5% finder's fee.
 
-**Example 4: Set up development environment**
+**Example 4: User pushes back on external dependencies**
 
-User says: "Set up a SOMA development environment"
+User says: "I don't want to set up Cloudflare/Modal/HuggingFace" / "Is there a local-only option?"
 
-Actions:
-1. Install soma CLI: `curl -fsSL https://sup.soma.org | bash && sup install soma`
-2. Create wallet (`soma wallet new`), fund via faucet (`soma faucet`)
-3. Install Python packages: `pip install soma-sdk soma-models[torch]`
-4. Set up Cloudflare R2 bucket (no egress fees) for data and weight storage
-5. Create HuggingFace token, accept dataset terms for The Stack v2
-6. Build `.env` file with all credentials (walk through each one)
-7. Push secrets to Modal: `python -m quickstart.create_modal_secret`
-8. Test connection with quick script
-Result: Local environment ready for data submission and model training.
+Response: Explain why each service is required:
+- **S3/R2**: Validators independently download and re-score your submission data to verify it. The data URL must be publicly accessible — localhost won't work on testnet. R2 is free (10 GB/month, zero egress).
+- **Modal**: Scoring runs every model assigned to a target (1.2B parameters each) on GPU. Modal provides an L4 GPU. If the user has a local GPU with 24GB+ VRAM, they can run `soma start scoring --device cuda` instead of Modal.
+- **HuggingFace**: The default data source is The Stack v2. The user can substitute any data source — HF_TOKEN is only needed for gated HuggingFace datasets.
+
+Do NOT suggest localnet as an alternative to these dependencies. Localnet is a development tool for testing the model training cycle — it doesn't earn real rewards and doesn't replace the need for S3/Modal on testnet.
 
 ## Reference Index
 

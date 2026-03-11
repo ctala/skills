@@ -306,8 +306,8 @@ async def do_reveal(state):
 
     current_epoch = (await client.get_epoch()).epoch
     if current_epoch <= state["commit_epoch"]:
-        print("Epoch hasn't advanced yet, waiting...")
-        await client.wait_for_next_epoch()
+        print("Epoch hasn't advanced yet — run this again after the epoch advances.")
+        return
 
     await client.reveal_model(
         kp,

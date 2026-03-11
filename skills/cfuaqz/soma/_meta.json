@@ -3,9 +3,15 @@
   "slug": "soma",
   "displayName": "soma",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1772940912459,
-    "commit": "https://github.com/openclaw/skills/commit/852c3f2be437e0842dd7335f8010551b1d3d166a"
+    "version": "0.1.1",
+    "publishedAt": 1773099749449,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1772940912459,
+      "commit": "https://github.com/openclaw/skills/commit/852c3f2be437e0842dd7335f8010551b1d3d166a"
+    }
+  ]
 }
