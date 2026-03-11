@@ -3,11 +3,16 @@
   "slug": "miniade-agent-lifecycle-manager",
   "displayName": "Agent Lifecycle Manager",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1773149185619,
-    "commit": "https://github.com/openclaw/skills/commit/6b060df231e455dc9d9f02dca0ecbdcc39d1ddf0"
+    "version": "0.1.2",
+    "publishedAt": 1773149342487,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1773149185619,
+      "commit": "https://github.com/openclaw/skills/commit/6b060df231e455dc9d9f02dca0ecbdcc39d1ddf0"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1773018009606,
