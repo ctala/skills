@@ -1,0 +1,11 @@
+{
+  "owner": "puppetcat-fire",
+  "slug": "chef-dialog-recipe",
+  "displayName": "专业厨师对话食谱生成技能",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773230359705,
+    "commit": null
+  },
+  "history": []
+}
