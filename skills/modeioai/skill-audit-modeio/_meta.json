@@ -1,0 +1,11 @@
+{
+  "owner": "modeioai",
+  "slug": "skill-audit-modeio",
+  "displayName": "Skill Audit",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773209607826,
+    "commit": null
+  },
+  "history": []
+}
