@@ -1,0 +1,11 @@
+{
+  "owner": "sentio-xyz",
+  "slug": "sentio-processors",
+  "displayName": "Sentio Skill",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773108560987,
+    "commit": null
+  },
+  "history": []
+}
