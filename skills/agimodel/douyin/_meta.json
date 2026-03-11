@@ -1,0 +1,11 @@
+{
+  "owner": "agimodel",
+  "slug": "douyin",
+  "displayName": "Douyin",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773170817549,
+    "commit": null
+  },
+  "history": []
+}
