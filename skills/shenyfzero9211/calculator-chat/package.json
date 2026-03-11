@@ -1,0 +1,35 @@
+{
+  "name": "calculator-chat",
+  "version": "2.0.0",
+  "description": "AI agent skill - respond with numbers on system calculator",
+  "main": "src/calc.py",
+  "bin": {
+    "calc-chat": "src/calc.py"
+  },
+  "scripts": {
+    "start": "python3 src/calc.py",
+    "start:node": "node src/index.js",
+    "test": "python3 src/calc.py \"我爱你\""
+  },
+  "keywords": [
+    "ai",
+    "calculator",
+    "chat",
+    "openclaw",
+    "skill",
+    "cli"
+  ],
+  "author": "ShenyfZero9211",
+  "license": "MIT",
+  "homepage": "https://github.com/ShenyfZero9211/calculator-chat#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ShenyfZero9211/calculator-chat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ShenyfZero9211/calculator-chat/issues"
+  },
+  "engines": {
+    "python": ">=3.6"
+  }
+}
