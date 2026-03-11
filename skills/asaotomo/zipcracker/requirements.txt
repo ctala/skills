@@ -1,0 +1,2 @@
+# ZipCracker Skill 依赖
+pyzipper>=0.3.6
