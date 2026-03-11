@@ -3,9 +3,15 @@
   "slug": "portal",
   "displayName": "Portal",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773175130005,
-    "commit": "https://github.com/openclaw/skills/commit/8ce9c9809c32f2e1f7b9a7225b5be200f0f5e001"
+    "version": "1.2.0",
+    "publishedAt": 1773250419479,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773175130005,
+      "commit": "https://github.com/openclaw/skills/commit/8ce9c9809c32f2e1f7b9a7225b5be200f0f5e001"
+    }
+  ]
 }

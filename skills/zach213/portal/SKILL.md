@@ -7,6 +7,15 @@ description: "Use when asked to make a portal, create a portal, demo a website, 
 
 Turn any URL into a shareable live browser session. Viewers get a real browser running in a cloud VM — 10 minutes per session.
 
+## Install (OpenClaw Plugin)
+
+```
+openclaw plugins install https://github.com/makeportals/mcp/releases/download/v1.2.0/makeportals-openclaw-portal-1.2.0.tgz
+openclaw gateway restart
+```
+
+This installs the plugin with all 27 portal tools. Works on WhatsApp, Telegram, and all messaging channels.
+
 **Watch** — AI clicks, scrolls, and narrates a guided demo.
 **Play** — Viewer explores freely with AI guardrails blocking unwanted areas.
 
@@ -127,10 +136,53 @@ It auto-polls internally until the portal is ready — the result includes the f
 
 ## PTL Spec (Minimal)
 
+The `ptl` parameter to `make_portal` MUST be a JSON **object** (not a string). Do NOT JSON.stringify it.
+
+**Play mode:**
 ```json
 {
-  "entry": { "url": "https://example.com" },
-  "experience": { "mode": "play" }
+  "ptl": {
+    "entry": { "url": "https://example.com" },
+    "experience": {
+      "mode": "play",
+      "agent": {
+        "greeting": "Welcome! Ask me anything.",
+        "knowledge": "Summary of the site..."
+      }
+    },
+    "guardrails": {
+      "allowed_urls": ["example.com"],
+      "disabled_elements": [
+        { "selector": "a[href='/login']", "reason": "Auth disabled in demo" }
+      ]
+    }
+  }
+}
+```
+
+**Watch mode:**
+```json
+{
+  "ptl": {
+    "entry": { "url": "https://example.com" },
+    "experience": {
+      "mode": "watch",
+      "agent": {
+        "goal": "Show key features",
+        "greeting": "Welcome to the demo!",
+        "scenes": [
+          {
+            "script": "Narration text here",
+            "actions": [{ "action": "scroll_down", "selector": "body", "inner_text": "" }]
+          }
+        ]
+      }
+    },
+    "guardrails": {
+      "allowed_urls": ["example.com"],
+      "disabled_elements": []
+    }
+  }
 }
 ```
 
