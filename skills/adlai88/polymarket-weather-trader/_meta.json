@@ -1,13 +1,18 @@
 {
   "owner": "adlai88",
   "slug": "polymarket-weather-trader",
-  "displayName": "Polymarket Weather Trader",
+  "displayName": "Polymarket  \n  Weather Trader",
   "latest": {
-    "version": "1.13.0",
-    "publishedAt": 1772507804330,
-    "commit": "https://github.com/openclaw/skills/commit/1d97aafe9ae0d000a6324c489e4f768de13028e5"
+    "version": "1.14.1",
+    "publishedAt": 1773203091207,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.13.0",
+      "publishedAt": 1772507804330,
+      "commit": "https://github.com/openclaw/skills/commit/1d97aafe9ae0d000a6324c489e4f768de13028e5"
+    },
     {
       "version": "1.12.3",
       "publishedAt": 1772187753309,
