@@ -1,6 +1,6 @@
 ---
 name: katbot-trading
-version: 0.2.22
+version: 0.2.23
 description: Live crypto trading on Hyperliquid via Katbot.ai. Includes BMI market analysis, token selection, and AI-powered trade execution.
 # Note: Homepage URL removed to avoid GitHub API rate limit errors during publish
 metadata:
@@ -21,14 +21,15 @@ This skill teaches the agent how to use the Katbot.ai API to manage a Hyperliqui
 
 ## Capabilities
 
-1. **Market Analysis**: Check the BTC Momentum Index (BMI) and 24h gainers/losers.
+1. **Subscription Monitoring**: Check subscription status, expiry, and feature usage limits at session start.
+2. **Market Analysis**: Check the BTC Momentum Index (BMI) and 24h gainers/losers.
     - `btc_momentum.py`: Calculates the BMI (BTC Momentum Index) based on trend, MACD, body, volume, and RSI. Returns a signal (BULLISH, BEARISH, NEUTRAL).
     - `bmi_alert.py`: Runs `btc_momentum.py` and sends a Telegram alert if the market direction has changed. Uses `portfolio_tokens.json` for custom token tracking.
-2. **Token Selection**: Automatically pick the best tokens for the current market direction.
-3. **Recommendations**: Get AI-powered trade setups (Entry, TP, SL, Leverage).
-4. **Execution**: Execute and close trades on Hyperliquid with user confirmation.
-5. **Portfolio Tracking**: Monitor open positions, uPnL, and balances.
-6. **Chat**: Send free-form messages to the portfolio agent and receive analysis.
+3. **Token Selection**: Automatically pick the best tokens for the current market direction.
+4. **Recommendations**: Get AI-powered trade setups (Entry, TP, SL, Leverage).
+5. **Execution**: Execute and close trades on Hyperliquid with user confirmation.
+6. **Portfolio Tracking**: Monitor open positions, uPnL, and balances.
+7. **Chat**: Send free-form messages to the portfolio agent and receive analysis.
 
 ## Tools
 
@@ -38,7 +39,7 @@ Dependencies are listed in `{baseDir}/requirements.txt`.
 
 - `ensure_env.sh`: **Run before any tool.** Checks if dependencies are installed for the current skill version and re-installs if needed. Safe to call every time — it exits immediately if already up to date.
 - `katbot_onboard.py`: **First-time setup wizard.** Authenticates via SIWE using your Wallet Key, creates/selects a portfolio, and saves credentials locally to the secure identity directory.
-- `katbot_client.py`: Core API client. Handles authentication, token refresh, portfolio management, recommendations, trade execution, and chat. Also usable as a CLI script.
+- `katbot_client.py`: Core API client. Handles authentication, token refresh, portfolio management, recommendations, trade execution, chat, and subscription monitoring. Also usable as a CLI script.
 - `katbot_workflow.py`: End-to-end trading workflow (BMI -> token selection -> recommendation). Imports `katbot_client` and `token_selector` — requires `PYTHONPATH={baseDir}/tools`.
 - `token_selector.py`: Momentum-based token selection via CoinGecko.
 - `btc_momentum.py`: Calculates BTC Momentum Index (BMI).
@@ -152,6 +153,25 @@ token = get_token()          # Returns valid access token (refreshes automatical
 config = get_config()        # Returns dict from katbot_config.json
 ```
 
+### User Account `[local only]`
+```python
+user_data = get_user(token)                       # Full user info: subscription, plan, feature_usage
+status    = check_subscription_status(user_data)  # Evaluates subscription health + returns warnings
+# status = {
+#   "is_active": bool,
+#   "is_expired": bool,
+#   "expires_soon": bool,
+#   "expires_very_soon": bool,
+#   "days_remaining": int | None,
+#   "hours_remaining": int | None,
+#   "plan_tier": str,
+#   "feature_usage": [{"feature_type": str, "usage_count": int,
+#                      "limit_count": int, "limit_pct": float, "near_limit": bool}],
+#   "warning_message": str | None,   # human-readable, None if healthy
+#   "warnings": [str],               # individual warning strings
+# }
+```
+
 ### Portfolio `[local only]`
 ```python
 portfolios = list_portfolios(token)
@@ -199,6 +219,7 @@ result = poll_chat(token, ticket["ticket_id"], max_wait=60)
 `katbot_client.py` can be run as a standalone script (reads `PORTFOLIO_ID` from `.env` or environment):
 
 ```bash
+PYTHONPATH={baseDir}/tools python3 {baseDir}/tools/katbot_client.py subscription-status
 PYTHONPATH={baseDir}/tools python3 {baseDir}/tools/katbot_client.py portfolio-state
 PYTHONPATH={baseDir}/tools python3 {baseDir}/tools/katbot_client.py recommendations
 PYTHONPATH={baseDir}/tools python3 {baseDir}/tools/katbot_client.py request-recommendation "Analyze and recommend"
@@ -209,6 +230,8 @@ PYTHONPATH={baseDir}/tools python3 {baseDir}/tools/katbot_client.py close-positi
 
 ## Usage Rules
 
+- **ALWAYS** check subscription status at the start of every session: call `get_user(token)` then `check_subscription_status(user_data)`. If `is_expired` is True, inform the user their subscription has expired and direct them to https://katbot.ai to renew. If `expires_very_soon` is True, warn the user urgently and direct them to https://katbot.ai. If `expires_soon` is True, warn the user and direct them to https://katbot.ai to extend or upgrade. Do not suppress these warnings even in automated sessions.
+- **ALWAYS** check `feature_usage` from the subscription status — if any feature's `near_limit` is True, warn the user: "You have used X/Y [feature]. Visit https://katbot.ai to upgrade your plan."
 - **ALWAYS** present the Credential Transmission Notice and obtain user acknowledgement before the first onboarding or trading operation in any session.
 - **ALWAYS** check the BMI before suggesting a new trade.
 - **NEVER** execute a trade without explicit user confirmation (e.g., "Confirm execution of LONG AAVE?").
