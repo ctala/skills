@@ -1,11 +1,17 @@
 {
   "owner": "ckchzh",
   "slug": "pitch-deck",
-  "displayName": "Pitch Deck Creator",
+  "displayName": "Pitch Deck",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773213453982,
-    "commit": "https://github.com/openclaw/skills/commit/59cabd6ed5c62a83dc859441203ace884f9f62ae"
+    "version": "2.0.0",
+    "publishedAt": 1773346196743,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773213453982,
+      "commit": "https://github.com/openclaw/skills/commit/59cabd6ed5c62a83dc859441203ace884f9f62ae"
+    }
+  ]
 }
