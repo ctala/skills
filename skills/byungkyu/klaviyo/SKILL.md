@@ -25,7 +25,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/profiles')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -63,7 +63,7 @@ export MATON_API_KEY="YOUR_API_KEY"
 Klaviyo uses date-based API versioning. Include the `revision` header in all requests:
 
 ```
-revision: 2024-10-15
+revision: 2026-01-15
 ```
 
 ## Connection Management
@@ -142,7 +142,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/profiles')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 req.add_header('Maton-Connection', '21fd90f9-5935-43cd-b6c8-bde9d915ca80')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
@@ -176,7 +176,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/profiles?fields[profile]=email,first_name,last_name&page[size]=10')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -215,7 +215,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/profiles/01GDDKASAP8TKDDA2GRZDSVP4H')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -251,7 +251,7 @@ data = json.dumps({'data': {'type': 'profile', 'attributes': {'email': 'newuser@
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/profiles', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -271,7 +271,7 @@ data = json.dumps({'data': {'type': 'profile', 'id': '01GDDKASAP8TKDDA2GRZDSVP4H
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/profiles/01GDDKASAP8TKDDA2GRZDSVP4H', data=data, method='PATCH')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -311,7 +311,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/lists?fields[list]=name,created,updated')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -354,7 +354,7 @@ data = json.dumps({'data': {'type': 'list', 'attributes': {'name': 'VIP Customer
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/lists', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -386,7 +386,7 @@ data = json.dumps({'data': [{'type': 'profile', 'id': '01GDDKASAP8TKDDA2GRZDSVP4
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/lists/Y6nRLr/relationships/profiles', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -420,7 +420,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/segments?fields[segment]=name,created,updated')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -465,8 +465,10 @@ Design and send email campaigns.
 GET /klaviyo/api/campaigns
 ```
 
+> **Note:** A channel filter is required. Use `filter=equals(messages.channel,"email")` or `filter=equals(messages.channel,"sms")`.
+
 Query parameters:
-- `filter` - Filter campaigns (e.g., `filter=equals(messages.channel,'email')`)
+- `filter` - **Required.** Filter by channel (e.g., `filter=equals(messages.channel,"email")`)
 - `fields[campaign]` - Fields to include
 - `sort` - Sort by field
 
@@ -477,7 +479,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/campaigns?filter=equals(messages.channel,"email")')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -526,7 +528,7 @@ data = json.dumps({'data': {'type': 'campaign', 'attributes': {'name': 'Summer N
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/campaigns', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -572,7 +574,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/flows?fields[flow]=name,status,created,updated')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -624,7 +626,7 @@ data = json.dumps({'data': {'type': 'flow', 'id': 'VJvBNr', 'attributes': {'stat
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/flows/VJvBNr', data=data, method='PATCH')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -669,7 +671,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/events?filter=greater-than(datetime,2024-01-01T00:00:00Z)&page[size]=50')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -716,7 +718,7 @@ data = json.dumps({'data': {'type': 'event', 'attributes': {'profile': {'data': 
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/events', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -744,7 +746,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/metrics')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -792,7 +794,7 @@ data = json.dumps({'data': {'type': 'metric-aggregate', 'attributes': {'metric_i
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/metric-aggregates', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -814,7 +816,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/templates?fields[template]=name,created,updated')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -840,7 +842,7 @@ data = json.dumps({'data': {'type': 'template', 'attributes': {'name': 'Welcome 
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/templates', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -886,7 +888,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/catalog-items?fields[catalog-item]=title,price,url')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -961,7 +963,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/tags')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -996,6 +998,42 @@ POST /klaviyo/api/tag-campaign-relationships
 POST /klaviyo/api/tag-flow-relationships
 ```
 
+#### Get Tag Groups
+
+```bash
+GET /klaviyo/api/tag-groups
+```
+
+**Example:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/tag-groups')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('revision', '2026-01-15')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+#### Create Tag Group
+
+```bash
+POST /klaviyo/api/tag-groups
+```
+
+#### Update Tag Group
+
+```bash
+PATCH /klaviyo/api/tag-groups/{tag_group_id}
+```
+
+#### Delete Tag Group
+
+```bash
+DELETE /klaviyo/api/tag-groups/{tag_group_id}
+```
+
 ### Coupons
 
 Manage discount codes.
@@ -1021,7 +1059,7 @@ data = json.dumps({'data': {'type': 'coupon', 'attributes': {'external_id': 'SUM
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/coupons', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -1043,7 +1081,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/coupon-codes?filter=equals(coupon.id,"SUMMER_SALE_2024")')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -1063,7 +1101,7 @@ data = json.dumps({'data': {'type': 'coupon-code', 'attributes': {'unique_code':
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/coupon-codes', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -1085,7 +1123,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/webhooks')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -1105,7 +1143,7 @@ data = json.dumps({'data': {'type': 'webhook', 'attributes': {'name': 'Order Pla
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/webhooks', data=data, method='POST')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
 req.add_header('Content-Type', 'application/json')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -1151,9 +1189,255 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/accounts')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
+```
+
+### Images
+
+Manage uploaded images.
+
+#### Get Images
+
+```bash
+GET /klaviyo/api/images
+```
+
+**Example:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/images')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('revision', '2026-01-15')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+#### Get an Image
+
+```bash
+GET /klaviyo/api/images/{image_id}
+```
+
+#### Upload Image from URL
+
+```bash
+POST /klaviyo/api/images
+```
+
+**Example:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+data = json.dumps({'data': {'type': 'image', 'attributes': {'import_from_url': 'https://example.com/image.jpg', 'name': 'Product Image'}}}).encode()
+req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/images', data=data, method='POST')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('Content-Type', 'application/json')
+req.add_header('revision', '2026-01-15')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+### Forms
+
+Manage signup forms.
+
+#### Get Forms
+
+```bash
+GET /klaviyo/api/forms
+```
+
+**Example:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/forms')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('revision', '2026-01-15')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+#### Get a Form
+
+```bash
+GET /klaviyo/api/forms/{form_id}
+```
+
+#### Get Form Versions
+
+```bash
+GET /klaviyo/api/forms/{form_id}/form-versions
+```
+
+### Reviews
+
+Manage product reviews.
+
+#### Get Reviews
+
+```bash
+GET /klaviyo/api/reviews
+```
+
+**Example:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/reviews')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('revision', '2026-01-15')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+#### Get a Review
+
+```bash
+GET /klaviyo/api/reviews/{review_id}
+```
+
+#### Update Review
+
+```bash
+PATCH /klaviyo/api/reviews/{review_id}
+```
+
+### Universal Content
+
+Manage reusable email content blocks.
+
+#### Get Universal Content
+
+```bash
+GET /klaviyo/api/template-universal-content
+```
+
+**Example:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/template-universal-content')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('revision', '2026-01-15')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+#### Create Universal Content
+
+```bash
+POST /klaviyo/api/template-universal-content
+```
+
+#### Update Universal Content
+
+```bash
+PATCH /klaviyo/api/template-universal-content/{content_id}
+```
+
+#### Delete Universal Content
+
+```bash
+DELETE /klaviyo/api/template-universal-content/{content_id}
+```
+
+### Bulk Profile Subscriptions
+
+Manage email/SMS subscriptions in bulk.
+
+#### Bulk Subscribe Profiles
+
+```bash
+POST /klaviyo/api/profile-subscription-bulk-create-jobs
+```
+
+**Example:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+data = json.dumps({
+    'data': {
+        'type': 'profile-subscription-bulk-create-job',
+        'attributes': {
+            'profiles': {
+                'data': [{
+                    'type': 'profile',
+                    'attributes': {
+                        'email': 'newsubscriber@example.com',
+                        'subscriptions': {
+                            'email': {'marketing': {'consent': 'SUBSCRIBED'}}
+                        }
+                    }
+                }]
+            }
+        },
+        'relationships': {
+            'list': {'data': {'type': 'list', 'id': 'LIST_ID'}}
+        }
+    }
+}).encode()
+req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/profile-subscription-bulk-create-jobs', data=data, method='POST')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('Content-Type', 'application/json')
+req.add_header('revision', '2026-01-15')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+#### Bulk Unsubscribe Profiles
+
+```bash
+POST /klaviyo/api/profile-subscription-bulk-delete-jobs
+```
+
+#### Bulk Suppress Profiles
+
+```bash
+POST /klaviyo/api/profile-suppression-bulk-create-jobs
+```
+
+#### Bulk Unsuppress Profiles
+
+```bash
+POST /klaviyo/api/profile-suppression-bulk-delete-jobs
+```
+
+### Profile Bulk Import
+
+Import profiles in bulk.
+
+#### Get Bulk Import Jobs
+
+```bash
+GET /klaviyo/api/profile-bulk-import-jobs
+```
+
+**Example:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/profile-bulk-import-jobs')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('revision', '2026-01-15')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+#### Create Bulk Import Job
+
+```bash
+POST /klaviyo/api/profile-bulk-import-jobs
 ```
 
 ## Filtering
@@ -1183,7 +1467,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/klaviyo/api/profiles?page[size]=50&page[cursor]=CURSOR_TOKEN')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('revision', '2024-10-15')
+req.add_header('revision', '2026-01-15')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -1252,7 +1536,7 @@ data = response.json()
 - Timestamps are in ISO 8601 RFC 3339 format (e.g., `2024-01-16T23:20:50.52Z`)
 - Resource IDs are strings (often base64-encoded)
 - Use sparse fieldsets to optimize response size
-- Include `revision` header for API versioning (recommended: `2024-10-15`)
+- Include `revision` header for API versioning (recommended: `2026-01-15`)
 - Some POST endpoints return `200` instead of `201` for successful creation
 - Coupon `external_id` must match regex `^[0-9_A-z]+$` (no hyphens)
 - Coupon codes endpoint requires a filter (e.g., `filter=equals(coupon.id,"...")`)
