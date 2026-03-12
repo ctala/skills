@@ -3,11 +3,16 @@
   "slug": "isms-audit-expert",
   "displayName": "Isms Audit Expert",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1770402661229,
-    "commit": "https://github.com/openclaw/skills/commit/26c2f70ce40bceb185eb6754eba6731b002d9fb3"
+    "version": "2.1.1",
+    "publishedAt": 1773070393588,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1770402661229,
+      "commit": "https://github.com/openclaw/skills/commit/26c2f70ce40bceb185eb6754eba6731b002d9fb3"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1769775245848,
