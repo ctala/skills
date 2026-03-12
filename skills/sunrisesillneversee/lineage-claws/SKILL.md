@@ -6,7 +6,12 @@ metadata:
   openclaw:
     emoji: §
     tags: [governance, lineage, audit, provenance, identity, trust, moses]
-    version: 0.1.0
+    version: 0.1.3
+    bins:
+      - python3
+    stateDirs:
+      - ~/.openclaw/governance
+      - ~/.openclaw/audits/moses
 requires:
   bins:
     - python3
