@@ -1,13 +1,18 @@
 {
   "owner": "allenfancy-gan",
   "slug": "ima-all-ai",
-  "displayName": "IMA Studio All-in-One — Image, Video, Music, SeeDream, Veo., Suno. Banana",
+  "displayName": "IMA Studio All-in-One — Image, Video, Music, SeeDream, Veo, Suno. Banana",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1773332071967,
-    "commit": "https://github.com/openclaw/skills/commit/672ce948f244b136fd41750442bffe054f69edf3"
+    "version": "1.0.8",
+    "publishedAt": 1773332483710,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1773332071967,
+      "commit": "https://github.com/openclaw/skills/commit/672ce948f244b136fd41750442bffe054f69edf3"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1773039534047,
