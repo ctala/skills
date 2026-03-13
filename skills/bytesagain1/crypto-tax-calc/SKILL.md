@@ -2,6 +2,7 @@
 name: Crypto Tax Calculator
 version: 1.0.0
 description: Calculate crypto capital gains taxes with FIFO/LIFO/average cost methods, multi-country tax law support, and HTML report generation.
+runtime: python3
 ---
 
 # Crypto Tax Calculator 📊

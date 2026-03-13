@@ -1,11 +1,17 @@
 {
   "owner": "bytesagain1",
   "slug": "crypto-tax-calc",
-  "displayName": "Crypto Tax Calculator",
+  "displayName": "Crypto Tax Calc",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773220681851,
-    "commit": "https://github.com/openclaw/skills/commit/5d51a844a7e9b3546426c5b8b423702a47fe368d"
+    "version": "1.0.2",
+    "publishedAt": 1773361020182,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773220681851,
+      "commit": "https://github.com/openclaw/skills/commit/5d51a844a7e9b3546426c5b8b423702a47fe368d"
+    }
+  ]
 }
