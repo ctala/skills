@@ -72,9 +72,9 @@ def main():
 提示：默认位置为上海，可通过 --set-location 设置
 
 Examples:
-  uv run scripts/my-location.py
-  uv run scripts/my-location.py --set-location "北京"
-  uv run scripts/my-location.py --json
+  uv run scripts/loc.py
+  uv run scripts/loc.py --set-location "北京"
+  uv run scripts/loc.py --json
 """
     )
     parser.add_argument("--json", action="store_true", help="输出 JSON 格式")

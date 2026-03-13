@@ -15,7 +15,6 @@
 import polars as pl
 import duckdb
 import urllib.request
-import subprocess
 from pathlib import Path
 from datetime import datetime
 import random
@@ -261,16 +260,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  uv run scripts/recommend-wallpaper.py
-  uv run scripts/recommend-wallpaper.py --dry-run
-  uv run scripts/recommend-wallpaper.py --auto-apply
-  uv run scripts/recommend-wallpaper.py --tags "森林,暗色调"
+  uv run scripts/recommend.py
+  uv run scripts/recommend.py -n   # 仅显示
+  uv run scripts/recommend.py -y   # 自动应用
 """
     )
     parser.add_argument("--tags", type=str, help="偏好标签（逗号分隔）")
-    parser.add_argument("--auto-apply", action="store_true", help="自动应用推荐壁纸")
-    parser.add_argument("--dry-run", action="store_true", help="仅显示推荐，不下载")
-    parser.add_argument("--json", action="store_true", help="输出 JSON 格式")
+    parser.add_argument("-y", "--yes", action="store_true", help="自动应用，不询问")
+    parser.add_argument("-n", "--no-apply", action="store_true", help="仅显示，不下载")
+    parser.add_argument("--json", action="store_true", help="JSON 输出")
     args = parser.parse_args()
     
     # 加载数据
@@ -303,13 +301,13 @@ Examples:
     show_recommendations(recommendations, df)
     
     # 应用推荐
-    if not args.dry_run:
+    if not args.no_apply:
         top_rec = recommendations[0]
         print(f"\n🎨 正在下载推荐壁纸：{top_rec['category']}...")
         
         filepath = download_recommended_wallpaper(top_rec['category'])
         if filepath:
-            if args.auto_apply or input("\n是否设置为壁纸？(y/n): ").lower() == 'y':
+            if args.yes or input("\n是否设置为壁纸？(y/n): ").lower() == 'y':
                 if set_wallpaper(filepath):
                     print("✓ 壁纸已更新")
                     return 0
