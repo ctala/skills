@@ -1,0 +1,11 @@
+{
+  "owner": "huntingfishdude",
+  "slug": "news-scout",
+  "displayName": "news-scout 热点新闻聚合简报",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1773366995157,
+    "commit": null
+  },
+  "history": []
+}
