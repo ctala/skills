@@ -1,11 +1,6 @@
 ---
 name: hr-toolkit
-version: 1.0.0
-description: "HR工具包。招聘流程、入职办理、离职管理、制度规范、员工手册、HR模板库。HR toolkit with recruitment, onboarding, offboarding, policy, handbook, templates. 人力资源、招聘、入职、离职、制度、员工手册。Use when managing HR processes."
-author: BytesAgain <hello@bytesagain.com>
-homepage: https://bytesagain.com
-tags: [hr, recruitment, onboarding, offboarding, policy, handbook, template, 人力资源, 招聘, 入职, 离职]
-category: hr-management
+description: "HR工具包。招聘流程、入职办理、离职管理、制度规范、员工手册、HR模板库。HR toolkit with recruitment, onboarding, offboarding, policy, handbook, templates. 人力资源、招聘、入职、离职、制度、员工手册。Use when managing HR processes. Triggers on: hr toolkit."
 ---
 # hr-toolkit
 
@@ -39,3 +34,6 @@ HR工具包。招聘流程、入职办理、离职管理、制度规范、员工
 
 ---
 *hr-toolkit by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
