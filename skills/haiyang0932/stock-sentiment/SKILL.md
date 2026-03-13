@@ -1,6 +1,6 @@
 ---
 name: stock-sentiment
-description: "Stock sentiment analysis and financial data for US equity research. Analyze multi-engine AI sentiment (Grok, DeepSeek, GPT-5), SEC EDGAR filings, Seeking Alpha ratings, earnings call transcripts, social media sentiment, news insights, FRED macro indicators, and OHLCV prices for 2000+ stocks. Use when researching stocks, checking sentiment, analyzing SEC filings, or exploring market data."
+description: "Stock sentiment analysis and financial data for US equity research. Analyze multi-engine AI sentiment (Grok, DeepSeek, GPT-5), earnings call transcripts, social media sentiment, news insights, FRED macro indicators, and OHLCV prices for 2000+ stocks. Use when researching stocks, checking sentiment, analyzing filings, or exploring market data."
 argument-hint: "[symbol]"
 allowed-tools: mcp__alphafactoryx__*
 metadata:
@@ -23,7 +23,9 @@ metadata:
 
 # Stock Sentiment & Financial Data
 
-Stock sentiment analysis and US equity research tools. Query multi-engine AI sentiment scores, SEC filings, analyst ratings, earnings transcripts, social media sentiment, macro indicators, and price data for 2000+ stocks — all through 27 MCP tools.
+[![Docs](https://img.shields.io/badge/Docs-Deep%20Dive-blue?logo=bookstack)](https://alphafactoryx.com/skills/stock-sentiment)
+
+Stock sentiment analysis and US equity research tools. Query multi-engine AI sentiment scores, SEC filings, analyst ratings, earnings transcripts, social media sentiment, macro indicators, and price data for 2000+ stocks — all through 26 MCP tools.
 
 ## References
 
@@ -34,31 +36,26 @@ Stock sentiment analysis and US equity research tools. Query multi-engine AI sen
 
 No token or registration needed. Free tier: 20 requests/day per IP.
 
-**Check data coverage:**
-```
-mcp__alphafactoryx__get_archive_stats()
-```
-
 **Research a stock:**
 ```
-mcp__alphafactoryx__sa_overview(symbol="AAPL")
-mcp__alphafactoryx__edgar_latest(symbol="AAPL", form_type="10-K")
-mcp__alphafactoryx__stocknews_articles(symbol="AAPL")
+mcp__alphafactoryx__analyst_overview(symbol="AAPL")
+mcp__alphafactoryx__filing_latest(symbol="AAPL", form_type="10-K")
+mcp__alphafactoryx__news_articles(symbol="AAPL")
 mcp__alphafactoryx__kline(symbol="AAPL")
 ```
 
 **Search across archives:**
 ```
-mcp__alphafactoryx__edgar_search(query="revenue guidance", symbol="AAPL")
-mcp__alphafactoryx__sa_search(query="AI chips")
-mcp__alphafactoryx__sa_transcript_search(query="margin expansion")
+mcp__alphafactoryx__filing_search(query="revenue guidance", symbol="AAPL")
+mcp__alphafactoryx__analyst_search(query="AI chips")
+mcp__alphafactoryx__analyst_transcript_search(query="margin expansion")
 ```
 
 **Check sentiment:**
 ```
-mcp__alphafactoryx__stocknews_articles(symbol="AAPL")
-mcp__alphafactoryx__polygon_news_articles(symbol="AAPL")
-mcp__alphafactoryx__x_sentiment(symbol="AAPL")
+mcp__alphafactoryx__news_articles(symbol="AAPL")
+mcp__alphafactoryx__market_news_articles(symbol="AAPL")
+mcp__alphafactoryx__social(symbol="AAPL")
 ```
 
 **Get macro data:**
@@ -70,12 +67,11 @@ mcp__alphafactoryx__fred_macro()
 
 | Category | Tools | Key Capabilities |
 |----------|-------|-----------------|
-| General | 1 | Archive stats and data coverage |
-| SEC EDGAR | 5 | Filings (10-K, 10-Q, 8-K, Form 4), full text, full-text search |
-| Seeking Alpha | 10 | Articles, news, earnings transcripts, ratings, financials, comments, search |
-| Stock News | 2 | News articles with Grok + DeepSeek + GPT-5 sentiment, search |
-| Polygon News | 2 | News with per-ticker AI sentiment insights + reasoning, search |
-| X/Twitter | 3 | Tweets by engagement, filtered posts, high-engagement threads |
+| Filing | 5 | Filings (10-K, 10-Q, 8-K, Form 4), full text, full-text search |
+| Analyst | 10 | Articles, news, earnings transcripts, ratings, financials, comments, search |
+| News | 2 | News articles with Grok + DeepSeek + GPT-5 sentiment, search |
+| Market News | 2 | News with per-ticker AI sentiment insights + reasoning, search |
+| Social | 3 | Tweets by engagement, filtered posts, high-engagement threads |
 | FRED Macro | 2 | 25 macro indicators (rates, CPI, GDP, VIX, yield curve), series listing |
 | OHLCV | 2 | Daily/hourly/1min price bars, symbol listing |
 
@@ -96,7 +92,6 @@ See [alphafactoryx.com/pricing](https://alphafactoryx.com/pricing) for details.
 
 ## Best Practices
 
-- **Start with `get_archive_stats`** to check data coverage before querying
 - **Cross-reference sources** — combine EDGAR, SA, news, sentiment, and price data
 - **Use search tools** — find content across archives by keyword
 - **Paginate with `offset`** — most tools support `offset` for paging through results
@@ -107,7 +102,7 @@ See [alphafactoryx.com/pricing](https://alphafactoryx.com/pricing) for details.
 
 | Error | Action |
 |-------|--------|
-| "No data available" / "No filings found" | Check symbol spelling; use `get_archive_stats` for coverage |
+| "No data available" / "No filings found" | Check symbol spelling; try `analyst_overview` to verify coverage |
 | Authentication error | Check `ALPHAFACTORYX_MCP_TOKEN` env var |
 | Rate limit (429) | Wait and retry; consider upgrading tier |
 | Text truncated | Use search tools to find specific sections |
@@ -116,10 +111,10 @@ See [alphafactoryx.com/pricing](https://alphafactoryx.com/pricing) for details.
 ## Data Coverage
 
 - ~2,000 US equities (stocks + ETFs)
-- SEC EDGAR: 10-K, 10-Q, 8-K filings and Form 4 insider trades (full text)
-- Seeking Alpha: articles, earnings call transcripts, ratings, financials, dividends, estimates
-- Stock News: articles with Grok + DeepSeek + GPT-5 sentiment
-- Polygon News: articles with per-ticker AI sentiment insights and reasoning
-- X/Twitter: tweets with engagement metrics for ~50 stocks (not the full 2000)
+- Filing: 10-K, 10-Q, 8-K filings and Form 4 insider trades (full text)
+- Analyst: articles, earnings call transcripts, ratings, financials, dividends, estimates
+- News: articles with Grok + DeepSeek + GPT-5 sentiment
+- Market News: articles with per-ticker AI sentiment insights and reasoning
+- Social: tweets with engagement metrics for ~50 stocks (not the full 2000)
 - FRED: 25 macro series (Fed Funds, CPI, GDP, unemployment, VIX, yield curve, etc.)
 - OHLCV: daily, hourly, 1-minute bars for ~2000 stocks + 6 futures (ES, NQ, YM, RTY, GC, CL)
