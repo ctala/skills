@@ -1,11 +1,17 @@
 {
   "owner": "bocao9107",
   "slug": "hivulse-openclaw-skill",
-  "displayName": "Hivulse Openclaw Skill",
+  "displayName": "Hivulse蜂巢AI-Gen-Tech Docs 自动生成技术文档",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1773046706802,
-    "commit": "https://github.com/openclaw/skills/commit/7ee2742d88ba71656801933e4cdedcc7c26952ae"
+    "version": "0.1.4",
+    "publishedAt": 1773371407761,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1773046706802,
+      "commit": "https://github.com/openclaw/skills/commit/7ee2742d88ba71656801933e4cdedcc7c26952ae"
+    }
+  ]
 }
