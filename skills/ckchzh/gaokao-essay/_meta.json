@@ -3,9 +3,15 @@
   "slug": "gaokao-essay",
   "displayName": "Gaokao Essay",
   "latest": {
-    "version": "1.1.1",
-    "publishedAt": 1773140985491,
-    "commit": "https://github.com/openclaw/skills/commit/9ba5e7aff436e6c89eecaaa7bdd40a80611a2d25"
+    "version": "2.2.0",
+    "publishedAt": 1773421340615,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.1",
+      "publishedAt": 1773140985491,
+      "commit": "https://github.com/openclaw/skills/commit/9ba5e7aff436e6c89eecaaa7bdd40a80611a2d25"
+    }
+  ]
 }
