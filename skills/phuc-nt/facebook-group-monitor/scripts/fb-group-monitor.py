@@ -17,6 +17,7 @@ Output: JSON to stdout (for agent consumption)
 import asyncio
 import argparse
 import hashlib
+import io
 import json
 import os
 import sys
@@ -25,17 +26,24 @@ import random
 from datetime import datetime, timedelta
 from pathlib import Path
 
+try:
+    from PIL import Image as PILImage
+    PILLOW_AVAILABLE = True
+except ImportError:
+    PILLOW_AVAILABLE = False
+
 # ── Config ──────────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).parent
 BROWSER_DATA = SCRIPT_DIR / ".browser-data"
 SEEN_FILE = SCRIPT_DIR / ".seen-posts.json"
-# SCREENSHOTS_DIR can be overridden by --shots-dir argument.
-# Default: saves in script dir. Agent SHOULD pass workspace path via --shots-dir
-# so OpenClaw image tool can access them (only allowed to read within workspace).
+# SCREENSHOTS_DIR được override bởi --shots-dir argument.
+# Mặc định lưu trong script dir (fallback), nhưng agent NÊN truyền workspace path
+# để OpenClaw image tool có thể đọc được (chỉ cho phép đọc trong workspace).
 DEFAULT_SCREENSHOTS_DIR = SCRIPT_DIR / "screenshots"
 
-MAX_SCREENSHOTS = 100       # Max screenshots to keep
-SCREENSHOT_TTL_HOURS = 48   # Delete screenshots older than N hours
+MAX_SCREENSHOTS = 100       # Tối đa giữ N ảnh
+SCREENSHOT_TTL_HOURS = 48   # Xóa ảnh cũ hơn N giờ
+FEED_SCROLL_SHOTS = 3       # Số viewport screenshots để stitch thành feed strip
 
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -48,7 +56,7 @@ BROWSER_ARGS = [
     "--disable-dev-shm-usage",
 ]
 
-# JS to extract data from a single post element
+# JS để extract data từ 1 post element
 EXTRACT_POST_JS = """(el) => {
     const fullText = el.textContent || '';
     if (fullText.length < 30) return null;
@@ -202,7 +210,7 @@ def post_hash(text, author):
 
 
 def cleanup_screenshots(shots_dir: Path):
-    """Remove screenshots older than TTL or exceeding MAX_SCREENSHOTS."""
+    """Xóa screenshots cũ hơn TTL hoặc vượt MAX_SCREENSHOTS."""
     cutoff = datetime.now() - timedelta(hours=SCREENSHOT_TTL_HOURS)
     files = sorted(shots_dir.glob("*.jpg"), key=lambda f: f.stat().st_mtime)
 
@@ -235,8 +243,8 @@ async def create_browser_context(p, headless=True):
         user_agent=USER_AGENT,
         args=BROWSER_ARGS,
         ignore_default_args=["--enable-automation"],
-        locale="en-US",
-        timezone_id="America/New_York",
+        locale="vi-VN",
+        timezone_id="Asia/Ho_Chi_Minh",
     )
 
     if stealth_async:
@@ -250,8 +258,8 @@ async def create_browser_context(p, headless=True):
 async def cmd_login(args):
     from playwright.async_api import async_playwright
 
-    print("Opening browser for Facebook login...")
-    print("After logging in, press Enter in this terminal.")
+    print("Mở browser để đăng nhập Facebook...")
+    print("Sau khi đăng nhập xong, nhấn Enter ở terminal này.")
 
     async with async_playwright() as p:
         context, stealth_fn = await create_browser_context(p, headless=False)
@@ -259,10 +267,10 @@ async def cmd_login(args):
         if stealth_fn:
             await stealth_fn(page)
         await page.goto("https://www.facebook.com/", wait_until="domcontentloaded")
-        input("\n✅ Login complete? Press Enter to save session...")
+        input("\n✅ Đăng nhập xong? Nhấn Enter để lưu session...")
         await context.close()
 
-    result_json(True, "login", message="Facebook session saved.")
+    result_json(True, "login", message="Đã lưu session Facebook.")
 
 
 async def cmd_status(args):
@@ -290,9 +298,9 @@ async def cmd_status(args):
         await context.close()
 
         if logged_in:
-            result_json(True, "status", message="Session active — logged into Facebook.")
+            result_json(True, "status", message="Session active — đã đăng nhập Facebook.")
         else:
-            result_json(False, "status", error="Not logged in. Run: fb-group-monitor.py login")
+            result_json(False, "status", error="Chưa đăng nhập. Chạy: fb-group-monitor.py login")
 
 
 async def cmd_clean_shots(args):
@@ -304,7 +312,78 @@ async def cmd_clean_shots(args):
                 shots_dir=str(shots_dir),
                 removed=removed,
                 remaining=remaining,
-                message=f"Removed {removed} old screenshots. {remaining} remaining.")
+                message=f"Đã xóa {removed} ảnh cũ. Còn lại {remaining} ảnh.")
+
+
+async def capture_feed_strip(page, shots_dir, group_id, n_shots=FEED_SCROLL_SHOTS):
+    """Capture N viewport screenshots cropped to the feed column, stitch into 1 image.
+
+    Scroll back to top first, then capture one frame per viewport-height scroll.
+    Frames are stitched vertically into a single JPEG for LLM vision analysis.
+    Returns the file path string on success, or None on failure.
+    """
+    if not PILLOW_AVAILABLE:
+        return None
+    try:
+        # Get feed column x/width for cropping (removes navbar & right sidebar noise)
+        # Also get navbar height to skip it on first frame (navbar is sticky/fixed)
+        feed_box = await page.evaluate("""() => {
+            const feed = document.querySelector('[role="feed"]');
+            const nav = document.querySelector('[role="banner"], header, [data-pagelet="NavBar"]');
+            if (!feed) return null;
+            const feedRect = feed.getBoundingClientRect();
+            const navH = nav ? Math.round(nav.getBoundingClientRect().height) : 56;
+            return {
+                x: Math.max(0, Math.round(feedRect.left)),
+                width: Math.round(feedRect.width),
+                navH: navH
+            };
+        }""")
+        vp = page.viewport_size or {"width": 1280, "height": 900}
+        vp_h = vp["height"]
+        if feed_box and feed_box["width"] > 100:
+            clip_x = feed_box["x"]
+            clip_w = min(feed_box["width"], vp["width"] - feed_box["x"])
+            nav_h = feed_box.get("navH", 56)
+        else:
+            clip_x, clip_w, nav_h = 0, vp["width"], 56
+
+        # Scroll to top so screenshots start from newest posts
+        await page.evaluate("window.scrollTo(0, 0)")
+        await page.wait_for_timeout(800)
+
+        frames = []
+        for i in range(n_shots):
+            # Skip navbar on every frame (it's fixed/sticky, always at top of viewport)
+            clip_y = nav_h
+            clip_h = vp_h - nav_h
+            buf = await page.screenshot(
+                type="jpeg",
+                quality=85,
+                clip={"x": clip_x, "y": clip_y, "width": clip_w, "height": clip_h},
+            )
+            frames.append(buf)
+            if i < n_shots - 1:
+                await page.evaluate(f"window.scrollBy(0, {vp_h})")
+                await page.wait_for_timeout(random.randint(1000, 1800))
+
+        # Stitch frames vertically
+        images = [PILImage.open(io.BytesIO(b)) for b in frames]
+        total_h = sum(img.height for img in images)
+        max_w = max(img.width for img in images)
+        stitched = PILImage.new("RGB", (max_w, total_h), (255, 255, 255))
+        y = 0
+        for img in images:
+            stitched.paste(img, (0, y))
+            y += img.height
+
+        out_buf = io.BytesIO()
+        stitched.save(out_buf, format="JPEG", quality=82, optimize=True)
+        out_path = shots_dir / f"feed_{group_id}_{int(time.time())}.jpg"
+        out_path.write_bytes(out_buf.getvalue())
+        return str(out_path)
+    except Exception:
+        return None
 
 
 async def cmd_scrape(args):
@@ -335,23 +414,23 @@ async def cmd_scrape(args):
             if "login" in page.url:
                 await context.close()
                 result_json(False, "scrape",
-                            error="Not logged into Facebook. Run: fb-group-monitor.py login")
+                            error="Chưa đăng nhập Facebook. Chạy: fb-group-monitor.py login")
 
             title = await page.title()
             if any(kw in title.lower() for kw in ["security check", "checkpoint", "log in"]):
                 await context.close()
-                result_json(False, "scrape", error=f"Facebook verification required: {title}")
+                result_json(False, "scrape", error=f"Facebook yêu cầu xác minh: {title}")
 
             group_name = title.replace(" | Facebook", "").strip()
 
             await page.wait_for_timeout(5000)
 
-            # Scroll to load more posts
+            # Scroll để load thêm posts
             for _ in range(4):
                 await page.evaluate("window.scrollBy(0, 1000)")
                 await page.wait_for_timeout(random.randint(1500, 2500))
 
-            # Get element handles for each post in the feed
+            # Lấy element handles của từng post trong feed
             feed_children = await page.query_selector_all('[role="feed"] > *')
 
             posts_data = []
@@ -367,26 +446,13 @@ async def cmd_scrape(args):
                 if not data or not data.get("text"):
                     continue
 
-                # ── Screenshot post element ────────────────────────────────
-                if take_screenshots and data.get("images", 0) > 0:
-                    try:
-                        pid = post_hash(data["text"], data["author"])
-                        shot_path = shots_dir / f"{pid}.jpg"
-
-                        # Scroll element into viewport
-                        await child.scroll_into_view_if_needed()
-                        await page.wait_for_timeout(600)
-
-                        await child.screenshot(
-                            path=str(shot_path),
-                            type="jpeg",
-                            quality=82,
-                        )
-                        data["screenshot_path"] = str(shot_path)
-                    except Exception as e:
-                        data["screenshot_error"] = str(e)
-
                 posts_data.append(data)
+
+            # ── Feed strip screenshot (1 stitched image covers full feed) ──
+            feed_screenshot = None
+            if take_screenshots:
+                group_id = hashlib.md5(group_url.encode()).hexdigest()[:8]
+                feed_screenshot = await capture_feed_strip(page, shots_dir, group_id)
 
             await context.close()
 
@@ -396,10 +462,10 @@ async def cmd_scrape(args):
                             group_url=group_url,
                             posts=[],
                             new_count=0,
-                            message="No posts found. Selectors may need updating.")
+                            message="Không tìm thấy bài post nào. Có thể cần kiểm tra selectors.")
                 return
 
-            # Filter new posts
+            # Lọc bài mới
             seen = load_seen_posts()
             new_posts = []
             for post in posts_data:
@@ -412,19 +478,17 @@ async def cmd_scrape(args):
                 seen = set(list(seen)[-500:])
             save_seen_posts(seen)
 
-            shots_count = sum(1 for p in new_posts if p.get("screenshot_path"))
-
             result_json(
                 True, "scrape",
                 group_name=group_name,
                 group_url=group_url,
                 total_scraped=len(posts_data),
                 new_count=len(new_posts),
-                screenshots_taken=shots_count,
+                feed_screenshot=feed_screenshot,
                 posts=new_posts,
                 message=(
-                    f"Found {len(new_posts)} new posts / {len(posts_data)} total. "
-                    f"Captured {shots_count} screenshots."
+                    f"Tìm thấy {len(new_posts)} bài mới / {len(posts_data)} bài tổng cộng. "
+                    + (f"Feed screenshot: {feed_screenshot}" if feed_screenshot else "Không có ảnh.")
                 )
             )
 
@@ -439,7 +503,7 @@ async def cmd_scrape(args):
 # ── CLI ─────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(
-        description="Facebook Group Monitor — scrape posts + screenshots from FB groups",
+        description="Facebook Group Monitor — scrape posts + screenshots từ FB groups",
         epilog="""Examples:
   %(prog)s login
   %(prog)s status
@@ -453,25 +517,26 @@ def main():
     sub = parser.add_subparsers(dest="cmd")
     sub.required = True
 
-    sub.add_parser("login", help="Login to Facebook (opens browser)")
-    sub.add_parser("status", help="Check login session")
+    sub.add_parser("login", help="Đăng nhập Facebook (mở browser)")
+    sub.add_parser("status", help="Kiểm tra session")
 
-    clean_p = sub.add_parser("clean-shots", help="Remove old screenshots")
+    clean_p = sub.add_parser("clean-shots", help="Xóa screenshots cũ")
     clean_p.add_argument(
         "--shots-dir",
         default=str(DEFAULT_SCREENSHOTS_DIR),
-        help="Screenshots directory (default: script_dir/screenshots)"
+        help="Thư mục chứa screenshots (default: script_dir/screenshots)"
     )
 
-    scrape_p = sub.add_parser("scrape", help="Scrape new posts from a group")
-    scrape_p.add_argument("group_url", help="Facebook group URL or ID")
-    scrape_p.add_argument("--limit", type=int, default=10, help="Max posts (default: 10)")
+    scrape_p = sub.add_parser("scrape", help="Scrape bài mới từ group")
+    scrape_p.add_argument("group_url", help="URL hoặc ID của Facebook group")
+    scrape_p.add_argument("--limit", type=int, default=10, help="Số bài tối đa (default: 10)")
     scrape_p.add_argument("--no-shots", action="store_true",
-                          help="Skip screenshots (faster, text-only mode)")
+                          help="Không chụp ảnh (nhanh hơn, dùng khi chỉ cần text)")
     scrape_p.add_argument(
         "--shots-dir",
         default=str(DEFAULT_SCREENSHOTS_DIR),
-        help="Screenshot output directory — SHOULD point to agent workspace so image tool can read them."
+        help="Thư mục lưu screenshots — NÊN trỏ vào workspace để image tool đọc được. "
+             "VD: ~/.openclaw/workspace-daily-digest/temp-screenshots"
     )
 
     args = parser.parse_args()
