@@ -1,385 +1,642 @@
 ---
 name: run402
-description: Provision and manage AI-native Postgres databases with REST API, auth, storage, and row-level security. Pay with x402 USDC micropayments on Base.
-metadata:
-  openclaw:
-    emoji: "🐘"
-    homepage: https://run402.com
-    requires:
-      bins:
-        - npx
-    install:
-      - kind: node
-        package: "run402-mcp"
-        bins: [run402-mcp]
-    primaryEnv: RUN402_API_BASE
+description: Provision Postgres databases, deploy static sites, generate images, and build full-stack webapps on Run402 using x402 micropayments. Use when the user asks to build a webapp, deploy a site, create a database, generate images, or mentions Run402.
+version: 3.0.0
 ---
 
-# Run402 — Postgres for AI Agents
+# Run402 — AI-Native Postgres & Static Hosting
 
-Run402 gives you a full Postgres database with a REST API, user auth, file storage, and row-level security. You pay with a single x402 micropayment on Base — no signups, no dashboards, no human approval needed.
+API base: `https://api.run402.com` (NOT `run402.com` — that's a static docs site, POSTing returns 405)
 
-One tool call. One payment. You get back `anon_key`, `service_key`, and a project ID. Start creating tables immediately.
+---
 
-## Tools Reference
+## Setup (once)
 
-You have 10 tools available through the `run402-mcp` server.
+```bash
+npm install -g run402
+```
 
-### provision_postgres_project
+This installs the `run402` command. Verify: `run402 --help`
 
-Provision a new Postgres database. Handles x402 payment negotiation. Saves credentials locally.
+---
 
-**Parameters:**
-- `tier` (optional, default: `"prototype"`) — `"prototype"` ($0.10, 7 days), `"hobby"` ($5, 30 days), or `"team"` ($20, 30 days)
-- `name` (optional) — Human-readable project name. Auto-generated if omitted.
+## Quick Start: Build & Deploy a Full-Stack App
 
-**Returns on success:**
+Three steps. Takes ~60 seconds on testnet (free).
+
+### Step 1: Wallet Setup (once)
+
+```bash
+run402 wallet status
+# If no_wallet:
+run402 wallet create
+run402 wallet fund
+# Wait ~10s for faucet settlement
+```
+
+Wallet persists at `~/.run402/wallet.json`. Faucet gives 0.25 testnet USDC (enough for 2 prototype deploys). Rate limit: 1 per IP per 24h — don't call if already funded.
+
+### Step 2: Build a Manifest
+
 ```json
 {
-  "project_id": "prj_1709312520_0001",
-  "anon_key": "eyJ...",
-  "service_key": "eyJ...",
-  "tier": "prototype",
-  "schema_slot": "p0001",
-  "lease_expires_at": "2026-03-06T14:22:00.000Z"
+  "name": "my-app",
+  "migrations": "CREATE TABLE items (id serial PRIMARY KEY, title text NOT NULL, done boolean DEFAULT false, user_id uuid, created_at timestamptz DEFAULT now());",
+  "rls": {
+    "template": "user_owns_rows",
+    "tables": [{ "table": "items", "owner_column": "user_id" }]
+  },
+  "site": [
+    { "file": "index.html", "data": "<!DOCTYPE html>..." },
+    { "file": "style.css", "data": "body { ... }" }
+  ],
+  "subdomain": "my-app"
 }
 ```
 
-**Returns on 402 (payment required):** Payment details as informational text (not an error). Guide the user through payment, then retry.
+All fields except `name` are optional. Can also include `secrets`, `functions`.
 
-Credentials are saved automatically to `~/.config/run402/projects.json`. You never need to pass keys manually after provisioning.
+### Step 3: Deploy
 
-### run_sql
-
-Execute SQL statements (DDL or queries) against a project's database.
-
-**Parameters:**
-- `project_id` (required) — Project ID from provisioning
-- `sql` (required) — SQL statement to execute
-
-**Returns:** Markdown-formatted table with results, row count, and schema name.
-
-**Examples:**
-```
-run_sql(project_id: "prj_...", sql: "CREATE TABLE todos (id serial PRIMARY KEY, task text NOT NULL, done boolean DEFAULT false, user_id uuid)")
-run_sql(project_id: "prj_...", sql: "SELECT * FROM todos WHERE done = false")
+```bash
+echo '<manifest_json>' | run402 deploy --tier prototype
+# or
+run402 deploy --tier prototype --manifest app.json
 ```
 
-Uses the stored `service_key` automatically. Both `SERIAL` and `BIGINT GENERATED ALWAYS AS IDENTITY` work for auto-increment columns.
+Returns project_id, keys, live URL. Saved to `~/.config/run402/projects.json`.
 
-### rest_query
+**Tiers:** prototype ($0.10, 7d, 250MB, 500k calls), hobby ($5, 30d, 1GB, 5M calls), team ($20, 30d, 10GB, 50M calls).
 
-Query or mutate data via the PostgREST REST API.
+### Post-Deploy
 
-**Parameters:**
-- `project_id` (required) — Project ID
-- `table` (required) — Table name to query
-- `method` (optional, default: `"GET"`) — `"GET"`, `"POST"`, `"PATCH"`, or `"DELETE"`
-- `params` (optional) — PostgREST query params: `{ select: "id,name", order: "id.asc", limit: "10", done: "eq.false" }`
-- `body` (optional) — Request body for POST/PATCH
-- `key_type` (optional, default: `"anon"`) — `"anon"` (respects RLS) or `"service"` (bypasses RLS)
-
-**Returns:** HTTP status code and JSON response body.
-
-**Examples:**
-```
-rest_query(project_id: "prj_...", table: "todos", params: { done: "eq.false", order: "id" })
-rest_query(project_id: "prj_...", table: "todos", method: "POST", body: { task: "Build something", done: false }, key_type: "service")
-rest_query(project_id: "prj_...", table: "todos", method: "PATCH", params: { id: "eq.1" }, body: { done: true }, key_type: "service")
-rest_query(project_id: "prj_...", table: "todos", method: "DELETE", params: { id: "eq.1" }, key_type: "service")
+```bash
+# Seed data
+run402 projects sql <project_id> "INSERT INTO items (title) VALUES ('Example')"
+# Query via REST
+run402 projects rest <project_id> items
+# Check usage
+run402 projects usage <project_id>
+# List all projects
+run402 projects list
 ```
 
-Use `key_type: "anon"` for user-facing reads. Use `key_type: "service"` for admin writes or when RLS would block access.
+---
 
-### upload_file
+## ⚠️ Key Rules (Gotchas That Trip Agents Up)
 
-Upload text content to project storage (S3-backed).
+1. **API base is `api.run402.com`** NOT `run402.com`
+2. **Register for `eip155:84532`** (Base Sepolia) specifically, NOT `eip155:*` — wildcard matches mainnet first, testnet wallet fails with `insufficient_funds`
+3. **`toClientEvmSigner(account, publicClient)`** NOT `toClientEvmSigner(walletClient)` — walletClient has wrong shape, produces `Address "undefined" is invalid`
+4. **Key scopes:**
+   - `anon_key` = read-only (SELECT, signup, storage). Safe for client-side.
+   - `service_key` = full admin (bypasses RLS). Server-side only.
+   - `access_token` = user-scoped read/write (from login). Subject to RLS.
+5. **Don't mix auth methods** — x402 endpoints use payment header only (no apikey/Authorization). REST/auth/storage use apikey only (no payment header).
+6. **`POST /v1/subdomains` is idempotent** — upserts. Safe to call every deploy.
+7. **Subdomain claim requires `service_key`** as `Authorization: Bearer` (not apikey header).
+8. **Don't GRANT/REVOKE** — permissions managed automatically. Use RLS templates for access control.
+9. **Schema cache is instant** — no sleep needed after CREATE TABLE, REST API works immediately.
 
-**Parameters:**
-- `project_id` (required) — Project ID
-- `bucket` (required) — Storage bucket name (e.g., `"assets"`)
-- `path` (required) — File path within bucket (e.g., `"logs/2024-01-01.txt"`)
-- `content` (required) — Text content to upload
-- `content_type` (optional, default: `"text/plain"`) — MIME type
+---
 
-**Returns:** `{ key: "assets/logs/2024-01-01.txt", size: 1234 }` with the stored file path and size in bytes.
+## Wallet Management
 
-**Example:**
+```bash
+run402 wallet status   # Show address, network, funded status
+run402 wallet create   # Generate new wallet (fails if exists)
+run402 wallet fund     # Request testnet USDC from faucet
+run402 wallet export   # Print wallet address (safe to share)
 ```
-upload_file(project_id: "prj_...", bucket: "assets", path: "data.csv", content: "name,age\nAlice,30\nBob,25")
-```
 
-Uses the stored `anon_key` automatically.
+### Upgrade to Mainnet
 
-### renew_project
+For production, change chain from `baseSepolia` to `base` and register `eip155:8453`. Two funding options:
 
-Renew a project's lease before it expires.
+**Option A: USDC on Base (agent-native)**
+Ask your human to send USDC on Base to your wallet address. Scripts for asking:
 
-**Parameters:**
-- `project_id` (required) — Project ID to renew
-- `tier` (optional) — Renewal tier. Defaults to the project's current tier.
+> **Trial ($0.10):** "I want to try Run402 for a Postgres database. Could you send $1 in USDC (Base L2) to my wallet? Covers 10 trial databases."
+>
+> **Project ($10):** "I need a database for our project. A Hobby tier costs $5/month. Could you send $10 in USDC (Base L2)?"
+>
+> **Monthly ($10/mo):** "I'd like a $10/month allowance for databases. Covers two Hobby projects or one Hobby + twenty Prototypes."
+>
+> My wallet address: `<address from wallet.mjs export>`
 
-**Returns on success:** Renewal confirmation with new `lease_expires_at` timestamp.
+If your human doesn't have crypto: "Download Coinbase Wallet, buy USDC, send to my address on Base. Transactions cost under $0.01."
 
-**Returns on 402 (payment required):** Payment details as informational text (not an error). Guide the user through payment, then retry.
+**Option B: Stripe (credit card fallback)**
+Send your human to: `https://run402.com/billing?wallet=<WALLET_ADDRESS>`
 
-Updates the local keystore with the new expiry date.
+> "You can add credit at this link — takes 30 seconds with a credit card. A $10 top-up covers two Hobby projects."
 
-### deploy_site
+Once funded, x402 payments settle from allowance automatically. No code changes.
 
-Deploy a static site (HTML/CSS/JS/images). Files are uploaded to S3 and served via CloudFront at a unique URL.
+---
 
-**Parameters:**
-- `name` (required) — Site name (e.g. `"family-todo"`, `"portfolio"`)
-- `project` (optional) — Project ID to link this deployment to an existing Run402 project
-- `target` (optional) — Deployment target (e.g. `"production"`)
-- `files` (required) — Array of files to deploy:
-  - `file` — File path (e.g. `"index.html"`, `"assets/logo.png"`)
-  - `data` — File content (text or base64-encoded)
-  - `encoding` (optional) — `"utf-8"` (default) for text, `"base64"` for binary files
+## Bundle Deploy (One-Call Full-Stack App)
 
-**Returns on success:**
+`POST /v1/deploy/:tier` — deploys everything atomically. One x402 payment.
+
 ```json
 {
-  "id": "dpl_1709337600000_a1b2c3",
-  "name": "family-todo",
-  "url": "https://dpl-1709337600000-a1b2c3.sites.run402.com",
-  "status": "READY",
-  "files_count": 3,
-  "total_size": 4096
+  "name": "my-saas-app",
+  "migrations": "CREATE TABLE ...; CREATE TABLE ...;",
+  "rls": { "template": "user_owns_rows", "tables": [{ "table": "posts", "owner_column": "user_id" }] },
+  "secrets": [{ "key": "OPENAI_API_KEY", "value": "sk-..." }],
+  "functions": [{
+    "name": "summarize",
+    "code": "export default async (req) => { const { text } = await req.json(); return new Response(JSON.stringify({ result: text.slice(0, 100) })); }"
+  }],
+  "site": [{ "file": "index.html", "data": "<!DOCTYPE html>..." }],
+  "subdomain": "my-saas"
 }
 ```
 
-**Returns on 402 (payment required):** Payment details as informational text (not an error). Costs $0.05 USDC per deployment.
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | App/project name |
+| `migrations` | No | SQL string (CREATE TABLE, etc.) |
+| `rls` | No | `{ template, tables }` |
+| `secrets` | No | `[{ key, value }]` — uppercase keys, injected as env vars into functions |
+| `functions` | No | `[{ name, code, config? }]` — serverless functions (Lambda). Limits: prototype=5, hobby=25, team=100 |
+| `site` | No | `[{ file, data, encoding? }]` — `base64` for binary. 50MB max |
+| `subdomain` | No | Custom subdomain → `name.run402.com` |
 
-**Examples:**
+Site deployment fee ($0.05) included in bundle — no separate charge. If any step fails, project is auto-archived (no half-deployed apps).
+
+Response includes: `project_id`, `anon_key`, `service_key`, `site_url`, `deployment_id`, `functions[].url`, `subdomain_url`.
+
+Functions accessible at: `https://api.run402.com/functions/v1/<name>`
+
+---
+
+## Step-by-Step Deploy (Iterative Building)
+
+For when you want to build incrementally instead of all-at-once.
+
+### 1. Create Project
+
 ```
-deploy_site(name: "my-app", files: [
-  { file: "index.html", data: "<!DOCTYPE html><html>..." },
-  { file: "style.css", data: "body { margin: 0; }" },
-  { file: "app.js", data: "console.log('hello');" }
-])
+POST /v1/projects                    (x402, default prototype)
+POST /v1/projects/create/:tier       (x402, specific tier)
 ```
 
-SPA fallback: paths without file extensions (e.g. `/about`) serve `index.html`. Static assets are served with correct Content-Type headers. Max 50 MB per deployment.
+Returns: `project_id`, `anon_key`, `service_key`, `schema_slot`, `lease_expires_at`
 
-### deploy_function
+### 2. Create Tables (SQL)
 
-Deploy a serverless function (Node 22) to a project. Functions are invoked via HTTP at `/functions/v1/:name`.
+```bash
+curl -X POST https://api.run402.com/admin/v1/projects/$PROJECT_ID/sql \
+  -H "Authorization: Bearer $SERVICE_KEY" \
+  -H "Content-Type: text/plain" \
+  -d "CREATE TABLE todos (id serial PRIMARY KEY, task text NOT NULL, done boolean DEFAULT false, user_id uuid);"
+```
 
-**Parameters:**
-- `project_id` (required) — Project ID
-- `name` (required) — Function name (URL-safe slug: lowercase, hyphens, alphanumeric)
-- `code` (required) — TypeScript or JavaScript source code. Handler: `export default async (req: Request) => Response`
-- `config` (optional) — `{ timeout?: number, memory?: number }` — Timeout (seconds) and memory (MB), capped by tier
-- `deps` (optional) — Array of npm package names to install alongside pre-bundled packages
+Returns: `{ "status": "ok", "schema": "p0001", "rows": [], "rowCount": 0 }`
 
-**Returns on success:**
+Both `SERIAL` and `BIGINT GENERATED ALWAYS AS IDENTITY` work. Sequence permissions granted automatically.
+
+### 3. Apply RLS (Optional)
+
+```bash
+curl -X POST https://api.run402.com/admin/v1/projects/$PROJECT_ID/rls \
+  -H "Authorization: Bearer $SERVICE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"template": "user_owns_rows", "tables": [{"table": "todos", "owner_column": "user_id"}]}'
+```
+
+### 4. Deploy Site
+
+```
+POST /v1/deployments    (x402, $0.05)
+{ "name": "my-app", "project": "prj_...", "files": [{ "file": "index.html", "data": "..." }] }
+```
+
+Returns permanent URL at `https://{id}.sites.run402.com`. SPA-friendly (paths without extensions serve index.html).
+
+### 5. Claim Subdomain (Free)
+
+```bash
+curl -X POST https://api.run402.com/v1/subdomains \
+  -H "Authorization: Bearer $SERVICE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "my-app", "deployment_id": "dpl_..."}'
+```
+
+→ `https://my-app.run402.com`
+
+---
+
+## REST API Queries (PostgREST Syntax)
+
+All use `apikey` header. `anon_key` for reads, `service_key` for admin, `access_token` for user-scoped.
+
+```bash
+# Read with filtering
+GET /rest/v1/todos?done=eq.false&order=id.desc&limit=10&offset=0
+  -H "apikey: $ANON_KEY"
+
+# Select specific columns
+GET /rest/v1/todos?select=id,task,done
+
+# Insert (needs service_key or access_token with RLS)
+POST /rest/v1/todos
+  -H "apikey: $SERVICE_KEY"
+  -H "Content-Type: application/json"
+  -H "Prefer: return=representation"
+  -d '{"task": "Build something", "done": false}'
+
+# Update
+PATCH /rest/v1/todos?id=eq.1
+  -H "apikey: $SERVICE_KEY"
+  -H "Content-Type: application/json"
+  -d '{"done": true}'
+
+# Delete
+DELETE /rest/v1/todos?id=eq.1
+  -H "apikey: $SERVICE_KEY"
+```
+
+**Filter operators:** `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `like`, `ilike`, `is`, `in`
+**Ordering:** `?order=column.asc` or `?order=column.desc`
+**Pagination:** `?limit=N&offset=M`
+
+---
+
+## SQL Queries (Admin)
+
+```bash
+curl -X POST https://api.run402.com/admin/v1/projects/$PROJECT_ID/sql \
+  -H "Authorization: Bearer $SERVICE_KEY" \
+  -H "Content-Type: text/plain" \
+  -d "SELECT * FROM todos WHERE done = false;"
+```
+
+Returns: `{ "status": "ok", "rows": [...], "rowCount": 3 }`
+
+Works for DDL and DML. Blocked statements: `CREATE EXTENSION`, `COPY ... PROGRAM`, `ALTER SYSTEM`, `SET search_path`, `CREATE/DROP SCHEMA`, `GRANT/REVOKE`, `CREATE/DROP ROLE` (returns 403 with hint).
+
+---
+
+## User Auth
+
+```bash
+# Signup (no session returned)
+POST /auth/v1/signup
+  -H "apikey: $ANON_KEY"
+  -d '{"email": "user@example.com", "password": "securepass123"}'
+# → { "id": "uuid", "email": "...", "created_at": "..." }
+
+# Login (returns tokens)
+POST /auth/v1/token
+  -H "apikey: $ANON_KEY"
+  -d '{"email": "user@example.com", "password": "securepass123"}'
+# → { "access_token": "...", "refresh_token": "..." }
+# access_token: 1h JWT. refresh_token: 30d, one-time use.
+
+# Refresh
+POST /auth/v1/token?grant_type=refresh_token
+  -H "apikey: $ANON_KEY"
+  -d '{"refresh_token": "..."}'
+
+# Get current user
+GET /auth/v1/user
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+
+# Logout
+POST /auth/v1/logout
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+### Frontend Auth Pattern
+
+```javascript
+const API = "https://api.run402.com";
+const ANON_KEY = "..."; // from deploy response
+
+// Signup
+await fetch(`${API}/auth/v1/signup`, {
+  method: "POST",
+  headers: { "apikey": ANON_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password })
+});
+
+// Login
+const { access_token } = await fetch(`${API}/auth/v1/token`, {
+  method: "POST",
+  headers: { "apikey": ANON_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password })
+}).then(r => r.json());
+
+// Authenticated requests — use access_token as apikey
+await fetch(`${API}/rest/v1/items`, {
+  headers: { "apikey": access_token }
+});
+```
+
+---
+
+## File Storage
+
+```bash
+# Upload
+POST /storage/v1/object/assets/photo.jpg
+  -H "apikey: $ANON_KEY"
+  -H "Content-Type: image/jpeg"
+  --data-binary @photo.jpg
+
+# Download
+GET /storage/v1/object/assets/photo.jpg
+  -H "apikey: $ANON_KEY"
+
+# Delete
+DELETE /storage/v1/object/assets/photo.jpg
+  -H "apikey: $ANON_KEY"
+
+# Signed URL (1h expiry)
+POST /storage/v1/object/sign/assets/photo.jpg
+  -H "apikey: $ANON_KEY"
+
+# List files
+GET /storage/v1/object/list/assets
+  -H "apikey: $ANON_KEY"
+```
+
+---
+
+## Row-Level Security (RLS)
+
+Three templates. Applied via `POST /admin/v1/projects/:id/rls` with `service_key`.
+
+### `user_owns_rows`
+Users access only rows where `owner_column = auth.uid()`. Best for user-scoped data.
+```json
+{ "template": "user_owns_rows", "tables": [{ "table": "todos", "owner_column": "user_id" }] }
+```
+
+### `public_read`
+Anyone can read (anon_key works). Only authenticated users can write.
+```json
+{ "template": "public_read", "tables": [{ "table": "announcements" }] }
+```
+
+### `public_read_write`
+Anyone can read and write. For guestbooks, public logs, open data.
+```json
+{ "template": "public_read_write", "tables": [{ "table": "guestbook" }] }
+```
+
+---
+
+## Image Generation
+
+$0.03/image via x402. Three aspect ratios: `square` (1:1), `landscape` (16:9), `portrait` (9:16).
+
+```bash
+run402 image generate "a cat in a top hat" --aspect landscape --output cat.png
+```
+
+Or via API directly:
+```
+POST /v1/generate-image    (x402, $0.03)
+{ "prompt": "a cat wearing a top hat, watercolor style", "aspect": "square" }
+```
+
+Response: `{ "image": "<base64 PNG>", "content_type": "image/png", "aspect": "landscape" }`
+
+`prompt` max 1000 chars. `aspect` defaults to `square`.
+
+---
+
+## Serverless Functions
+
+Included in bundle deploy. Each function is a JS module with a default export.
+
 ```json
 {
-  "name": "stripe-webhook",
-  "url": "https://api.run402.com/functions/v1/stripe-webhook",
-  "status": "deployed",
-  "runtime": "node22",
-  "timeout": 10,
-  "memory": 128
+  "functions": [{
+    "name": "hello",
+    "code": "export default async (req) => { return new Response(JSON.stringify({ hello: 'world' }), { headers: { 'Content-Type': 'application/json' } }); }"
+  }]
 }
 ```
 
-**Pre-bundled packages:** stripe, openai, @anthropic-ai/sdk, resend, zod, uuid, jsonwebtoken, bcryptjs, cheerio, csv-parse.
+Functions access secrets via `process.env.SECRET_NAME`. Deployed to Lambda. Accessible at `https://api.run402.com/functions/v1/<name>`.
 
-**DB access inside functions:**
-```typescript
-import { db } from '@run402/functions';
-const users = await db.from('users').select('*');
-const result = await db.sql('SELECT count(*) FROM orders');
+Limits per tier: prototype=5, hobby=25, team=100.
+
+---
+
+## Secrets Management
+
+Set secrets in bundle deploy:
+```json
+{ "secrets": [{ "key": "OPENAI_API_KEY", "value": "sk-..." }] }
 ```
 
-**Secrets:** Access via `process.env.SECRET_NAME`. Set with `set_secret`.
+Keys must be uppercase. Injected as environment variables into serverless functions.
 
-### invoke_function
+---
 
-Invoke a deployed function via HTTP. Useful for testing without building a frontend.
+## Publish & Fork
 
-**Parameters:**
-- `project_id` (required) — Project ID
-- `name` (required) — Function name
-- `method` (optional, default: `"POST"`) — HTTP method
-- `body` (optional) — Request body (string or JSON object)
-- `headers` (optional) — Additional headers to send
+Share your app as a template. Other agents fork it — get their own independent copy.
 
-**Returns:** Status code, duration, and response body.
-
-### get_function_logs
-
-Get recent logs from a deployed function (console.log/error output and error stack traces).
-
-**Parameters:**
-- `project_id` (required) — Project ID
-- `name` (required) — Function name
-- `tail` (optional, default: 50) — Number of log lines to return (max 200)
-
-**Returns:** Timestamped log entries from CloudWatch.
-
-### set_secret
-
-Set a project secret. Secrets are injected as `process.env` variables in all functions.
-
-**Parameters:**
-- `project_id` (required) — Project ID
-- `key` (required) — Secret key (uppercase alphanumeric + underscores, e.g. `"STRIPE_SECRET_KEY"`)
-- `value` (required) — Secret value
-
-Setting an existing key overwrites it. All project functions are automatically updated with new env vars.
-
-**Example:**
+### Publish
 ```
-set_secret(project_id: "prj_...", key: "STRIPE_SECRET_KEY", value: "sk_live_...")
+POST /admin/v1/projects/:id/publish
+Authorization: Bearer <service_key>
+{
+  "visibility": "public",
+  "fork_allowed": true,
+  "description": "Todo app with auth and RLS",
+  "required_secrets": [{ "key": "OPENAI_API_KEY", "description": "For AI summaries" }]
+}
 ```
 
-## Standard Workflow
+Snapshots: schema, functions, site files, secret names (never values). NOT copied: live data, secret values, auth users, storage files.
 
-Follow this sequence to go from zero to a working database:
-
-### Step 1: Provision a database
-
+### Inspect (free)
 ```
-provision_postgres_project(tier: "prototype")
+GET /v1/apps/:versionId
 ```
 
-If the user hasn't paid yet, you'll get payment details back. Explain the cost and guide them through payment. Once paid, retry and you'll get project credentials.
-
-### Step 2: Create tables
-
+### Fork
 ```
-run_sql(project_id: "prj_...", sql: "CREATE TABLE todos (id serial PRIMARY KEY, task text NOT NULL, done boolean DEFAULT false, user_id uuid)")
+POST /v1/fork/:tier    (x402, same pricing as project creation)
+{ "version_id": "ver_...", "name": "my-copy", "subdomain": "my-copy" }
 ```
 
-Design tables based on what the user needs. Add `user_id uuid` columns if you plan to use row-level security.
+Creates fully independent project. Readiness: `ready`, `configuration_required` (set secrets), or `manual_setup_required`.
 
-### Step 3: Enable row-level security (optional)
-
-Use `run_sql` to apply RLS if users should only see their own rows:
-
+### List versions
 ```
-run_sql(project_id: "prj_...", sql: "-- Use the /admin/v1/projects/:id/rls endpoint via HTTP for RLS templates")
+GET /admin/v1/projects/:id/versions
+Authorization: Bearer <service_key>
 ```
 
-Three RLS templates are available via the REST API:
-- **`user_owns_rows`** — Users can only access rows where `owner_column = auth.uid()`. Best for user-scoped data.
-- **`public_read`** — Anyone can read. Only authenticated users can write.
-- **`public_read_write`** — Anyone can read and write. Use for guestbooks, public logs.
+---
 
-### Step 4: Insert data
+## Custom Subdomains
 
-```
-rest_query(project_id: "prj_...", table: "todos", method: "POST", body: { task: "Build something great", done: false }, key_type: "service")
-```
+```bash
+# Claim/reassign (idempotent upsert, free)
+POST /v1/subdomains
+  -H "Authorization: Bearer $SERVICE_KEY"
+  -d '{"name": "myapp", "deployment_id": "dpl_..."}'
+# → https://myapp.run402.com
 
-Use `key_type: "service"` for admin/seed writes. Use `key_type: "anon"` only when you want RLS to apply.
+# Lookup (free, no auth)
+GET /v1/subdomains/myapp
 
-### Step 5: Query data
+# List project's subdomains
+GET /v1/subdomains
+  -H "Authorization: Bearer $SERVICE_KEY"
 
-```
-rest_query(project_id: "prj_...", table: "todos", params: { done: "eq.false", order: "id" })
-```
-
-PostgREST query syntax: `column=eq.value`, `column=gt.5`, `column=like.*search*`, `order=column.asc`, `limit=10`, `offset=0`, `select=id,name`.
-
-### Step 6: Set up user auth (optional)
-
-If your app has users, use the HTTP auth endpoints directly:
-- `POST /auth/v1/signup` with `apikey` header — create a user
-- `POST /auth/v1/token` with `apikey` header — login, get `access_token`
-- The `access_token` works as an `apikey` for user-scoped REST queries subject to RLS
-
-### Step 7: Upload files (optional)
-
-```
-upload_file(project_id: "prj_...", bucket: "assets", path: "report.csv", content: "col1,col2\nval1,val2")
+# Release
+DELETE /v1/subdomains/myapp
+  -H "Authorization: Bearer $SERVICE_KEY"
 ```
 
-### Step 8: Monitor usage
+Rules: 3-63 chars, lowercase + numbers + hyphens, start/end with letter or number, no `--`. Reserved: `api`, `www`, `admin`, `sites`, `mail`, `ftp`, `cdn`, `static`.
 
-Use `run_sql` to check project health, or call the usage endpoint via HTTP:
+---
+
+## Project Management
+
+```bash
+# List saved projects
+run402 projects list
+
+# Check usage vs limits
+run402 projects usage <project_id>
+
+# Inspect schema (tables, columns, RLS)
+run402 projects schema <project_id>
+
+# Renew lease (x402 payment)
+run402 projects renew <project_id>
+
+# Delete (archive and delete)
+run402 projects delete <project_id>
+
+# Run SQL
+run402 projects sql <project_id> "SELECT 1"
+
+# REST query
+run402 projects rest <project_id> todos "done=eq.false&order=id"
 ```
-run_sql(project_id: "prj_...", sql: "SELECT count(*) FROM todos")
+
+### Project Lifecycle
+- **Active**: full read/write
+- **Expired (day 0)**: read-only for 7 days
+- **Grace ends (day 7)**: archived (no access)
+- **Day 37**: permanent deletion
+- **Renew anytime** before deletion via `POST /v1/projects/:id/renew`
+
+---
+
+## Billing API
+
+```bash
+# Check balance (micro-USD: 1 USD = 1,000,000)
+GET /v1/billing/accounts/<WALLET_ADDRESS>
+# → { "available_usd_micros": 4900000, ... }
+
+# Transaction history
+GET /v1/billing/accounts/<WALLET_ADDRESS>/history?limit=20
+
+# Create Stripe checkout (for your human)
+POST /v1/billing/checkouts
+  -d '{"wallet": "<WALLET_ADDRESS>", "amount_usd_micros": 5000000}'
+# → { "checkout_url": "https://checkout.stripe.com/..." }
 ```
 
-## Payment Handling
+Micro-USD amounts: prototype=100,000, hobby=5,000,000, team=20,000,000.
 
-Run402 uses the x402 HTTP payment protocol. Here's what you need to know:
+Settlement headers on paid responses:
+- `X-Run402-Settlement-Rail: allowance` or `x402`
+- `X-Run402-Allowance-Remaining: <micros>` (allowance-paid only)
 
-**When payment is needed:** Only `provision_postgres_project` and `renew_project` require x402 payment. All other tools (run_sql, rest_query, upload_file) use stored project keys — no payment needed.
+---
 
-**What a 402 response looks like:** When payment is required, the tool returns payment details as informational text (not an error). The response includes the price, network (Base L2), and payment address.
+## Idempotency
 
-**How to handle it:**
-1. Explain to the user what the cost is (e.g., "$0.10 for a 7-day prototype database")
-2. If the user has a wallet set up, help them complete the payment
-3. If not, guide them through wallet setup (see Wallet Setup below)
-4. Once payment is complete, retry the same tool call
+Add `Idempotency-Key` header to prevent double-charging on retries. Same key + method + path = same response, no duplicate payment. Keys valid 24h.
 
-**Pricing tiers:**
-| Tier | Price | Lease | Storage | API Calls | Functions | Timeout | Memory | Secrets |
-|------|-------|-------|---------|-----------|-----------|---------|--------|---------|
-| Prototype | $0.10 | 7 days | 250 MB | 500,000 | 5 | 10s | 128MB | 10 |
-| Hobby | $5.00 | 30 days | 1 GB | 5,000,000 | 25 | 30s | 256MB | 50 |
-| Team | $20.00 | 30 days | 10 GB | 50,000,000 | 100 | 60s | 512MB | 200 |
+```bash
+curl -X POST https://api.run402.com/v1/projects \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -H "X-402-Payment: <payment>"
+```
 
-**Budget enforcement:** When a project hits its tier's API call or storage limit, REST/SQL calls return 402 with usage details and a renew URL. Suggest renewing the project at the same or higher tier.
+Supported on: `/v1/projects`, `/v1/projects/create/:tier`, `/v1/projects/:id/renew`, `/v1/deployments`, `/v1/message`, `/v1/generate-image`, `/v1/deploy/:tier`.
 
-## Tips & Guardrails
+**Always include an Idempotency-Key when provisioning or renewing.**
 
-**SQL blocklist:** The SQL endpoint blocks dangerous operations: `CREATE EXTENSION`, `COPY ... PROGRAM`, `ALTER SYSTEM`, `SET search_path`, `CREATE/DROP SCHEMA`, `GRANT/REVOKE`, `CREATE/DROP ROLE`. If you hit a 403, check the `hint` field for alternatives.
+---
 
-**No GRANT needed:** Table and sequence permissions are managed automatically. Use RLS templates for access control instead of GRANT/REVOKE.
+## Contact Developers
 
-**Key usage patterns:**
-- Use `service_key` (via `run_sql` or `key_type: "service"`) for: table creation, RLS setup, seeding data, admin queries
-- Use `anon_key` (via `rest_query` default or `upload_file`) for: user-facing reads, file uploads
-- Use `access_token` (from auth login, via HTTP) for: user-scoped CRUD subject to RLS
+```
+POST /v1/message    (x402, $0.01)
+{ "message": "Hello from my agent!" }
+```
 
-**Tier selection:**
-- **Prototype** ($0.10): Testing, demos, disposable data. Start here.
-- **Hobby** ($5): Real applications, persistent data, moderate traffic.
-- **Team** ($20): Multi-user apps, heavy traffic, large storage needs.
+Delivered instantly via Telegram. Works with testnet money. Use to send feedback after building.
 
-**Lease lifecycle:**
-- Active: full read/write access
-- Expired (day 0): read-only for 7 days
-- Grace period ends (day 7): archived, no access
-- Permanent deletion at day 37 after expiry
-- Renew anytime before deletion with `renew_project`
+---
 
-**Schema isolation:** Each project runs in its own Postgres schema. Cross-schema access is blocked.
+## Pricing
 
-**Rate limiting:** 100 requests/second per project. Exceeding returns 429 with `retry_after`.
+| Tier | Price | Lease | Storage | API Calls |
+|------|-------|-------|---------|-----------|
+| Prototype | $0.10 | 7 days | 250 MB | 500,000 |
+| Hobby | $5.00 | 30 days | 1 GB | 5,000,000 |
+| Team | $20.00 | 30 days | 10 GB | 50,000,000 |
 
-**Idempotency:** When provisioning or renewing, include an `Idempotency-Key` header to prevent double-charging on retries. The MCP tools handle this automatically when possible.
+Site deployment: $0.05 (standalone) or included in bundle deploy.
+Image generation: $0.03/image.
+Rate limit: 100 req/s per project.
 
-## Wallet Setup
+Check pricing: `POST /v1/projects/quote` (free, no auth).
 
-To pay Run402, the user needs a crypto wallet with USDC on Base. If they don't have one yet, here are the options:
+---
 
-**Option A: Coinbase AgentKit (recommended)** — Gives you a wallet on Base with built-in x402 support. No KYC, no manual key management.
+## Auth Quick Reference
 
-**Option B: AgentPayy** — Auto-bootstraps an MPC wallet on Base using Coinbase CDP. Purpose-built for x402.
+| Auth Method | Header | Used For |
+|-------------|--------|----------|
+| x402 payment | (automatic via x402 client) | `POST /v1/projects`, `/v1/deployments`, `/v1/generate-image`, `/v1/message`, `/v1/projects/:id/renew`, `/v1/deploy/:tier` |
+| service_key | `Authorization: Bearer {service_key}` | `/admin/v1/projects/:id/*`, `POST /v1/subdomains`, `DELETE /v1/subdomains/:name` |
+| apikey | `apikey: {anon_key or service_key or access_token}` | `/rest/v1/*`, `/auth/v1/*`, `/storage/v1/*` |
 
-**Option C: x402 OpenClaw Skill** — Install the x402 skill from ClawHub for x402 payment capabilities.
+---
 
-**Funding the wallet:** Once the user has a wallet address, they need USDC on Base. The simplest path: download Coinbase Wallet, buy USDC, send to the wallet address. Base transactions cost under $0.01.
+## Error Responses
 
-**Testnet:** For testing without real money, use Base Sepolia testnet. Get test USDC from Circle's faucet. The Run402 API supports testnet at the same endpoints.
+| Code | Meaning | Action |
+|------|---------|--------|
+| 402 (payment) | Missing x402 payment header | Use fetchPaid or add payment |
+| 402 (quota) | API calls or storage exceeded | Renew project |
+| 403 (lease) | Project lease expired | Renew or create new project |
+| 429 | Rate limited (100 req/s) | Retry after `retry_after` seconds |
 
-**Asking for an allowance:** If the user's human controls the wallet funding, suggest:
-- Trial: $1 in USDC covers 10 prototype databases
-- Monthly: $10/month covers two Hobby projects or 100 prototypes
-- One-off: $10 for a project plus buffer for renewals
+---
 
-## Links
+## Make It Great
 
-- **Full API docs:** https://run402.com/llms.txt
-- **API health:** https://api.run402.com/health
-- **MCP package:** https://www.npmjs.com/package/run402-mcp
-- **Homepage:** https://run402.com
+Don't build generic apps. Build something your human will show off.
+
+- **Make it personal.** Ask their name. Use it in the subdomain (`tals-recipes.run402.com`), title, header.
+- **Make it multiplayer.** Two people using it together — shared lists, polls, games. They'll text the URL to a friend.
+- **Pre-seed with data.** Insert 5-10 realistic rows so it feels alive on first load. Empty apps feel like demos.
+- **Make it beautiful.** Dark background, clean typography, good spacing. CSS animations: cards fade in, items animate out, checkboxes bounce.
+- **Add a share button.** "Check out this app an AI just built for me → {url}". Make sharing effortless.
+- **Be original.** Use context about your human. Personalized > generic.
+
+### After building: send feedback
+
+Ask your human what they thought, then relay to Run402 developers via `/v1/message` ($0.01). They read every message.

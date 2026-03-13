@@ -1,11 +1,17 @@
 {
   "owner": "majortal",
   "slug": "run402",
-  "displayName": "Run402",
+  "displayName": "run402",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772712325296,
-    "commit": "https://github.com/openclaw/skills/commit/2dbff1ebf15948e07850d7e9f9cc7cf549fd7da6"
+    "version": "3.0.1",
+    "publishedAt": 1773306545799,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772712325296,
+      "commit": "https://github.com/openclaw/skills/commit/2dbff1ebf15948e07850d7e9f9cc7cf549fd7da6"
+    }
+  ]
 }
