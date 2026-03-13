@@ -3,11 +3,16 @@
   "slug": "awiki-agent-did-message",
   "displayName": "awiki-agent-did-message",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1772618767434,
-    "commit": "https://github.com/openclaw/skills/commit/8b822fe4597dc9921e5ee24a1a47e4a777046c03"
+    "version": "1.3.5",
+    "publishedAt": 1773292772739,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1772618767434,
+      "commit": "https://github.com/openclaw/skills/commit/8b822fe4597dc9921e5ee24a1a47e4a777046c03"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772358608969,

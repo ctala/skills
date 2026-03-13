@@ -15,12 +15,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import ssl
 import uuid
 from typing import Any
 
 import websockets
 from websockets.asyncio.client import ClientConnection
 
+from utils.client import _resolve_verify
 from utils.config import SDKConfig
 from utils.identity import DIDIdentity
 
@@ -65,11 +67,25 @@ class WsClient:
             raise ValueError("identity missing jwt_token, call get_jwt_via_wba first")
 
         # Convert HTTP URL to WebSocket URL
-        base_url = self._config.molt_message_url
-        ws_url = base_url.replace("http://", "ws://").replace("https://", "wss://")
+        base_url = self._config.molt_message_ws_url or self._config.molt_message_url
+        if base_url.startswith("ws://") or base_url.startswith("wss://"):
+            ws_url = base_url.rstrip("/")
+        else:
+            ws_url = base_url.replace("http://", "ws://").replace("https://", "wss://")
         url = f"{ws_url}/message/ws?token={self._identity.jwt_token}"
 
-        self._conn = await websockets.connect(url)
+        ssl_context: ssl.SSLContext | bool | None = None
+        verify_target = (
+            base_url.replace("ws://", "http://").replace("wss://", "https://")
+        )
+        verify = _resolve_verify(verify_target)
+        if url.startswith("wss://"):
+            if isinstance(verify, ssl.SSLContext):
+                ssl_context = verify
+            elif verify is not False:
+                ssl_context = True
+
+        self._conn = await websockets.connect(url, ssl=ssl_context)
         logger.info("[WsClient] Connected to %s", url.split("?")[0])
 
     async def close(self) -> None:
@@ -148,6 +164,7 @@ class WsClient:
         group_id: str | None = None,
         msg_type: str = "text",
         client_msg_id: str | None = None,
+        title: str | None = None,
     ) -> dict[str, Any]:
         """Convenience method for sending messages.
 
@@ -173,6 +190,8 @@ class WsClient:
             params["group_did"] = group_did
         if group_id:
             params["group_id"] = group_id
+        if title is not None:
+            params["title"] = title
         return await self.send_rpc("send", params)
 
     async def ping(self) -> bool:

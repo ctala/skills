@@ -1,8 +1,11 @@
 """Transparent E2EE handler for the WebSocket listener.
 
-[INPUT]: credential_store (E2EE keys), e2ee_store (state persistence), E2eeClient (encrypt/decrypt)
-[OUTPUT]: E2eeHandler class (protocol message handling + encrypted message decryption)
+[INPUT]: credential_store (E2EE keys), e2ee_store (state persistence), E2eeClient (encrypt/decrypt),
+         build_e2ee_error (error response builder)
+[OUTPUT]: E2eeHandler class (protocol message handling + encrypted message decryption),
+          DecryptResult NamedTuple (decrypted params + structured error responses)
 [POS]: E2EE processing module for ws_listener.py, intercepts E2EE messages before classify_message
+       and emits sender-facing e2ee_error notifications with failed message identifiers
 
 [PROTOCOL]:
 1. Update this header when logic changes
@@ -15,17 +18,30 @@ import asyncio
 import json
 import logging
 import time
-from typing import Any
+from typing import Any, NamedTuple
 
 from credential_store import load_identity
 from e2ee_store import load_e2ee_state, save_e2ee_state
-from utils.e2ee import E2eeClient
+from e2ee_outbox import record_remote_failure
+from utils.e2ee import (
+    E2eeClient,
+    SUPPORTED_E2EE_VERSION,
+    build_e2ee_error_content,
+    build_e2ee_error_message,
+)
 
 logger = logging.getLogger(__name__)
+_E2EE_USER_NOTICE = "This is an encrypted message."
 
 # E2EE message type sets
-_E2EE_ALL_TYPES = frozenset({"e2ee_init", "e2ee_msg", "e2ee_rekey", "e2ee_error"})
-_E2EE_PROTOCOL_TYPES = frozenset({"e2ee_init", "e2ee_rekey", "e2ee_error"})
+_E2EE_ALL_TYPES = frozenset({"e2ee_init", "e2ee_ack", "e2ee_msg", "e2ee_rekey", "e2ee_error"})
+_E2EE_PROTOCOL_TYPES = frozenset({"e2ee_init", "e2ee_ack", "e2ee_rekey", "e2ee_error"})
+
+
+class DecryptResult(NamedTuple):
+    """Result of decrypt_message: decrypted params + error responses to send."""
+    params: dict[str, Any] | None
+    error_responses: list[tuple[str, dict[str, Any]]]
 
 
 class E2eeHandler:
@@ -131,6 +147,14 @@ class E2eeHandler:
 
         async with self._lock:
             try:
+                if msg_type == "e2ee_error":
+                    matched_outbox = record_remote_failure(
+                        credential_name=self._credential_name,
+                        peer_did=sender_did,
+                        content=content,
+                    )
+                    if matched_outbox:
+                        logger.info("Updated failed E2EE outbox record: %s", matched_outbox)
                 responses = await self._client.process_e2ee_message(msg_type, content)
                 self._dirty = True
                 logger.info(
@@ -147,50 +171,68 @@ class E2eeHandler:
 
     async def decrypt_message(
         self, params: dict[str, Any],
-    ) -> dict[str, Any] | None:
+    ) -> DecryptResult:
         """Decrypt an e2ee_msg message.
 
-        On success, returns plaintext params with type and content replaced.
-        On failure, returns None (drop) or original params (forward_raw)
-        depending on decrypt_fail_action.
+        On success, returns DecryptResult with plaintext params and no error responses.
+        On failure, returns DecryptResult with fallback params and an e2ee_error response
+        to notify the sender.
 
         Args:
             params: The params field from the WebSocket push notification.
 
         Returns:
-            Decrypted params dict, or None (drop).
+            DecryptResult with decrypted params and error responses.
         """
         if self._client is None:
-            return self._on_decrypt_fail(params)
+            return DecryptResult(self._on_decrypt_fail(params), [])
 
         raw_content = params.get("content", "")
         try:
             content = json.loads(raw_content) if isinstance(raw_content, str) else raw_content
         except (json.JSONDecodeError, TypeError):
             logger.warning("Failed to parse E2EE message content")
-            return self._on_decrypt_fail(params)
+            return DecryptResult(self._on_decrypt_fail(params), [])
 
         async with self._lock:
             try:
                 original_type, plaintext = self._client.decrypt_message(content)
                 self._dirty = True
-            except Exception:
+            except Exception as exc:
                 logger.exception(
                     "E2EE message decryption failed: sender=%s",
                     params.get("sender_did", "")[:20],
                 )
-                return self._on_decrypt_fail(params)
+                error_code, retry_hint = self._classify_error(exc)
+                error_content = build_e2ee_error_content(
+                    error_code=error_code,
+                    session_id=content.get("session_id") if isinstance(content, dict) else None,
+                    failed_msg_id=params.get("id"),
+                    failed_server_seq=params.get("server_seq"),
+                    retry_hint=retry_hint,
+                    required_e2ee_version=SUPPORTED_E2EE_VERSION if error_code == "unsupported_version" else None,
+                    message=build_e2ee_error_message(
+                        error_code,
+                        required_e2ee_version=SUPPORTED_E2EE_VERSION if error_code == "unsupported_version" else None,
+                        detail=str(exc),
+                    ),
+                )
+                return DecryptResult(
+                    self._on_decrypt_fail(params),
+                    [("e2ee_error", error_content)],
+                )
 
         # Build plaintext params: replace type and content, add _e2ee marker
         decrypted_params = dict(params)
         decrypted_params["type"] = original_type
         decrypted_params["content"] = plaintext
         decrypted_params["_e2ee"] = True
+        decrypted_params["_e2ee_notice"] = _E2EE_USER_NOTICE
         logger.info(
             "E2EE message decrypted successfully: sender=%s original_type=%s",
             params.get("sender_did", "")[:20], original_type,
         )
-        return decrypted_params
+        return DecryptResult(decrypted_params, [])
 
     async def maybe_save_state(self) -> None:
         """Periodic save: write to disk when dirty and save_interval has elapsed."""
@@ -221,6 +263,20 @@ class E2eeHandler:
         except Exception:
             logger.exception("E2EE state save failed")
 
+    @staticmethod
+    def _classify_error(exc: BaseException) -> tuple[str, str]:
+        """Map a decryption exception to an E2EE error code and retry hint."""
+        msg = str(exc).lower()
+        if "unsupported_version" in msg:
+            return "unsupported_version", "drop"
+        if "session" in msg and ("not found" in msg or "find session" in msg):
+            return "session_not_found", "rekey_then_resend"
+        if "expired" in msg:
+            return "session_expired", "rekey_then_resend"
+        if "seq" in msg or "sequence" in msg:
+            return "invalid_seq", "rekey_then_resend"
+        return "decryption_failed", "resend"
+
     def _on_decrypt_fail(self, params: dict[str, Any]) -> dict[str, Any] | None:
         """Fallback strategy on decryption failure."""
         if self._decrypt_fail_action == "forward_raw":
@@ -228,4 +284,4 @@ class E2eeHandler:
         return None
 
 
-__all__ = ["E2eeHandler"]
+__all__ = ["E2eeHandler", "DecryptResult"]

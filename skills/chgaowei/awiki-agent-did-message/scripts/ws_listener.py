@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """WebSocket listener: long-running background process that receives molt-message pushes and routes to webhooks.
 
-[INPUT]: credential_store (DID identity), SDKConfig, WsClient, ListenerConfig, E2eeHandler, service_manager
-[OUTPUT]: WebSocket -> HTTP webhook bridge (agent/wake dual endpoints) + cross-platform service lifecycle management
+[INPUT]: credential_store (DID identity), SDKConfig, WsClient, ListenerConfig,
+         E2eeHandler, service_manager, local_store, logging_config
+[OUTPUT]: WebSocket -> HTTP webhook bridge (agent/wake dual endpoints) + cross-platform
+          service lifecycle management + local SQLite message/group persistence
 [POS]: Standalone background process with cross-platform service management (launchd / systemd / Task Scheduler), reuses utils/ core tool layer
 
 [PROTOCOL]:
@@ -44,7 +46,10 @@ from e2ee_handler import E2eeHandler
 from listener_config import ROUTING_MODES, ListenerConfig
 from utils.config import SDKConfig
 from utils.identity import DIDIdentity
+from utils.logging_config import configure_logging
 from utils.ws import WsClient
+
+import local_store
 
 logger = logging.getLogger("ws_listener")
 
@@ -56,6 +61,16 @@ def _truncate_did(did: str) -> str:
     if len(did) <= 20:
         return did
     return f"{did[:8]}...{did[-8:]}"
+
+
+def _is_reserved_e2ee_type(msg_type: str) -> bool:
+    """Return whether the message type belongs to raw E2EE transport data."""
+    return (
+        msg_type == "e2ee"
+        or msg_type.startswith("e2ee_")
+        or msg_type.startswith("group_e2ee_")
+        or msg_type == "group_epoch_advance"
+    )
 
 
 # --- Route Classification ----------------------------------------------------
@@ -87,7 +102,7 @@ def classify_message(
     # === Drop conditions (common to all modes) ===
     if sender_did == my_did:
         return None
-    if msg_type in cfg.ignore_types:
+    if msg_type in cfg.ignore_types or _is_reserved_e2ee_type(msg_type):
         return None
     if sender_did in cfg.routing.blacklist_dids:
         return None
@@ -152,7 +167,7 @@ async def _forward(
     if route == "agent":
         # Build structured message with full ANP notification fields
         context = "DM" if is_private else "Group"
-        lines = [f"[IM {context}] New message"]
+        lines = [f"[IM {context}] New {'encrypted ' if params.get('_e2ee') else ''}message"]
         lines.append(f"sender_did: {sender_did}")
         if params.get("sender_name"):
             lines.append(f"sender_name: {params['sender_name']}")
@@ -172,6 +187,9 @@ async def _forward(
         if params.get("_e2ee"):
             lines.append("e2ee: true")
         lines.append("")
+        if params.get("_e2ee"):
+            lines.append(str(params.get("_e2ee_notice", "This is an encrypted message.")))
+            lines.append("")
         lines.append(content)
 
         body: dict[str, Any] = {
@@ -183,7 +201,11 @@ async def _forward(
     else:
         # OpenClaw /hooks/wake format
         body = {
-            "text": f"[IM] {sender}: {content_preview}",
+            "text": (
+                f"[IM] {sender}: [Encrypted] {content_preview}"
+                if params.get("_e2ee")
+                else f"[IM] {sender}: {content_preview}"
+            ),
             "mode": "next-heartbeat",
         }
 
@@ -285,6 +307,10 @@ async def listen_loop(
         decrypt_fail_action=cfg.e2ee_decrypt_fail_action,
     )
 
+    # Local SQLite storage initialization
+    local_db = local_store.get_connection()
+    local_store.ensure_schema(local_db)
+
     async with httpx.AsyncClient(timeout=10.0, trust_env=False) as http:
         while True:
             cred_data = load_identity(credential_name)
@@ -362,14 +388,91 @@ async def listen_loop(
                                 continue
 
                             if msg_type == "e2ee_msg":
-                                decrypted = await e2ee_handler.decrypt_message(params)
-                                if decrypted is None:
+                                result = await e2ee_handler.decrypt_message(params)
+                                if result.error_responses:
+                                    for resp_type, resp_content in result.error_responses:
+                                        await ws.send_message(
+                                            receiver_did=sender_did,
+                                            content=json.dumps(resp_content),
+                                            msg_type=resp_type,
+                                        )
+                                if result.params is None:
+                                    await e2ee_handler.maybe_save_state()
                                     continue
-                                params = decrypted
+                                params = result.params
                                 await e2ee_handler.maybe_save_state()
 
                         # Original routing logic
                         route = classify_message(params, my_did, cfg)
+
+                        # Store message locally before routing
+                        try:
+                            sender_did = params.get("sender_did", "")
+                            await asyncio.to_thread(
+                                local_store.store_message,
+                                local_db,
+                                msg_id=params.get("id", ""),
+                                owner_did=my_did,
+                                thread_id=local_store.make_thread_id(
+                                    my_did,
+                                    peer_did=sender_did,
+                                    group_id=params.get("group_id"),
+                                ),
+                                direction=0,
+                                sender_did=sender_did,
+                                receiver_did=params.get("receiver_did"),
+                                group_id=params.get("group_id"),
+                                group_did=params.get("group_did"),
+                                content_type=params.get("type", "text"),
+                                content=str(params.get("content", "")),
+                                title=params.get("title"),
+                                server_seq=params.get("server_seq"),
+                                sent_at=params.get("sent_at"),
+                                is_e2ee=bool(params.get("_e2ee")),
+                                sender_name=params.get("sender_name"),
+                                metadata=(
+                                    json.dumps(
+                                        {"system_event": params.get("system_event")},
+                                        ensure_ascii=False,
+                                    )
+                                    if params.get("system_event") is not None
+                                    else None
+                                ),
+                                credential_name=credential_name,
+                            )
+                            if params.get("group_id"):
+                                await asyncio.to_thread(
+                                    local_store.upsert_group,
+                                    local_db,
+                                    owner_did=my_did,
+                                    group_id=str(params.get("group_id", "")),
+                                    group_did=params.get("group_did"),
+                                    name=params.get("group_name"),
+                                    membership_status="active",
+                                    last_synced_seq=params.get("server_seq"),
+                                    last_message_at=params.get("sent_at"),
+                                    credential_name=credential_name,
+                                )
+                            if params.get("group_id") and isinstance(params.get("system_event"), dict):
+                                await asyncio.to_thread(
+                                    local_store.sync_group_member_from_system_event,
+                                    local_db,
+                                    owner_did=my_did,
+                                    group_id=str(params.get("group_id", "")),
+                                    system_event=params.get("system_event"),
+                                    credential_name=credential_name,
+                                )
+                            # Record sender in contacts
+                            if sender_did:
+                                await asyncio.to_thread(
+                                    local_store.upsert_contact,
+                                    local_db,
+                                    owner_did=my_did,
+                                    did=sender_did,
+                                    name=params.get("sender_name"),
+                                )
+                        except Exception:
+                            logger.debug("Failed to store message locally", exc_info=True)
 
                         if route is None:
                             logger.debug(
@@ -385,6 +488,7 @@ async def listen_loop(
             except asyncio.CancelledError:
                 if e2ee_handler is not None:
                     await e2ee_handler.force_save_state()
+                local_db.close()
                 logger.info("Listen loop cancelled")
                 raise
             except Exception as exc:
@@ -442,11 +546,13 @@ def cmd_status(args: argparse.Namespace) -> None:
 def cmd_run(args: argparse.Namespace) -> None:
     """Run the listener in foreground."""
     level = logging.DEBUG if args.verbose else logging.INFO
-    logging.basicConfig(
+    log_path = configure_logging(
         level=level,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+        console_level=level,
+        force=True,
+        mirror_stdio=True,
     )
+    logger.info("Application logging enabled: %s", log_path)
 
     cfg = ListenerConfig.load(args.config, mode_override=args.mode)
     logger.info(
@@ -481,6 +587,8 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 def main() -> None:
     """CLI entry point."""
+    configure_logging(console_level=None, mirror_stdio=True)
+
     parser = argparse.ArgumentParser(
         description="WebSocket listener: receive molt-message pushes and route to webhooks",
     )
@@ -520,6 +628,7 @@ def main() -> None:
     p_status.set_defaults(func=cmd_status)
 
     args = parser.parse_args()
+    logger.info("ws_listener CLI started command=%s", args.command)
 
     if not args.command:
         parser.print_help()
