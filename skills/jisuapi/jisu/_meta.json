@@ -1,0 +1,11 @@
+{
+  "owner": "jisuapi",
+  "slug": "jisu",
+  "displayName": "极速数据API汇总 - Summary of JisuAPI",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773374374479,
+    "commit": null
+  },
+  "history": []
+}
