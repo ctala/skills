@@ -3,11 +3,16 @@
   "slug": "ai-image-prompts",
   "displayName": "Ai Image Prompts",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1773390591428,
-    "commit": "https://github.com/openclaw/skills/commit/da2f3052240ad1cce6f2775932bc6ba18491b170"
+    "version": "1.0.9",
+    "publishedAt": 1773391295899,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1773390591428,
+      "commit": "https://github.com/openclaw/skills/commit/da2f3052240ad1cce6f2775932bc6ba18491b170"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1773240114841,
