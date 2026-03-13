@@ -1,11 +1,17 @@
 {
   "owner": "esign-cn-open-source",
   "slug": "esign-automation",
-  "displayName": "Esign Automation",
+  "displayName": "eSign Automation",
   "latest": {
-    "version": "1.4.0",
-    "publishedAt": 1773145881546,
-    "commit": "https://github.com/openclaw/skills/commit/947f572545b26ea9f66eb56ee3339d10e14acc73"
+    "version": "1.5.5",
+    "publishedAt": 1773292178912,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.4.0",
+      "publishedAt": 1773145881546,
+      "commit": "https://github.com/openclaw/skills/commit/947f572545b26ea9f66eb56ee3339d10e14acc73"
+    }
+  ]
 }

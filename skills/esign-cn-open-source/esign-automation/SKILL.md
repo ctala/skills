@@ -1,8 +1,8 @@
 ---
 name: esign-automation
-description: Automate document signing workflows and operations using the eSignGlobal platform.
+description: Automate contract signing, esign, and signature workflows by calling the eSignGlobal CLI tool. The eSignGlobal CLI is agent-friendly, with JSON output by default, making eSignGlobal signing operations easy to parse and chain.
 metadata: {"openclaw":{"primaryEnv":"ESIGNGLOBAL_APIKEY"}}
-version: 1.4.0
+version: 1.5.5
 homepage: https://github.com/esign-cn-open-source/skills
 ---
 
@@ -26,53 +26,77 @@ Example requests:
 - "Start a signing workflow for this PDF"
 - "Send this agreement to Alice and Bob"
 
-## What This Skill Does
+## Installation
 
-The skill runs the following steps:
+Use the external CLI through `npx`:
 
-1. Authenticate with eSignGlobal using `ESIGNGLOBAL_APIKEY`
-2. Request a secure upload URL
-3. Upload the source document
-4. Create and start the envelope
+```bash
+npx @esignglobal/envelope-cli <command>
+```
 
-## Requirements
+## Setup
 
-- Node.js 18 or later
-- An eSignGlobal application key provided through an environment variable
-
-
-## Required Configuration
-
-Set the environment variable below before running the skill:
-
-- `ESIGNGLOBAL_APIKEY`
-
-If the user does not already have an app key, direct them to:
+Before calling any send action, set `ESIGNGLOBAL_APIKEY` in the shell environment.
+If the user does not already have an api key, direct them to:
 
 1. Sign in at `https://www.esignglobal.com`
 2. Open `Settings -> Integration -> Apps`
-3. Create an application and copy the generated API Key
+3. Create an application and copy the generated api key
 
-This credential is used only to authenticate requests to the official eSignGlobal API.
+```bash
+# Windows PowerShell
+$env:ESIGNGLOBAL_APIKEY="your_api_key"
 
-Do not place credentials inside prompts, source code, or logs.
+# macOS / Linux
+export ESIGNGLOBAL_APIKEY="your_api_key"
+
+# Verify connectivity
+npx @esignglobal/envelope-cli config health
+```
+
+Credential handling rules:
+
+- The CLI reads credentials only from `ESIGNGLOBAL_APIKEY`
+- Do not implement local credential storage inside this skill
+- Do not print or persist secrets
+
+## Workflow
+
+1. Collect a single absolute `filePath`, signer list, and optional `subject`
+2. Confirm the file is a `.pdf` and the signer data is complete
+3. Set `ESIGNGLOBAL_APIKEY` in the current shell session
+4. Run the external CLI command to send the envelope
+5. Return the CLI result to the user
+
+## Safety Rules
+
+- Only use a file path the user explicitly provided for this task
+- Only handle one local PDF file per run
+- Refuse relative paths; require an absolute path to a `.pdf` file
+- Reject any non-PDF file before invoking the CLI
+- Never print or persist secrets
+- Do not scan directories, expand globs, or discover files on the user's behalf
+- Only call the trusted eSignGlobal CLI configured for this environment
 
 ## Required Inputs
 
-To send an envelope, collect:
-
-- `filePath`: Absolute path to the document that should be sent for signature.
+- `filePath`: absolute path to an existing local PDF file
 - `signers`: JSON array of signer objects
+- `subject`: optional email or envelope subject
 
-Optional input:
+Each signer must include:
+- `userName`
+- `userEmail`
 
-- `subject`: custom email or envelope subject; when omitted, the document name without its extension is used first
+Optional field:
+- `signOrder` as an integer `>= 1`
+
 
 ## Input Format
 
 ### filePath
 
-`filePath` must be an absolute path to an existing local file.
+`filePath` must be an absolute path to an existing local PDF file.
 
 Example:
 
@@ -136,49 +160,32 @@ Parallel signing example:
 ]
 ```
 
+## External CLI Pattern
+
+Use the external command-line tool instead of bundled scripts:
+
+```bash
+npx @esignglobal/envelope-cli send-envelope --file <filePath> --signers '<signersJson>' [--subject <subject>] --confirm
+```
+
+Check available commands if needed:
+
+```bash
+npx @esignglobal/envelope-cli help
+```
+
+Example:
+
+```bash
+npx @esignglobal/envelope-cli send-envelope --file "C:\\docs\\contract.pdf" --signers '[{"userName":"Bob Smith","userEmail":"bob@example.com"}]' --subject "Please sign this contract" --confirm
+```
+
+## Required Configuration
+
+- Node.js 18 or later
+- Access to the trusted external CLI, either preinstalled or available through `npx`
+- `ESIGNGLOBAL_APIKEY` must already be configured in the shell environment
+
 ## Output
 
-The script returns JSON.
-
-Success example:
-
-```json
-{
-  "success": true,
-  "step": "send",
-  "message": "Envelope initiated successfully"
-}
-```
-
-Failure example:
-
-```json
-{
-  "success": false,
-  "step": "send",
-  "message": "Failed to execute envelope flow",
-  "error": "Authentication failed"
-}
-```
-
-## Network Behavior
-
-This skill communicates only with official eSignGlobal API endpoints to perform:
-- authentication
-- upload URL creation
-- document upload
-- envelope creation
-
-The upload URL is returned by the eSignGlobal API as a secure temporary endpoint.
-The skill does not download external executables or install dependencies at runtime.
-
-## File Access
-
-This skill only accesses the local file explicitly provided by the user via filePath.
-It does not scan directories or read unrelated system files.
-
-## Security Notes
-
-- Provide credentials only through `ESIGNGLOBAL_APIKEY`
-- Never print, log, or persist secrets in files
-- Only use trusted local files as input
+Return the external CLI result. Do not bundle or implement upload logic inside this skill.
