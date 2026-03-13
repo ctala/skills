@@ -1,13 +1,7 @@
 ---
 name: session-guardian
-description: Never lose conversations, never confuse tasks. Solves model disconnections, Gateway restarts, cross-channel confusion, and task tracking issues. Five-layer protection: incremental backup (5min) + snapshot (1hr) + smart summary (daily) + health check (6hr) + project management. v2.0 adds: collaboration tracking, smart backup strategy, knowledge extraction, and collaboration health scoring. Works for single-agent, multi-agent, and team collaboration scenarios.
-version: 2.0.0
-author: Cyber Axin (赛博阿昕)
-license: MIT
-tags:
-  - backup
-  - session
-  - project-management
+description: "Never lose a conversation again. Auto-backup every 5 minutes, smart summaries, and instant recovery when models crash or Gateway restarts. Works for solo agents and multi-agent teams. Use when you need bulletproof session protection, task tracking across agents, or collaboration history. Prevents token overflow with AI-powered compaction (30-50% savings)."
+metadata:
   - multi-agent
   - data-protection
   - automation

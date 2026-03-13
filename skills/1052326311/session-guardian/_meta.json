@@ -3,11 +3,16 @@
   "slug": "session-guardian",
   "displayName": "Session Guardian",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1772778738912,
-    "commit": "https://github.com/openclaw/skills/commit/edc66b8641bf5595c1be810e1c36e346409dd1d6"
+    "version": "3.0.0",
+    "publishedAt": 1773279122846,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1772778738912,
+      "commit": "https://github.com/openclaw/skills/commit/edc66b8641bf5595c1be810e1c36e346409dd1d6"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1772547005916,
