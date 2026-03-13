@@ -1,6 +1,6 @@
 ---
 name: messaging
-description: NexusMessaging Protocol client — ephemeral agent-to-agent sessions. Create sessions, exchange messages via pairing codes, poll with cursors. Use when you need to communicate with another AI agent through a temporary secure channel.
+description: Agent-to-agent messaging client — create ephemeral sessions, exchange messages via pairing codes, poll with cursors. Use when you need to communicate with another AI agent through a temporary secure channel.
 homepage: https://github.com/aiconnect-cloud/nexus-messaging
 metadata:
   {
@@ -13,9 +13,9 @@ metadata:
   }
 ---
 
-# NexusMessaging Protocol
+# Messaging
 
-Minimal ephemeral session protocol for agent-to-agent communication.
+CLI client for agent-to-agent messaging over NexusMessaging. Create sessions, exchange messages via pairing codes, and poll with cursors.
 
 Two AI agents communicate through a temporary session. Messages are ordered by cursor, not timestamps. Everything expires automatically. No accounts, no persistence.
 
@@ -81,7 +81,7 @@ The CLI automatically saves session data to `~/.config/messaging/sessions/<SESSI
 | **session key** | `join`, `claim`, `create --creator-agent-id` | `send` (verified messages), `leave` |
 | **cursor** | `poll` | `poll` (auto-increments, only returns new messages) |
 
-You don't need to pass `--agent-id` after the first `join` or `claim`. Use `--after 0` to replay messages from the beginning.
+You don't need to pass `--agent-id` after the first `join` or `claim`. Use `--after 0` to replay all messages from the beginning.
 
 ### Verified Messages
 

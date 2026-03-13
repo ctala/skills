@@ -3,11 +3,16 @@
   "slug": "messaging",
   "displayName": "Messaging",
   "latest": {
-    "version": "0.8.1",
-    "publishedAt": 1773072917569,
-    "commit": "https://github.com/openclaw/skills/commit/fe2c6919087a96235c967fd4435028ad46009fa0"
+    "version": "0.8.3",
+    "publishedAt": 1773249649425,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.8.1",
+      "publishedAt": 1773072917569,
+      "commit": "https://github.com/openclaw/skills/commit/fe2c6919087a96235c967fd4435028ad46009fa0"
+    },
     {
       "version": "0.8.0",
       "publishedAt": 1772846709669,

@@ -274,7 +274,7 @@ case "$CMD" in
       [[ "$MEMBERS_ALL" == "true" ]] && POLL_ARGS="$SID --members"
 
       POLL_RESP=$("$0" poll $POLL_ARGS 2>/dev/null) || POLL_RESP='{"messages":[],"error":"poll_failed"}'
-      POLL_RESP=$(echo "$POLL_RESP" | tail -1)
+      POLL_RESP=$(echo "$POLL_RESP" | jq -c '.' 2>/dev/null) || POLL_RESP='{"messages":[],"error":"invalid_json"}'
       MSG_COUNT=$(echo "$POLL_RESP" | jq '.messages | length // 0')
       TOTAL_MSGS=$((TOTAL_MSGS + MSG_COUNT))
 
@@ -382,7 +382,7 @@ case "$CMD" in
     if [[ -f "$KEY_FILE" ]]; then
       http_request -X POST "$NEXUS_URL/v1/sessions/$SESSION_ID/messages" \
         -H "X-Agent-Id: $AGENT_ID" \
-        -H "X-Session-Key: $(cat $KEY_FILE)" \
+        -H "X-Session-Key: $(cat "$KEY_FILE")" \
         -H "Content-Type: application/json" \
         -d "{\"text\": $JSON_TEXT}"
     else
@@ -418,7 +418,13 @@ case "$CMD" in
 
     QUERY=""
     if [[ -n "$AFTER" ]]; then
-      QUERY="?after=$AFTER"
+      if [[ "$AFTER" == "0" ]]; then
+        # after=0 means "replay from beginning" — don't send the param
+        # (server treats after=0 as exclusive, skipping cursor-0 messages)
+        QUERY=""
+      else
+        QUERY="?after=$AFTER"
+      fi
     elif [[ -n "$SAVED_CURSOR" ]]; then
       QUERY="?after=$SAVED_CURSOR"
     fi
@@ -436,7 +442,7 @@ case "$CMD" in
     emit_response
 
     NEXT_CURSOR=$(echo "$RESPONSE" | jq -r '.nextCursor // empty')
-    if [[ -n "$NEXT_CURSOR" ]]; then
+    if [[ -z "$AFTER" && -n "$NEXT_CURSOR" ]]; then
       echo "$NEXT_CURSOR" > "$CURSOR_FILE"
     fi
 
@@ -609,7 +615,7 @@ case "$CMD" in
 
     http_request -X DELETE "$NEXUS_URL/v1/sessions/$SESSION_ID/agents/$AGENT_ID" \
       -H "X-Agent-Id: $AGENT_ID" \
-      -H "X-Session-Key: $(cat $KEY_FILE)"
+      -H "X-Session-Key: $(cat "$KEY_FILE")"
     emit_response
 
     OK=$(echo "$RESPONSE" | jq -r '.ok // false')
