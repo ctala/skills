@@ -10,9 +10,11 @@ Generate a structured global market snapshot report with stock indices and commo
 ## Fallback Order
 
 1. **Yahoo Finance** (Primary) - Fast, comprehensive
-2. **Trading Economics** (Fallback) - Works for indices, reliable
+2. **Trading Economics** (Fallback for most indices)
+3. **Sina Finance** (Fallback for STAR Market Composite)
 
 If Yahoo Finance fails (rate limit, error, no data), use Trading Economics as fallback.
+For STAR Market Composite specifically, use Sina Finance as fallback.
 
 ## Primary: Yahoo Finance
 
@@ -70,6 +72,38 @@ Change: 6762.88 - 6830.71 = -67.83
 Percent: -67.83 / 6830.71 * 100 = -0.99%
 ```
 
+## Fallback: Sina Finance (STAR Market Composite Only)
+
+If Yahoo Finance fails for STAR Market Composite (000680.SS), use Sina Finance:
+
+### Query Method
+
+```bash
+curl -s "https://hq.sinajs.cn/list=sh000680" -H "Referer: https://finance.sina.com.cn" | iconv -f GB2312 -t UTF-8
+```
+
+### Response Format
+
+```
+var hq_str_sh000680="科创综指,open,prev_close,low,high,close,...
+```
+
+### Extract Data
+
+Parse the response to extract:
+- **Name:** 科创综指 (STAR Market Composite)
+- **Current:** Field 6 (close price)
+- **Previous:** Field 3 (previous close)
+
+Example:
+```
+科创综指,1771.6386,1774.0261,1744.2182,1782.4838,1744.0835,...
+                                         ↑            ↑
+                                     previous      current
+Change: 1744.0835 - 1774.0261 = -29.94
+Percent: -29.94 / 1774.0261 * 100 = -1.69%
+```
+
 ## Critical: Calculating Daily Change (Yahoo Finance)
 
 **NEVER use chartPreviousClose** - it's often incorrect for Asian markets.
@@ -115,6 +149,26 @@ Latest snapshot from the `market-global-snapshot` skill, generated at `UTC times
 - ⚪ Silver: `price USD / troy oz` 📈/📉 `change` (`percent`)
 - 🛢️ Crude Oil: `price USD / barrel` 📈/📉 `change` (`percent`)
 - 🟠 Copper: `price USD / lb` 📈/📉 `change` (`percent`)
+```
+
+## Error Handling
+
+If Yahoo Finance, Trading Economics, AND Sina all fail:
+1. Return partial data with available indices
+2. Mark unavailable data as "N/A"
+3. Include error message at bottom: "⚠️ Some data unavailable due to API errors"
+
+## Historical Data
+
+To get previous day's data instead of today:
+- Use second-to-last close value in the array (not today's)
+- This is the default behavior when asking for "yesterday"
+
+Example:
+```
+close array: [4124.19, 4108.57, 4082.47, 4122.68, 4182.59]
+                                        ↑            ↑
+                                   yesterday      today
 ```
 
 ## Formatting Rules
