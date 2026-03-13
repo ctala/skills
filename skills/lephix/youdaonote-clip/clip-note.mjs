@@ -46,10 +46,9 @@ import dns from 'node:dns';
 import { URL } from 'node:url';
 import { parseArgs } from 'node:util';
 import {
-  readFileSync, writeFileSync, mkdirSync, rmSync, statSync, createWriteStream, appendFileSync, existsSync, renameSync, copyFileSync,
+  writeFileSync, mkdirSync, rmSync, statSync, createWriteStream, appendFileSync, existsSync, renameSync,
 } from 'node:fs';
 import { Readable } from 'node:stream';
-import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createHash, randomUUID } from 'node:crypto';
@@ -79,29 +78,13 @@ function getCacheKey(url) {
   return createHash('sha256').update(url).digest('hex').slice(0, 16);
 }
 
-function readImageCache(url) {
-  try {
-    const key = getCacheKey(url);
-    const cacheFile = join(CACHE_DIR, `${key}.json`);
-    if (!statSync(cacheFile)) return null;
-
-    const cached = JSON.parse(readFileSync(cacheFile, 'utf-8'));
-    if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
-      rmSync(cacheFile, { force: true });
-      return null;
-    }
-    return cached.data;  // { mimeType, data: base64, origSize, finalSize, compressed }
-  } catch {
-    return null;
-  }
-}
-
 function writeImageCache(url, data) {
   try {
     mkdirSync(CACHE_DIR, { recursive: true });
     const key = getCacheKey(url);
     const cacheFile = join(CACHE_DIR, `${key}.json`);
-    writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data }));
+    const { data: _omit, ...rest } = data || {};
+    writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: rest }));
   } catch {
     // 缓存写入失败不影响主流程
   }
@@ -159,7 +142,8 @@ function logEntryParams(values, { content } = {}) {
     try {
       const logDir = join(DEBUG_DIR, currentDebugKey);
       if (!existsSync(logDir)) mkdirSync(logDir, { recursive: true });
-      writeFileSync(join(logDir, 'entry-content.txt'), content);
+      const preview = content.length > 200 ? content.slice(0, 200) + '...' : content;
+      writeFileSync(join(logDir, 'entry-content.txt'), `[${content.length} chars] ${preview}`);
     } catch { /* 写入失败不影响主流程 */ }
   }
 }
@@ -492,270 +476,6 @@ async function fetchImageWithDnsFallback(url, referer, destPath) {
   });
 }
 
-/**
- * 图片压缩：宽度 > 1920 缩放，> 512KB 渐进式转 JPEG (80/60/40)。
- * gif 超 512KB 时转为静态 JPEG（提取第一帧）。
- * macOS 使用内置 sips，Linux 使用 ImageMagick（需安装 imagemagick）。
- * 工具不可用或压缩失败时，graceful 降级为原图。
- * 参数 inputPath：已下载的原始图片文件路径（由调用方写入）。
- * 返回 { finalPath, mimeType, compressed, skipped }，skipped=true 表示压缩后仍超 512KB。
- */
-function compressImage(inputPath, mimeType, tmpDir) {
-  // SVG → PNG（有道云笔记可能不支持 SVG 显示，转为 PNG 确保兼容）
-  if (mimeType === 'image/svg+xml') {
-    const pngPath = join(tmpDir, 'svg2png.png');
-    const isMac = process.platform === 'darwin';
-    try {
-      if (isMac) {
-        execFileSync('sips', ['-s', 'format', 'png', inputPath, '--out', pngPath], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-      } else {
-        execFileSync('convert', [inputPath, pngPath], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-      }
-      if (statSync(pngPath).size > 0) {
-        return { finalPath: pngPath, mimeType: 'image/png', compressed: true, skipped: false };
-      }
-    } catch { /* 转换失败，回退为原 SVG */ }
-    return { finalPath: inputPath, mimeType, compressed: false, skipped: false };
-  }
-
-  // 已在阈值内的非 gif 图片直接返回
-  if (mimeType !== 'image/gif' && statSync(inputPath).size <= COMPRESS_THRESHOLD) {
-    return { finalPath: inputPath, mimeType, compressed: false, skipped: false };
-  }
-
-  let compressed = false;
-  let finalPath = inputPath;
-  let finalMime = mimeType;
-
-  const isMac = process.platform === 'darwin';
-
-  try {
-    if (isMac) {
-      // ── macOS：使用内置 sips ──────────────────────────────────────────
-
-      // gif → 转静态 JPEG（sips 自动取第一帧）
-      if (mimeType === 'image/gif') {
-        const jpgPath = join(tmpDir, 'gif2jpg.jpg');
-        execFileSync('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', '80', inputPath, '--out', jpgPath], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        if (statSync(jpgPath).size > 0) {
-          finalPath = jpgPath;
-          finalMime = 'image/jpeg';
-          compressed = true;
-        }
-      }
-
-      // 查询宽度
-      const sipsOut = execFileSync('sips', ['-g', 'pixelWidth', finalPath], {
-        encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      const m = sipsOut.match(/pixelWidth:\s*(\d+)/);
-      const width = m ? parseInt(m[1], 10) : 0;
-
-      // 宽度 > 1920 → 缩放
-      if (width > RESIZE_WIDTH) {
-        execFileSync('sips', ['--resampleWidth', String(RESIZE_WIDTH), finalPath, '--out', finalPath], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        compressed = true;
-      }
-
-      // 渐进式质量降低：80 → 60 → 40，直到 ≤ 512KB
-      for (const quality of JPEG_QUALITIES) {
-        if (statSync(finalPath).size <= MAX_FINAL_SIZE) break;
-        const jpgPath = join(tmpDir, `q${quality}.jpg`);
-        execFileSync('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', String(quality), finalPath, '--out', jpgPath], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        if (statSync(jpgPath).size > 0) {
-          finalPath = jpgPath;
-          finalMime = 'image/jpeg';
-          compressed = true;
-        }
-      }
-    } else {
-      // ── Linux：使用 ImageMagick（convert 命令）───────────────────────
-
-      // gif → 转静态 JPEG（取第一帧 [0]）
-      if (mimeType === 'image/gif') {
-        const jpgPath = join(tmpDir, 'gif2jpg.jpg');
-        execFileSync('convert', [`${inputPath}[0]`, '-quality', '80', jpgPath], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        if (statSync(jpgPath).size > 0) {
-          finalPath = jpgPath;
-          finalMime = 'image/jpeg';
-          compressed = true;
-        }
-      }
-
-      // 查询宽度
-      const identifyOut = execFileSync('identify', ['-format', '%w', finalPath], {
-        encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      const width = parseInt(identifyOut.trim(), 10) || 0;
-
-      // 宽度 > 1920 → 缩放
-      if (width > RESIZE_WIDTH) {
-        execFileSync('convert', [finalPath, '-resize', `${RESIZE_WIDTH}x`, finalPath], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        compressed = true;
-      }
-
-      // 渐进式质量降低：80 → 60 → 40，直到 ≤ 512KB
-      for (const quality of JPEG_QUALITIES) {
-        if (statSync(finalPath).size <= MAX_FINAL_SIZE) break;
-        const jpgPath = join(tmpDir, `q${quality}.jpg`);
-        execFileSync('convert', [finalPath, '-quality', String(quality), jpgPath], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        if (statSync(jpgPath).size > 0) {
-          finalPath = jpgPath;
-          finalMime = 'image/jpeg';
-          compressed = true;
-        }
-      }
-    }
-  } catch {
-    // 工具不可用或压缩失败，使用原图
-  }
-
-  const skipped = statSync(finalPath).size > MAX_FINAL_SIZE;
-  return { finalPath, mimeType: finalMime, compressed, skipped };
-}
-
-async function processImages(imageUrls, sourceUrl) {
-  if (imageUrls.length === 0) {
-    debug('🔍 图片处理完成 — 无图片需要处理');
-    return [];
-  }
-
-  const urls = imageUrls.slice(0, MAX_IMAGES);
-  const baseTmpDir = (DEBUG && currentDebugKey)
-    ? join(DEBUG_DIR, currentDebugKey, 'images')
-    : join(tmpdir(), `youdaonote-clip-${Date.now()}`);
-  mkdirSync(baseTmpDir, { recursive: true });
-
-  try {
-    // Phase 0: 检查缓存（C1 优化：避免重复下载/压缩）
-    const cacheHits = [];
-    const urlsToDownload = [];
-
-    for (const url of urls) {
-      const cached = readImageCache(url);
-      if (cached) {
-        cacheHits.push({ url, ...cached, fromCache: true });
-        debug(`🔍 图片缓存命中 — url: ${url}`);
-      } else {
-        urlsToDownload.push(url);
-      }
-    }
-
-    if (cacheHits.length > 0) {
-      debug(`🔍 缓存命中 ${cacheHits.length}/${urls.length} 张图片`);
-    }
-
-    // 流水线：每张图片在同一个 worker 内完成「下载 → 压缩 → base64」，
-    // 不等其他图片下载完成，消除两阶段之间的全局等待点。
-    const pipelineStart = Date.now();
-
-    const results = await pool(urlsToDownload, CONCURRENT, async (url, i) => {
-      // 下载 → 落文件
-      const rawPath = join(baseTmpDir, `raw_${i}.bin`);
-      const { destPath, contentType } = await downloadImage(url, sourceUrl, rawPath);
-      const fileSize = statSync(destPath).size;
-      if (fileSize > MAX_DOWNLOAD_SIZE) {
-        throw new Error(`下载文件超过 ${MAX_DOWNLOAD_SIZE / 1024 / 1024}MB 限制 (${fileSize} bytes)`);
-      }
-
-      const mimeType = guessMimeType(url, contentType);
-      let pathForCompress = rawPath;
-      if (DEBUG) {
-        const ext = mimeToExt(mimeType);
-        const renamedPath = rawPath.replace(/\.bin$/, ext);
-        renameSync(rawPath, renamedPath);
-        pathForCompress = renamedPath;
-      }
-
-      // 压缩（每张图片独立子目录，避免 sips 文件冲突）
-      const imgDir = join(baseTmpDir, `img_${i}`);
-      mkdirSync(imgDir, { recursive: true });
-      const origSize = statSync(pathForCompress).size;
-      const { finalPath, mimeType: finalMime, compressed, skipped } = compressImage(pathForCompress, mimeType, imgDir);
-
-      if (skipped) {
-        return { skipped: true, url, origSize, finalSize: statSync(finalPath).size };
-      }
-
-      // 仅在此处一次性读取并 base64 编码
-      const base64Data = readFileSync(finalPath).toString('base64');
-      return {
-        url,
-        mimeType: finalMime,
-        data: base64Data,
-        origSize,
-        finalSize: statSync(finalPath).size,
-        compressed,
-      };
-    });
-
-    // 收集结果
-    const images = [];
-    let dlFail = 0, compressCount = 0, skipCount = 0, cacheCount = 0;
-
-    // 先添加缓存命中的结果
-    for (const cached of cacheHits) {
-      images.push({ url: cached.url, mimeType: cached.mimeType, data: cached.data });
-      cacheCount++;
-      debug(`🔍 图片 [缓存] — url: ${cached.url}, mime: ${cached.mimeType}, 状态: ✅ 从缓存加载`);
-    }
-
-    for (const [i, r] of results.entries()) {
-      if (!r.ok) {
-        dlFail++;
-        debug(`🔍 图片 [${i + 1}/${urlsToDownload.length}] — url: ${r.input}, 状态: ❌ ${r.error}`);
-        continue;
-      }
-
-      const v = r.value;
-
-      if (v.skipped) {
-        skipCount++;
-        debug(`🔍 图片 [${i + 1}/${urlsToDownload.length}] — url: ${v.url}, 原始: ${v.origSize}B, 压缩后: ${v.finalSize}B, 状态: ⏭️ 超过 512KB 跳过`);
-        continue;
-      }
-
-      if (v.compressed) compressCount++;
-
-      writeImageCache(v.url, {
-        mimeType: v.mimeType,
-        data: v.data,
-        origSize: v.origSize,
-        finalSize: v.finalSize,
-        compressed: v.compressed,
-      });
-
-      images.push({ url: v.url, mimeType: v.mimeType, data: v.data });
-
-      const compressTag = v.compressed ? `, 压缩后: ${v.finalSize}B` : '';
-      debug(`🔍 图片 [${i + 1}/${urlsToDownload.length}] — url: ${v.url}, 原始: ${v.origSize}B${compressTag}, mime: ${v.mimeType}, 状态: ✅`);
-    }
-
-    const pipelineTime = ((Date.now() - pipelineStart) / 1000).toFixed(1);
-    debug(`🔍 图片处理完成 — 成功: ${images.length} (缓存: ${cacheCount}), 跳过: ${skipCount}, 失败: ${dlFail}, 压缩: ${compressCount}, ⏱ ${pipelineTime}s`);
-
-    return images;
-  } finally {
-    if (!DEBUG) rmSync(baseTmpDir, { recursive: true, force: true });
-  }
-}
-
 // ─────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────
@@ -774,6 +494,9 @@ async function main() {
       'create-note':   { type: 'boolean', default: false },  // 模式 D：直接创建笔记（大内容支持）
       content:         { type: 'string' },   // 模式 D 专用：笔记内容
       'folder-id':     { type: 'string', default: '' },  // 模式 D 专用：目标文件夹
+      'download-images': { type: 'boolean', default: false },
+      upload:            { type: 'boolean', default: false },
+      'tmp-dir':         { type: 'string' },
       'api-key':       { type: 'string' },   // 由 clip-note.sh 从 env 传入
       'sse-url':       { type: 'string' },
       'mcp-timeout':   { type: 'string' },
@@ -791,6 +514,128 @@ async function main() {
   if (!API_KEY) {
     console.error('错误：未设置 YOUDAONOTE_API_KEY。请在 OpenClaw config 的 youdaonote-clip.env 中配置，或 export YOUDAONOTE_API_KEY');
     process.exit(1);
+  }
+
+  if (values['download-images']) {
+    const imageUrls = JSON.parse(values['image-urls'] || '[]');
+    const sourceUrl = values['source-url'] || '';
+    const baseTmpDir = values['tmp-dir'];
+    if (!baseTmpDir) { console.error('错误：--download-images 需要 --tmp-dir'); process.exit(1); }
+
+    currentDebugKey = DEBUG ? generateDebugKey() : null;
+    debug('🔍 模式: download-images');
+
+    mkdirSync(baseTmpDir, { recursive: true });
+
+    if (imageUrls.length === 0) {
+      writeFileSync(join(baseTmpDir, 'manifest.json'), '[]');
+      console.log(JSON.stringify({ ok: true, count: 0, failed: 0, tmpDir: baseTmpDir }));
+      return;
+    }
+
+    const urls = imageUrls.slice(0, MAX_IMAGES);
+    const pipelineStart = Date.now();
+
+    const results = await pool(urls, CONCURRENT, async (url, i) => {
+      const rawPath = join(baseTmpDir, `raw_${i}.bin`);
+      const { contentType } = await downloadImage(url, sourceUrl, rawPath);
+      const fileSize = statSync(rawPath).size;
+      if (fileSize > MAX_DOWNLOAD_SIZE) {
+        throw new Error(`文件过大: ${fileSize} bytes`);
+      }
+      const mimeType = guessMimeType(url, contentType);
+      if (DEBUG) {
+        const ext = mimeToExt(mimeType);
+        const renamedPath = rawPath.replace(/\.bin$/, ext);
+        renameSync(rawPath, renamedPath);
+        return { index: i, path: renamedPath, mimeType, url, origSize: statSync(renamedPath).size };
+      }
+      return { index: i, path: rawPath, mimeType, url, origSize: fileSize };
+    });
+
+    const manifest = [];
+    let dlFail = 0;
+    for (const [i, r] of results.entries()) {
+      if (!r.ok) {
+        dlFail++;
+        debug(`🔍 图片 [${i + 1}/${urls.length}] — url: ${r.input}, 状态: ❌ ${r.error}`);
+        continue;
+      }
+      manifest.push(r.value);
+    }
+
+    const pipelineTime = ((Date.now() - pipelineStart) / 1000).toFixed(1);
+    debug(`🔍 图片下载完成 — 成功: ${manifest.length}, 失败: ${dlFail}, ⏱ ${pipelineTime}s`);
+
+    writeFileSync(join(baseTmpDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+    console.log(JSON.stringify({ ok: true, count: manifest.length, failed: dlFail, tmpDir: baseTmpDir }));
+    return;
+  }
+
+  if (values.upload) {
+    // Read complete payload from stdin
+    const chunks = [];
+    for await (const chunk of process.stdin) chunks.push(chunk);
+    const payload = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+
+    const { title, bodyHtml, sourceUrl, images, markdown: isMarkdown } = payload;
+    currentDebugKey = payload._debugKey || (DEBUG ? generateDebugKey() : null);
+    debug('🔍 模式: upload');
+
+    let finalBodyHtml = bodyHtml;
+
+    // Markdown → HTML 转换
+    if (isMarkdown && finalBodyHtml) {
+      debug(`🔍 Markdown → HTML 转换（marked），原文 ${finalBodyHtml.length} 字符`);
+      finalBodyHtml = marked.parse(finalBodyHtml);
+      debug(`🔍 转换完成，HTML ${finalBodyHtml.length} 字符`);
+    }
+
+    // Filter out skipped images, format for MCP
+    // URL 中的 & 编码为 &amp; 以匹配 bodyHtml 中的 HTML entities（MCP 服务端按 URL 匹配替换）
+    const validImages = (images || [])
+      .filter(img => !img.skipped && img.base64Data)
+      .map(img => ({ url: img.url.replace(/&/g, '&amp;'), mimeType: img.finalMime || img.mimeType, data: img.base64Data }));
+
+    debug(`🔍 MCP 上传 — title: "${title}", body: ${(finalBodyHtml || '').length} 字符, images: ${validImages.length} 张`);
+
+    const client = new McpClient(SSE_URL, API_KEY, MCP_TIMEOUT_MS);
+    try {
+      await client.connect();
+      await client.initialize();
+
+      const mcpStart = Date.now();
+      let result = await client.callTool('clipperSaveWithImages', {
+        title,
+        bodyHtml: finalBodyHtml,
+        sourceUrl,
+        images: JSON.stringify(validImages),
+      });
+      let mcpTime = ((Date.now() - mcpStart) / 1000).toFixed(1);
+
+      // 降级判断
+      const fallbackPattern = /unknown tool|not found|not implemented|未知|不存在/i;
+      if (result.isError && fallbackPattern.test(result.text)) {
+        debug('🔍 clipperSaveWithImages 不可用，降级为 createNote');
+        const imagesLite = validImages.map(({ url, mimeType }) => ({ url, mimeType }));
+        const content = JSON.stringify({ bodyHtml: finalBodyHtml, sourceUrl, images: imagesLite });
+
+        debug(`🔍 MCP 请求 — tool: createNote (降级), title: "${title}"`);
+        const fbStart = Date.now();
+        result = await client.callTool('createNote', { title, content, folderId: '' });
+        mcpTime = ((Date.now() - fbStart) / 1000).toFixed(1);
+      }
+
+      debug(`🔍 MCP 响应 — ${result.text}, ⏱ ${mcpTime}s`);
+
+      if (result.isError) {
+        throw new Error(`MCP 调用失败：${result.text}`);
+      }
+      console.log(JSON.stringify({ ok: true, message: result.text }));
+    } finally {
+      client.close();
+    }
+    return;
   }
 
   // ── 模式 D：直接创建笔记（大内容支持，绕过 ARG_MAX 限制）──
@@ -851,100 +696,6 @@ async function main() {
     return;
   }
 
-  // ── 解析输入：data-file 模式 vs 分离参数模式 ──
-  let title, bodyHtml, imageUrls, sourceUrl;
-
-  if (values['data-file']) {
-    // 模式 B：从 JSON 数据文件读取（browser CLI 输出管道到文件，绕过 agent context）
-    const raw = readFileSync(values['data-file'], 'utf-8');
-    const data = JSON.parse(raw);
-    currentDebugKey = data._debugKey || (DEBUG ? generateDebugKey() : null);
-    const pathLabel = values.markdown
-      ? 'D (web_fetch Fallback)'
-      : (data._source === 'twitter' ? 'A (twitter-apify)' : data._source === 'collect' ? 'C (collect-page)' : 'A/C (data-file)');
-    debug(`🔍 路径: ${pathLabel}`);
-    logEntryParams(values, { content: data.content });
-    if (DEBUG && currentDebugKey) {
-      try {
-        const logDir = join(DEBUG_DIR, currentDebugKey);
-        if (!existsSync(logDir)) mkdirSync(logDir, { recursive: true });
-        copyFileSync(values['data-file'], join(logDir, 'data-file.json'));
-      } catch { /* 复制失败不影响主流程 */ }
-    }
-    bodyHtml = data.content;
-    imageUrls = data.imageUrls || [];
-    sourceUrl = values['source-url'] || data.source || '';
-    if (!data.title) { console.error('错误：data-file 中缺少 title'); process.exit(1); }
-    if (!bodyHtml) { console.error('错误：data-file 中缺少 content'); process.exit(1); }
-    // 内置 .clip 后缀：title 由脚本自动处理，无需通过命令行传递
-    title = sanitizeTitle(data.title);
-  } else {
-    // 模式 A：分离参数（向后兼容）
-    currentDebugKey = DEBUG ? generateDebugKey() : null;
-    debug('🔍 路径: 分离参数 (legacy)');
-    if (!values.title) { console.error('错误：缺少 --title'); process.exit(1); }
-    if (!values['body-file']) { console.error('错误：缺少 --body-file'); process.exit(1); }
-    if (!values['source-url']) { console.error('错误：缺少 --source-url'); process.exit(1); }
-    title = values.title;
-    bodyHtml = readFileSync(values['body-file'], 'utf-8');
-    logEntryParams(values, { content: bodyHtml });
-    imageUrls = JSON.parse(values['image-urls']);
-    sourceUrl = values['source-url'];
-  }
-
-  // ── Markdown → HTML 转换（fallback 路径）──
-  if (values.markdown && bodyHtml) {
-    debug(`🔍 Markdown → HTML 转换（marked），原文 ${bodyHtml.length} 字符`);
-    bodyHtml = marked.parse(bodyHtml);
-    debug(`🔍 转换完成，HTML ${bodyHtml.length} 字符`);
-  }
-
-  // ── Phase 1: 图片处理 ──
-  const images = await processImages(imageUrls, sourceUrl);
-
-  // ── Phase 2: MCP 连接 ──
-  const client = new McpClient(SSE_URL, API_KEY, MCP_TIMEOUT_MS);
-  try {
-    await client.connect();
-    await client.initialize();
-
-    // ── Phase 3: clipperSaveWithImages ──
-    const imgCount = images.length;
-    debug(`🔍 MCP 请求 — tool: clipperSaveWithImages, title: "${title}", bodyHtml: ${bodyHtml.length} 字符, images: ${imgCount} 张`);
-
-    const mcpStart = Date.now();
-    let result = await client.callTool('clipperSaveWithImages', {
-      title,
-      bodyHtml,
-      sourceUrl,
-      images: JSON.stringify(images),   // MCP 协议要求 images 为 JSON 字符串
-    });
-    let mcpTime = ((Date.now() - mcpStart) / 1000).toFixed(1);
-
-    // ── Phase 4: 降级判断 ──
-    const fallbackPattern = /unknown tool|not found|not implemented|未知|不存在/i;
-    if (result.isError && fallbackPattern.test(result.text)) {
-      debug('🔍 clipperSaveWithImages 不可用，降级为 createNote');
-
-      // createNote: images 去掉 data 字段（base64 太大）
-      const imagesLite = images.map(({ url, mimeType }) => ({ url, mimeType }));
-      const content = JSON.stringify({ bodyHtml, sourceUrl, images: imagesLite });
-
-      debug(`🔍 MCP 请求 — tool: createNote (降级), title: "${title}"`);
-      const fbStart = Date.now();
-      result = await client.callTool('createNote', { title, content, folderId: '' });
-      mcpTime = ((Date.now() - fbStart) / 1000).toFixed(1);
-    }
-
-    debug(`🔍 MCP 响应 — ${result.text}, ⏱ ${mcpTime}s`);
-
-    if (result.isError) {
-      throw new Error(`MCP 调用失败：${result.text}`);
-    }
-    console.log(JSON.stringify({ ok: true, message: result.text }));
-  } finally {
-    client.close();
-  }
 }
 
 main().catch((err) => {

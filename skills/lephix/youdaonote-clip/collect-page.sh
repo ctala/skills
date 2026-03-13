@@ -85,11 +85,8 @@ $BROWSER open "$TARGET_URL" >/dev/null
 # Step 2: 等待加载（动态超时）
 $BROWSER wait --load domcontentloaded --timeout-ms "$NETWORK_TIMEOUT" >/dev/null 2>&1 || true
 
-# Step 3: 从 CDN 加载 collect SDK（41KB → 700 bytes，减少命令行参数开销）
-# 如果 CDN 加载失败（CSP 阻止），降级为内联注入
-if ! $BROWSER evaluate --fn "$(cat "$SCRIPT_DIR/static/load-sdk.fn.js")" >/dev/null 2>&1; then
-  $BROWSER evaluate --fn "$(cat "$SCRIPT_DIR/static/inject-sdk.fn.js")" >/dev/null 2>&1
-fi
+# Step 3: 注入 collect SDK（本地内联，不加载外部 CDN）
+$BROWSER evaluate --fn "$(cat "$SCRIPT_DIR/static/inject-sdk.fn.js")" >/dev/null 2>&1
 
 # Step 4: 合并等待 + 解析（A1 优化）
 # 将 wait SDK 和 parse 合并为单个 evaluate，减少 1 次进程启动
