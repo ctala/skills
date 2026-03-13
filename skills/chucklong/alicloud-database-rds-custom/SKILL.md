@@ -126,10 +126,107 @@ aliyun rds DescribeRCInstances --region cn-beijing
 | 命令 | 说明 |
 |------|------|
 | `aliyun rds DescribeRCInstances` | 查询 RC 实例列表 |
-| `aliyun rds DescribeDBInstances` | 查询 RDS 实例列表 |
-| `aliyun ecs DescribeInstances` | 查询 ECS 实例列表 |
-| `aliyun r-kvstore DescribeInstances` | 查询 Redis 实例 |
+| `aliyun rds DescribeRCInstanceAttribute` | 查询单个 RC 实例详细信息 |
+| `aliyun rds DescribeRCImageList` | 查询 RC 实例可用镜像列表 |
 | `aliyun rds DescribeRCMetricList` | 查询 RC 实例监控指标（CPU、内存等） |
+
+## 查询实例详细信息
+
+### 基本查询
+
+```bash
+aliyun rds DescribeRCInstanceAttribute \
+  --region cn-beijing \
+  --InstanceId rc-c5kyo15381wht249k498
+```
+
+### 指定实例名称
+
+```bash
+aliyun rds DescribeRCInstanceAttribute \
+  --region cn-beijing \
+  --InstanceId rc-c5kyo15381wht249k498 \
+  --InstanceName rc-c5kyo15381wht249k498
+```
+
+### 格式化输出
+
+```bash
+aliyun rds DescribeRCInstanceAttribute \
+  --region cn-beijing \
+  --InstanceId rc-c5kyo15381wht249k498 \
+  --output cols=InstanceId,InstanceName,Status,Cpu,Memory,RegionId,ZoneId
+```
+
+### 使用 jq 提取字段
+
+```bash
+# 提取基本信息
+aliyun rds DescribeRCInstanceAttribute \
+  --region cn-beijing \
+  --InstanceId rc-c5kyo15381wht249k498 \
+  | jq '.RCInstances[0] | {InstanceId, InstanceName, Status, Cpu, Memory}'
+
+# 提取网络信息
+aliyun rds DescribeRCInstanceAttribute \
+  --region cn-beijing \
+  --InstanceId rc-c5kyo15381wht249k498 \
+  | jq '.RCInstances[0].VpcAttributes | {VpcId, VSwitchId, PrivateIpAddress}'
+```
+
+## 查询可用镜像列表
+
+### 基本查询
+
+```bash
+aliyun rds DescribeRCImageList \
+  --region cn-beijing
+```
+
+### 指定实例类型查询
+
+```bash
+aliyun rds DescribeRCImageList \
+  --region cn-beijing \
+  --InstanceType mysql.x2.xlarge.6cm
+```
+
+### 格式化输出
+
+```bash
+aliyun rds DescribeRCImageList \
+  --region cn-beijing \
+  --output cols=ImageId,ImageName,OSType,OSName
+```
+
+### 使用 jq 过滤
+
+```bash
+# 提取镜像基本信息
+aliyun rds DescribeRCImageList \
+  --region cn-beijing \
+  | jq '.Images[] | {ImageId, ImageName, OSType}'
+
+# 查询 Alibaba Cloud Linux 镜像
+aliyun rds DescribeRCImageList \
+  --region cn-beijing \
+  | jq '.Images[] | select(.OSName | contains("Alibaba Cloud Linux"))'
+
+# 统计镜像数量
+aliyun rds DescribeRCImageList \
+  --region cn-beijing \
+  | jq '.Images | length'
+```
+
+### 输出字段说明
+
+| 字段 | 说明 |
+|------|------|
+| ImageId | 镜像 ID |
+| ImageName | 镜像名称 |
+| OSType | 操作系统类型（linux/windows） |
+| OSName | 操作系统名称 |
+| ImageVersion | 镜像版本 |
 
 ## 监控指标查询
 
