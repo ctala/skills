@@ -1,0 +1,11 @@
+{
+  "owner": "ayue-oss",
+  "slug": "didi-coupon-auto",
+  "displayName": "滴滴出行优惠券自动领取",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773415219041,
+    "commit": null
+  },
+  "history": []
+}
