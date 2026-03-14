@@ -1,0 +1,11 @@
+{
+  "owner": "weiwei-run",
+  "slug": "uuid-gen",
+  "displayName": "UUID Gen",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773452725746,
+    "commit": null
+  },
+  "history": []
+}
