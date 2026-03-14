@@ -1,12 +1,17 @@
 ---
 name: governed-agents
 description: "Deterministic verification + reputation scoring for AI sub-agents. Prevents hallucinated success via 4 code gates (files, tests, lint, AST) and a 3-layer pipeline (Structural → Grounding → LLM Council) for open-ended tasks."
+install: {"kind": "script", "script": "install.sh"}
+filesystem_writes: ["~/.openclaw/workspace/.state/governed_agents/"]
+capabilities: ["persistent_db_writes", "external_cli_execution", "network_requests"]
+network_access: true
 metadata:
   {
     "openclaw":
       {
         "emoji": "🛡️",
-        "requires": { "bins": ["python3"] },
+        "type": "executable / with-install-spec",
+        "requires": { "bins": ["codex", "openclaw", "git", "pytest", "ruff", "flake8", "pylint"] },
         "install":
           [
             {
@@ -18,6 +23,9 @@ metadata:
           ],
       },
   }
+capability_flags:
+  network-capable: true
+  subprocess-capable: true
 ---
 
 # Governed Agents
@@ -25,6 +33,10 @@ metadata:
 Deterministic verification + reputation scoring for AI sub-agents. Prevents hallucinated success ("I did it!") by verifying claims independently before updating the agent's score.
 
 **Pure Python stdlib — zero external dependencies.**
+
+## Capabilities
+
+Spawns external CLIs (codex, openclaw, git, pytest) and makes HTTP HEAD requests.
 
 ## When to Use
 

@@ -12,21 +12,46 @@ import re
 import uuid
 import shutil
 import subprocess
+import logging
 from pathlib import Path
 from typing import Optional, Any
 
 from .contract import TaskContract, TaskResult, TaskStatus
 from .orchestrator import score_result
 from .verification import run_full_verification
-from .reputation import init_db, get_reputation, update_reputation, get_supervision_level
+from .reputation import init_db, get_reputation, update_reputation, get_supervision_level, resolve_db_path
 
-DEFAULT_DB_PATH = os.environ.get(
-    "GOVERNED_DB_PATH",
-    str(Path.home() / ".governed_agents" / "reputation.db")
-)
+DEFAULT_DB_PATH = str(resolve_db_path())
 DEFAULT_WORK_DIR = os.environ.get("GOVERNED_WORK_DIR", "/tmp/governed")
-WORKSPACE = Path(os.environ.get("OPENCLAW_WORKSPACE", Path(__file__).resolve().parent.parent))
+WORKSPACE = Path(os.environ.get("OPENCLAW_WORKSPACE", Path(__file__).resolve().parent.parent)).resolve()
 CODEX53_CLI = shutil.which("codex") or os.environ.get("CODEX_CLI", "codex")
+logger = logging.getLogger(__name__)
+
+assert WORKSPACE.is_relative_to(Path.home()) or WORKSPACE.is_relative_to(Path("/tmp"))
+
+_CODEX_ALLOWED_VARS = {
+    "HOME",
+    "PATH",
+    "TMPDIR",
+    "LANG",
+    "LC_ALL",
+    "OPENAI_API_KEY",
+    "NO_COLOR",
+    "GOVERNED_WORK_DIR",
+    "GOVERNED_DB_PATH",
+}
+
+_OPENCLAW_ALLOWED_VARS = {
+    "HOME",
+    "PATH",
+    "TMPDIR",
+    "LANG",
+    "LC_ALL",
+    "NO_COLOR",
+    "GOVERNED_WORK_DIR",
+    "GOVERNED_DB_PATH",
+    "GOVERNED_AUTH_TOKEN",
+}
 
 
 def _find_tool(name: str):
@@ -134,6 +159,24 @@ def _build_prompt(contract: TaskContract, agent_id: str, model: str, rep: float,
     return prompt
 
 
+def _build_subprocess_env(engine: str, extra: dict) -> dict:
+    if os.environ.get("GOVERNED_PASS_ENV") == "1":
+        logger.warning("GOVERNED_PASS_ENV=1 set; passing full environment to subprocess.")
+        env = os.environ.copy()
+        env.update(extra)
+        return env
+
+    minimal_env = {
+        "PATH": os.environ.get("PATH", ""),
+        "NO_COLOR": os.environ.get("NO_COLOR", "1"),
+    }
+    if "PATH" in extra:
+        minimal_env["PATH"] = extra["PATH"]
+    if "NO_COLOR" in extra:
+        minimal_env["NO_COLOR"] = extra["NO_COLOR"]
+    return minimal_env
+
+
 def spawn_governed(
     contract: TaskContract,
     engine: str = "codex53",
@@ -174,10 +217,15 @@ When complete, output exactly this JSON block:
         if engine == "codex53":
             task_dir = Path(f"/tmp/governed-{task_id}")
             task_dir.mkdir(exist_ok=True)
-            subprocess.run(["git", "init"], cwd=str(task_dir), capture_output=True)
+            subprocess.run(
+                ["git", "init"],
+                cwd=str(task_dir),
+                capture_output=True,
+                env=_build_subprocess_env("codex53", {}),
+            )
 
             cmd = [CODEX53_CLI, "-m", "gpt-5.3-codex", "exec", "--full-auto", prompt]
-            env = {**os.environ, "NO_COLOR": "1"}
+            env = _build_subprocess_env("codex53", {"NO_COLOR": "1"})
             cwd = str(task_dir)
         else:
             cmd = [
@@ -193,7 +241,7 @@ When complete, output exactly this JSON block:
                 "--timeout",
                 str(timeout),
             ]
-            env = os.environ.copy()
+            env = _build_subprocess_env("openclaw", {})
             cwd = str(WORKSPACE)
 
         run_result = subprocess.run(
