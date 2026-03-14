@@ -1,0 +1,11 @@
+{
+  "owner": "openwaygate",
+  "slug": "youtube-playlist-image",
+  "displayName": "YouTube Playlist Image",
+  "latest": {
+    "version": "0.10.6-3",
+    "publishedAt": 1773335192518,
+    "commit": null
+  },
+  "history": []
+}
