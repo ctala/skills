@@ -1,0 +1,11 @@
+{
+  "owner": "lcp14262",
+  "slug": "more-agent-orchestrator",
+  "displayName": "Agent Orchestrator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773302370401,
+    "commit": null
+  },
+  "history": []
+}
