@@ -1,0 +1,11 @@
+{
+  "owner": "jisuapi",
+  "slug": "vinrecognition",
+  "displayName": "VIN识别 - VIN Recognition OCR",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773400972294,
+    "commit": null
+  },
+  "history": []
+}
