@@ -1,0 +1,11 @@
+{
+  "owner": "chenchaoqun",
+  "slug": "eastmoney-trading",
+  "displayName": "东方财富证券交易",
+  "latest": {
+    "version": "3.0.0",
+    "publishedAt": 1773427823874,
+    "commit": null
+  },
+  "history": []
+}
