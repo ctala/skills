@@ -1,0 +1,11 @@
+{
+  "owner": "x-rayluan",
+  "slug": "openclaw-daily-backup",
+  "displayName": "OpenClaw Daily Backup",
+  "latest": {
+    "version": "1.3.0",
+    "publishedAt": 1773465106608,
+    "commit": null
+  },
+  "history": []
+}
