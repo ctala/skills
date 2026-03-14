@@ -1,0 +1,11 @@
+{
+  "owner": "cyijun",
+  "slug": "web-search-by-searxng",
+  "displayName": "Web Search By Searxng",
+  "latest": {
+    "version": "0.1.2",
+    "publishedAt": 1773257098034,
+    "commit": null
+  },
+  "history": []
+}
