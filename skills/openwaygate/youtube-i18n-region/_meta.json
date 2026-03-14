@@ -1,0 +1,11 @@
+{
+  "owner": "openwaygate",
+  "slug": "youtube-i18n-region",
+  "displayName": "YouTube I18n Region",
+  "latest": {
+    "version": "0.10.6-3",
+    "publishedAt": 1773331566627,
+    "commit": null
+  },
+  "history": []
+}
