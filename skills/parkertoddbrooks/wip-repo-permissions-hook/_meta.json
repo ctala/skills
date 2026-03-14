@@ -3,11 +3,16 @@
   "slug": "wip-repo-permissions-hook",
   "displayName": "Wip Repo Permissions Hook",
   "latest": {
-    "version": "1.9.22",
-    "publishedAt": 1773507301247,
-    "commit": "https://github.com/openclaw/skills/commit/18f3c0d7e8d922895a7b393a1e254c08c7518203"
+    "version": "1.9.25",
+    "publishedAt": 1773509392430,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.9.22",
+      "publishedAt": 1773507301247,
+      "commit": "https://github.com/openclaw/skills/commit/18f3c0d7e8d922895a7b393a1e254c08c7518203"
+    },
     {
       "version": "1.9.13",
       "publishedAt": 1773455453476,
