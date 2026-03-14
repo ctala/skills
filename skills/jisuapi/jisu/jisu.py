@@ -75,6 +75,21 @@ API_LIST = [
     {"api": "hotsearch/weibo", "desc": "微博热搜榜"},
     {"api": "hotsearch/baidu", "desc": "百度热搜榜"},
     {"api": "hotsearch/douyin", "desc": "抖音热搜榜"},
+    {"api": "futures/shfutures", "desc": "上海期货交易所期货价格"},
+    {"api": "futures/dlfutures", "desc": "大连商品交易所期货价格"},
+    {"api": "futures/zzfutures", "desc": "郑州商品交易所期货价格"},
+    {"api": "futures/zgjrfutures", "desc": "中国金融期货交易所期货价格"},
+    {"api": "futures/gzfutures", "desc": "广州期货交易所期货价格"},
+    {"api": "todayhistory/query", "desc": "历史上的今天，params: month, day"},
+    {"api": "weather2/query", "desc": "历史天气查询，params: date 必填，city 或 cityid 可选"},
+    {"api": "weather2/city", "desc": "历史天气支持城市列表"},
+    {"api": "enterprisecontact/query", "desc": "企业联系方式查询，params: company/creditno/regno/orgno 任填其一"},
+    {"api": "qrcode/generate", "desc": "二维码生成，params: text, bgcolor, fgcolor, oxlevel, width, margin, logo, tempid"},
+    {"api": "qrcode/read", "desc": "二维码识别，params: qrcode(URL 或 base64)"},
+    {"api": "qrcode/template", "desc": "二维码模板样例列表"},
+    {"api": "barcode/generate", "desc": "条码生成，params: type, barcode, fontsize, dpi, scale, height"},
+    {"api": "barcode/read", "desc": "条码识别，params: barcode(URL 或 base64)"},
+    {"api": "barcode2/query", "desc": "商品条码查询，params: barcode"},
 ]
 
 

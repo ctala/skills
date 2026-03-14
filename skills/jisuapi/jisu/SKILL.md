@@ -1,6 +1,6 @@
 ---
 name: jisu-unified
-description: 极速数据统一入口，一个 JISU_API_KEY 调用多类接口：黄金、股票、天气、菜谱、汇率、MBTI、快递、车辆等，便于 Agent 一站式拉取结构化数据。
+description: 极速数据统一入口，一个 JISU_API_KEY 调用多类接口：黄金、股票、天气、历史天气、菜谱、汇率、MBTI、快递、车辆、历史上的今天、企业联系方式等，便于 Agent 一站式拉取结构化数据。
 metadata: { "openclaw": { "emoji": "⚡", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 
@@ -62,8 +62,7 @@ python3 skill/jisu/jisu.py call '{"api":"exchange/convert","params":{"from":"CNY
 
 | 分类     | api                    | 说明 |
 |----------|------------------------|------|
-| 黄金     | gold/shgold            | 上海黄金交易所价格 |
-| 黄金     | gold/storegold         | 金店金价，params 可选 date |
+| 黄金     | gold/shgold, gold/shfutures, gold/hkgold, gold/bank, gold/london, gold/storegold | 上海黄金/上海期货/香港/银行/伦敦/金店金价 |
 | 股票     | stock/query            | 当日行情，params: code |
 | 股票     | stock/list             | 列表，params: classid, pagenum, pagesize |
 | 股票     | stock/detail           | 详情，params: code |
@@ -71,14 +70,33 @@ python3 skill/jisu/jisu.py call '{"api":"exchange/convert","params":{"from":"CNY
 | 指数     | stockindex/sh          | 上证/深证/创业板等指数 |
 | 天气     | weather/query          | 天气预报，params: city 或 cityid 等 |
 | 天气     | weather/city           | 支持城市列表 |
-| 菜谱     | recipe/search          | 搜索，params: keyword, num, start |
-| 菜谱     | recipe/class           | 分类 |
-| 菜谱     | recipe/detail          | 详情，params: id |
+| 菜谱     | recipe/search, recipe/class, recipe/byclass, recipe/detail | 搜索/分类/按分类检索/详情 |
 | MBTI     | character/questions   | 题目，params 可选 version |
 | MBTI     | character/answer       | 提交答案，params: answer, version |
-| 汇率     | exchange/convert      | 换算，params: from, to, amount |
-| 汇率     | exchange/single        | 单货币汇率，params: currency |
-| 其他     | ip/location, shouji/query, idcard/query, bankcard/query, express/query, car/brand, car/detail, vehiclelimit/query, vin/query, oil/query, silver/shgold, calendar/query, news/get 等 |
+| 汇率     | exchange/convert, exchange/single, exchange/currency, exchange/bank | 换算/单货币/货币列表/银行汇率 |
+| 历史上的今天 | todayhistory/query | 指定月日的历史事件，params: month, day |
+| 历史天气 | weather2/query      | 按城市与日期查历史天气，params: date 必填，city 或 cityid 可选 |
+| 历史天气 | weather2/city       | 历史天气支持城市列表 |
+| 企业联系方式 | enterprisecontact/query | 企业电话/邮箱等，params: company/creditno/regno/orgno 任填其一 |
+| 二维码   | qrcode/generate, qrcode/read, qrcode/template | 二维码生成/识别/模板样例 |
+| 条码     | barcode/generate, barcode/read | 条形码生成/识别，params: type, barcode, fontsize, dpi, scale, height / barcode |
+| 商品条码查询 | barcode2/query           | 商品条码信息查询，params: barcode |
+| ip       | ip/location             | IP 归属地，params: ip |
+| 手机归属地   | shouji/query             | 手机归属地，params: shouji |
+| 身份证查询   | idcard/query             | 身份证查询，params: idcard |
+| 银行卡归属地 | bankcard/query           | 银行卡归属地，params: bankcard |
+| 快递     | express/query, express/type | 快递查询、快递公司类型 |
+| 车型大全     | car/brand, car/type, car/car, car/detail, car/search, car/hot, car/rank | 品牌/车型/车款/详情/搜索/热门/销量排行 |
+| 限行     | vehiclelimit/city, vehiclelimit/query | 限行城市、限行查询 |
+| 车辆     | vin/query                | VIN 车辆信息，params: vin |
+| 油价     | oil/query, oil/province  | 省市油价、支持省市列表 |
+| 白银     | silver/shgold, silver/shfutures, silver/london | 上海黄金/上海期货/伦敦银价 |
+| 万年历     | calendar/query, calendar/holiday, huangli/date | 万年历、节假日、黄历 |
+| 新闻     | news/get, news/channel   | 新闻、新闻频道 |
+| 经纬度地址转换     | geoconvert/coord2addr, geoconvert/addr2coord | 坐标转地址、地址转坐标 |
+| 周公解梦 | dream/search            | 搜索，params: keyword, pagenum, pagesize |
+| 热搜榜单     | hotsearch/weibo, hotsearch/baidu, hotsearch/douyin | 微博/百度/抖音热搜榜 |
+| 期货     | futures/shfutures, futures/dlfutures, futures/zzfutures, futures/zgjrfutures, futures/gzfutures | 上海/大连/郑州/中金所/广州期货价格 |
 
 完整列表以 `jisu.py list` 输出为准；参数含义见 [极速数据 API 文档](https://www.jisuapi.com/)。
 
