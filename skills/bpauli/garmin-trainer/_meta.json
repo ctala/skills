@@ -1,0 +1,11 @@
+{
+  "owner": "bpauli",
+  "slug": "garmin-trainer",
+  "displayName": "Garmin Trainer",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773263359388,
+    "commit": null
+  },
+  "history": []
+}
