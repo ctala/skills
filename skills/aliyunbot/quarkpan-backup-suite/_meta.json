@@ -1,0 +1,11 @@
+{
+  "owner": "aliyunbot",
+  "slug": "quarkpan-backup-suite",
+  "displayName": "QuarkPan Backup Suite",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773478859386,
+    "commit": null
+  },
+  "history": []
+}
