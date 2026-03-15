@@ -63,6 +63,56 @@ export const TOOL_SCHEMAS: Record<string, ToolParamSchema> = {
   isp_quota_check: {
     anyOf: [["client_id", "clientId"]],
   },
+
+  // v0.3.0 additions
+  isp_client_update: {
+    anyOf: [["client_id"]],
+  },
+  isp_client_delete: {
+    anyOf: [["client_id"]],
+  },
+  isp_site_update: {
+    anyOf: [["primary_id"]],
+  },
+  isp_site_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_mail_domain_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_mail_alias_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_mail_forward_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_dns_zone_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_dns_record_update: {
+    fields: {
+      type: { type: "string", required: true, notEmpty: true, enum: DNS_TYPES },
+    },
+    anyOf: [["primary_id"]],
+  },
+  isp_db_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_db_user_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_ftp_user_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_shell_user_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_cron_delete: {
+    anyOf: [["primary_id"]],
+  },
+  isp_cron_update: {
+    anyOf: [["primary_id"]],
+  },
 };
 
 // ---------------------------------------------------------------------------

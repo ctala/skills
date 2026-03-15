@@ -1,52 +1,8 @@
 {
   "name": "ISPConfig",
-  "version": "0.1.3",
+  "id": "openclaw-ispconfig",
+  "version": "0.3.0",
   "description": "Manage ISPConfig servers: automated site provisioning, domains, mailboxes, DNS, databases, SSL, backups, and more.",
-  "config": {
-    "apiUrl": {
-      "type": "string",
-      "description": "ISPConfig Remote JSON API URL (e.g. https://server:8080/remote/json.php)",
-      "required": true
-    },
-    "username": {
-      "type": "string",
-      "description": "ISPConfig remote API username",
-      "required": true
-    },
-    "password": {
-      "type": "string",
-      "description": "ISPConfig remote API password",
-      "required": true,
-      "secret": true
-    },
-    "serverId": {
-      "type": "number",
-      "description": "Default ISPConfig server ID (usually 1 for single-server setups)",
-      "default": 1
-    },
-    "defaultServerIp": {
-      "type": "string",
-      "description": "Default server IP for DNS A records"
-    },
-    "readOnly": {
-      "type": "boolean",
-      "description": "If true, only read operations are allowed",
-      "default": false
-    },
-    "allowedOperations": {
-      "type": "array",
-      "description": "Whitelist of allowed tool names. Empty = all allowed.",
-      "items": {
-        "type": "string"
-      },
-      "default": []
-    },
-    "verifySsl": {
-      "type": "boolean",
-      "description": "Verify SSL certificate of ISPConfig server",
-      "default": true
-    }
-  },
   "tools": [
     "isp_methods_list",
     "isp_system_info",
@@ -78,6 +34,77 @@
     "isp_shell_user_add",
     "isp_ftp_user_add",
     "isp_cron_list",
-    "isp_cron_add"
-  ]
+    "isp_cron_add",
+    "isp_client_update",
+    "isp_client_delete",
+    "isp_site_update",
+    "isp_site_delete",
+    "isp_mail_domain_delete",
+    "isp_mail_alias_list",
+    "isp_mail_alias_add",
+    "isp_mail_alias_delete",
+    "isp_mail_forward_list",
+    "isp_mail_forward_add",
+    "isp_mail_forward_delete",
+    "isp_dns_zone_delete",
+    "isp_dns_record_update",
+    "isp_db_delete",
+    "isp_db_user_delete",
+    "isp_ftp_user_delete",
+    "isp_shell_user_delete",
+    "isp_cron_delete",
+    "isp_cron_update"
+  ],
+  "configSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "apiUrl",
+      "username",
+      "password"
+    ],
+    "properties": {
+      "apiUrl": {
+        "type": "string",
+        "description": "ISPConfig Remote JSON API URL (e.g. https://server:8080/remote/json.php)"
+      },
+      "username": {
+        "type": "string",
+        "description": "ISPConfig remote API username"
+      },
+      "password": {
+        "type": "string",
+        "description": "ISPConfig remote API password",
+        "secret": true
+      },
+      "serverId": {
+        "type": "number",
+        "description": "Default ISPConfig server ID (usually 1 for single-server setups)",
+        "default": 1
+      },
+      "defaultServerIp": {
+        "type": "string",
+        "description": "Default server IP for DNS A records"
+      },
+      "readOnly": {
+        "type": "boolean",
+        "description": "If true, only read operations are allowed",
+        "default": false
+      },
+      "allowedOperations": {
+        "type": "array",
+        "description": "Whitelist of allowed tool names. Empty = all allowed.",
+        "default": [],
+        "items": {
+          "type": "string"
+        }
+      },
+      "verifySsl": {
+        "type": "boolean",
+        "description": "Verify SSL certificate of ISPConfig server",
+        "default": true
+      }
+    }
+  }
 }
