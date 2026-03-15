@@ -15,3 +15,37 @@ Create and visualize mind maps in your terminal.
 - `export <name>` — Export as markdown
 ---
 Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+mindmap help
+
+# Run
+mindmap run
+```
+
+- Run `mindmap help` for commands
+- No API keys needed
+
+- Run `mindmap help` for all commands
+
+- Run `mindmap help` for all commands
+
+## When to Use
+
+- Quick mindmap tasks from terminal
+- Automation pipelines
+
+## Output
+
+Results go to stdout. Save with `mindmap run > output.txt`.
+
+## Configuration
+
+Set `MINDMAP_DIR` to change data directory. Default: `~/.local/share/mindmap/`
+
+---
+*Powered by BytesAgain | bytesagain.com*
+*Feedback & Feature Requests: https://bytesagain.com/feedback*
