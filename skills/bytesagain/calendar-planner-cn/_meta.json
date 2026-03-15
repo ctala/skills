@@ -3,9 +3,15 @@
   "slug": "calendar-planner-cn",
   "displayName": "Calendar Planner Cn",
   "latest": {
-    "version": "2.2.0",
-    "publishedAt": 1773420980666,
-    "commit": "https://github.com/openclaw/skills/commit/5eb28af20a432cca087572aed8b3778bed2392cf"
+    "version": "2.3.2",
+    "publishedAt": 1773610625060,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.2.0",
+      "publishedAt": 1773420980666,
+      "commit": "https://github.com/openclaw/skills/commit/5eb28af20a432cca087572aed8b3778bed2392cf"
+    }
+  ]
 }

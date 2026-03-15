@@ -1,9 +1,6 @@
 ---
 name: calendar-planner-cn
-version: 1.0.0
-description: "日程规划工具。周计划、月计划、时间块、会议安排、截止日期管理、工作生活平衡。Calendar planner with weekly, monthly, time-blocking, meeting scheduling, deadline management, and work-life balance."
-author: BytesAgain
-tags: [calendar, planner, schedule, time-blocking, meeting, deadline, work-life-balance, 日程, 时间管理]
+description: "日程规划工具。周计划、月计划、时间块、会议安排、截止日期管理、工作生活平衡。Calendar planner with weekly, monthly, time-blocking, meeting scheduling, deadline management, and work-life balance. Use when you need calendar planner cn capabilities. Triggers on: calendar planner cn."
 ---
 # calendar-planner-cn
 
@@ -24,7 +21,6 @@ tags: [calendar, planner, schedule, time-blocking, meeting, deadline, work-life-
 - **deadline** — deadline
 - **balance** — balance
 
-
 ## 专业建议
 
 - Understand their role, priorities, and constraints
@@ -35,3 +31,10 @@ tags: [calendar, planner, schedule, time-blocking, meeting, deadline, work-life-
 
 ---
 *calendar-planner-cn by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Commands
+
+Run `calendar-planner-cn help` to see all available commands.
