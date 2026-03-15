@@ -7,133 +7,95 @@ description: >
 
 # Publora — Bluesky
 
-Post and schedule Bluesky content via the Publora API.
+Bluesky (AT Protocol) platform skill for the Publora API. For auth, core scheduling, media upload, and workspace/webhook docs, see the `publora` core skill.
 
-> **Prerequisite:** Install the `publora` core skill for auth setup and getting platform IDs.
+**Base URL:** `https://api.publora.com/api/v1`  
+**Header:** `x-publora-key: sk_YOUR_KEY`  
+**Platform ID format:** `bluesky-{did}`
 
-## Platform ID Format
+Where `{did}` is your Bluesky Decentralized Identifier (DID), assigned on connection.
 
-`bluesky-{did}` — Bluesky uses **DID-based IDs**, NOT numeric.
+## Requirements
 
-Example: `bluesky-did:plc:abc123xyz`
+- A Bluesky account connected via **username + app password** (not your main password)
+- Generate an app password: Bluesky Settings → App Passwords
+- Connected through the Publora dashboard
 
-Get your exact DID from `GET /api/v1/platform-connections`.
+## Platform Limits (API)
 
-## Authentication
+| Property | Limit | Notes |
+|----------|-------|-------|
+| Text | **300 characters** | Links do NOT count toward limit |
+| Images | Up to **4** × **1 MB** | JPEG, PNG, WebP (max 2000×2000 px) |
+| Video | **3 min** / **100 MB** | MP4; email verification required |
+| Video (short) | <60s → 50 MB | Size tiers apply |
+| Text only | ✅ Yes | — |
+| Daily video limit | 25 videos / 10 GB | — |
+| Rate limit | 3,000 req/5 min | — |
 
-Bluesky requires:
-- **Username** (handle, e.g. `yourname.bsky.social`)
-- **App password** — **NOT your main account password**
+**Common errors:**
+- `429 Too Many Requests` — rate limit exceeded, wait and retry
+- Video `JOB_STATE_FAILED` — check format (MP4) and size tier
 
-Generate an app password at: Bluesky Settings → **App Passwords** → Add App Password.
+## Post a Skeet (text post)
 
-⚠️ Using your main password is a security risk. Always use app passwords for API integrations.
-
-## Character Limit
-
-**300 characters strict.** The API returns an error if exceeded.
-
-## Supported Content
-
-| Type | Supported | Notes |
-|------|-----------|-------|
-| Text only | ✅ | Up to 300 chars |
-| Images | ✅ | Up to 4 per post; JPEG preferred; WebP auto-converted |
-| Videos | ❌ | Not currently supported |
-| Hashtags | ✅ | Auto-detected and become clickable facets |
-| URLs | ✅ | Auto-detected and become clickable links |
-
-## Post to Bluesky
-
-```python
-import requests
-
-response = requests.post(
-    'https://api.publora.com/api/v1/create-post',
-    headers={
-        'Content-Type': 'application/json',
-        'x-publora-key': 'sk_YOUR_KEY'
-    },
-    json={
-        'content': 'Dashboard live! #buildinpublic',
-        'platforms': ['bluesky-did:plc:abc123xyz']
-    }
-)
-print(response.json())
+```javascript
+await fetch('https://api.publora.com/api/v1/create-post', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'x-publora-key': 'sk_YOUR_KEY' },
+  body: JSON.stringify({
+    content: 'Building in public on Bluesky today! Links, hashtags, and mentions all auto-detected. #buildinpublic',
+    platforms: ['bluesky-did:plc:abc123']
+  })
+});
 ```
 
-## Post with Images
+Publora automatically detects hashtags, URLs, and @mentions and creates proper AT Protocol facets.
 
-Up to **4 images** per post. Each image requires its own `get-upload-url` call with the same `postGroupId`.
+## Schedule a Post
 
-Use `altTexts` array for image accessibility — maps positionally to uploaded images (first altText → first uploaded image).
+```javascript
+body: JSON.stringify({
+  content: 'Your Bluesky post here',
+  platforms: ['bluesky-did:plc:abc123'],
+  scheduledTime: '2026-03-20T11:00:00.000Z'
+})
+```
+
+## Post with Image
+
+> ⚠️ Bluesky has a strict **1 MB limit per image**. Compress to 80–85% JPEG quality.
 
 ```python
 import requests
 
 HEADERS = { 'Content-Type': 'application/json', 'x-publora-key': 'sk_YOUR_KEY' }
 
-# Step 1: Create post with altTexts
+# Step 1: Create post
 post = requests.post('https://api.publora.com/api/v1/create-post', headers=HEADERS, json={
-    'content': 'Dashboard live! #buildinpublic',
-    'platforms': ['bluesky-did:plc:abc123xyz'],
-    'altTexts': ['Screenshot of analytics dashboard showing user growth charts']
+    'content': 'Check out this photo! 📸',
+    'platforms': ['bluesky-did:plc:abc123']
 }).json()
-post_group_id = post['postGroupId']
 
-# Step 2: Get upload URL (one call per image)
+# Step 2: Get upload URL (make sure image is <1 MB and JPEG/PNG/WebP)
 upload = requests.post('https://api.publora.com/api/v1/get-upload-url', headers=HEADERS, json={
-    'fileName': 'dashboard.jpg', 'contentType': 'image/jpeg',
-    'type': 'image', 'postGroupId': post_group_id
+    'postGroupId': post['postGroupId'],
+    'fileName': 'photo.jpg',
+    'contentType': 'image/jpeg',
+    'type': 'image'
 }).json()
 
-# Step 3: Upload to S3
-with open('dashboard.jpg', 'rb') as f:
+# Step 3: Upload
+with open('photo_compressed.jpg', 'rb') as f:
     requests.put(upload['uploadUrl'], headers={'Content-Type': 'image/jpeg'}, data=f)
 ```
 
-### Multiple Images with altTexts
+## Platform Quirks
 
-```python
-json={
-    'content': 'New features shipping this week! 🚀 #indiedev',
-    'platforms': ['bluesky-did:plc:abc123xyz'],
-    'altTexts': [
-        'Screenshot of the new dashboard with dark mode enabled',
-        'Mobile view of the app showing the updated navigation',
-        'Code editor integration screenshot'
-    ]
-}
-# Then upload 3 images with same postGroupId
-# altTexts map positionally: index 0 → first uploaded image, etc.
-```
-
-**WebP note:** WebP images are automatically converted to JPEG by Publora.
-
-## Rich Text — Auto-Detection
-
-Publora automatically detects and converts **hashtags** and **URLs** into clickable Bluesky facets:
-
-- `#hashtag` → becomes a clickable hashtag link
-- `https://example.com` → becomes a clickable URL
-
-You do not need to do anything special — just include them in your content string. Publora handles the byte-offset calculations required by the Bluesky AT Protocol internally.
-
-## Schedule a Post
-
-```python
-json={
-    'content': 'Shipping on Friday! Stay tuned 👀 #buildinpublic',
-    'platforms': ['bluesky-did:plc:abc123xyz'],
-    'scheduledTime': '2026-03-16T10:00:00.000Z'
-}
-```
-
-## Tips for Bluesky
-
-- **DID format** — platform ID is `bluesky-did:plc:xyz`, not a number
-- **App password required** — never use main account password
-- **300 char limit** — tight, be concise
-- **Hashtags auto-link** — Publora handles AT Protocol facets automatically
-- **altTexts** — always provide for accessibility; maps by position to uploaded images
-- **Up to 4 images** — each needs a separate `get-upload-url` call, all with same `postGroupId`
+- **Links don't count** toward the 300-char limit — great for posts with URLs
+- **Auto-facets**: Publora automatically detects #hashtags, @mentions, and URLs and creates proper Bluesky facets
+- **Image size is strict**: 1 MB hard limit per image. Always compress before upload.
+- **Image dimensions**: Max 2000×2000 pixels
+- **App password required**: Never use your main Bluesky password; create a dedicated app password
+- **Email verification**: Required before you can upload videos (one-time step in Bluesky settings)
+- **DID format**: Platform ID uses the full DID, e.g. `bluesky-did:plc:abc123xyz`
