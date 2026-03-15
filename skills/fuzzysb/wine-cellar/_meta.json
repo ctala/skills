@@ -1,0 +1,11 @@
+{
+  "owner": "fuzzysb",
+  "slug": "wine-cellar",
+  "displayName": "Wine Cellar",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773583677701,
+    "commit": null
+  },
+  "history": []
+}
