@@ -3,11 +3,16 @@
   "slug": "arxiv-source",
   "displayName": "Arxiv Reader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773194908543,
-    "commit": "https://github.com/openclaw/skills/commit/285f07b8a9cdd03a356b86c12d25ad676b7daa13"
+    "version": "1.0.3",
+    "publishedAt": 1773646453494,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773194908543,
+      "commit": "https://github.com/openclaw/skills/commit/285f07b8a9cdd03a356b86c12d25ad676b7daa13"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772967494933,
