@@ -55,7 +55,9 @@ python3 scripts/patch_reply_footer.py --dry-run
 python3 scripts/patch_reply_footer.py
 ```
 
-### 3) 重启网关（生效）
+### 3) 重启网关（**必须**，才能生效）
+
+> 说明：补丁改的是 OpenClaw 的 dist bundle；Gateway 不重启就不会重新加载，Telegram 私聊脚注不会生效。
 
 ```bash
 openclaw gateway restart

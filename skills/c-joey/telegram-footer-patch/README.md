@@ -10,11 +10,12 @@ Patch OpenClaw's Telegram reply pipeline to append a one-line footer in private 
 - Supports dry-run preview
 - Creates a backup before patching
 - Supports rollback and post-restart verification
+- Works with Telegram streaming replies (some builds send HTML chunks instead of plain text)
 
 ## Recommended flow
 1. Dry-run
 2. Apply patch
-3. Restart gateway after confirmation
+3. Restart gateway after confirmation (**required** to take effect)
 4. Send a test message and verify footer output
 
 ## Before you run

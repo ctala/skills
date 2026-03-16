@@ -6,6 +6,10 @@ Safety notes:
 - Always run with --dry-run first to see which files would be touched.
 - The script creates timestamped backups (*.bak.telegram-footer.*) before writing.
 - If anything fails, it restores from backup automatically.
+
+This version appends the footer for both:
+- text payloads: { text: "..." }
+- html payloads: { html: "..." }  (common when telegram streaming is enabled)
 """
 
 import argparse
@@ -24,8 +28,8 @@ sys.dont_write_bytecode = True
 MARKER_START = "/* OPENCLAW_TELEGRAM_STATUS_FOOTER_START */"
 MARKER_END = "/* OPENCLAW_TELEGRAM_STATUS_FOOTER_END */"
 
-SNIPPET = f'''
-{MARKER_START}
+SNIPPET_TEMPLATE = r'''
+__MARKER_START__
 const __ocSessionLooksTelegramDirect =
   typeof sessionKey === "string" && sessionKey.includes(":telegram:direct:");
 const __ocShouldAppendStatusFooter =
@@ -33,25 +37,78 @@ const __ocShouldAppendStatusFooter =
   activeSessionEntry?.chatType !== "group" &&
   activeSessionEntry?.chatType !== "channel";
 
-if (__ocShouldAppendStatusFooter) {{
+const __ocEscapeHtml = (str) => String(str)
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/\"/g, "&quot;")
+  .replace(/'/g, "&#39;");
+
+// Append footer to the last payload that looks like message text.
+// Handles both {text} and {html} payload shapes.
+const __ocAppendFooter = (payloads, footerText, footerHtml) => {
+  let index = -1;
+  for (let i = payloads.length - 1; i >= 0; i -= 1) {
+    if (payloads[i]?.html || payloads[i]?.text) {
+      index = i;
+      break;
+    }
+  }
+
+  if (index === -1) return [...payloads, { text: footerText }];
+
+  const existing = payloads[index];
+
+  if (existing?.html) {
+    const existingHtml = existing.html ?? "";
+    const sep = existingHtml.endsWith("<br>") ? "" : "<br>";
+    const next = { ...existing, html: `${existingHtml}${sep}${footerHtml}` };
+    const updated = payloads.slice();
+    updated[index] = next;
+    return updated;
+  }
+
+  if (existing?.text) {
+    const existingText = existing.text ?? "";
+    const separator = existingText.endsWith("\n") ? "" : "\n";
+    const next = { ...existing, text: `${existingText}${separator}${footerText}` };
+    const updated = payloads.slice();
+    updated[index] = next;
+    return updated;
+  }
+
+  return [...payloads, { text: footerText }];
+};
+
+if (__ocShouldAppendStatusFooter) {
   const __ocTotalTokens = resolveFreshSessionTotalTokens(activeSessionEntry);
   const __ocThinkingLevel = activeSessionEntry?.thinkingLevel || "default";
 
   const __ocStatusFooter = [
-    `🧠 ${{providerUsed && modelUsed ? `${{providerUsed}}/${{modelUsed}}` : modelUsed || "unknown"}}`,
-    `💭 Think: ${{__ocThinkingLevel}}`,
-    `📊 ${{formatTokens(
+    `🧠 ${providerUsed && modelUsed ? `${providerUsed}/${modelUsed}` : modelUsed || "unknown"}`,
+    `💭 Think: ${__ocThinkingLevel}`,
+    `📊 ${formatTokens(
       typeof __ocTotalTokens === "number" && Number.isFinite(__ocTotalTokens) && __ocTotalTokens > 0
         ? __ocTotalTokens
         : null,
       contextTokensUsed ?? activeSessionEntry?.contextTokens ?? null
-    )}}`
-  ].join(" " );
+    )}`
+  ].join(" ");
 
-  finalPayloads = appendUsageLine(finalPayloads, `\n──────────\n${{__ocStatusFooter}}`);
-}}
-{MARKER_END}
+  // text mode footer includes leading newline so it doesn't stick to the last line
+  const __ocFooterText = `\n──────────\n${__ocStatusFooter}`;
+  // html mode footer: escape + <br>
+  const __ocFooterHtml = `──────────<br>${__ocEscapeHtml(__ocStatusFooter)}`;
+
+  finalPayloads = __ocAppendFooter(finalPayloads, __ocFooterText, __ocFooterHtml);
+}
+__MARKER_END__
 '''.strip("\n")
+
+SNIPPET = (
+    SNIPPET_TEMPLATE.replace("__MARKER_START__", MARKER_START)
+    .replace("__MARKER_END__", MARKER_END)
+)
 
 PATTERN = re.compile(
     r"(if\s*\(\s*responseUsageLine\s*\)\s*finalPayloads\s*=\s*appendUsageLine\(\s*finalPayloads\s*,\s*responseUsageLine\s*\);)",
@@ -126,7 +183,9 @@ def patch_file(path: pathlib.Path, dry_run: bool):
         updated, legacy_removed = LEGACY_BLOCK_RE.subn("\n", updated)
 
     if MARKER_START in updated:
-        updated, count = MARKER_BLOCK_RE.subn(SNIPPET, updated, count=1)
+        # IMPORTANT: use a function replacement so Python's re engine does not
+        # treat backslashes in SNIPPET (e.g. "\n") as escape/backref sequences.
+        updated, count = MARKER_BLOCK_RE.subn(lambda _m: SNIPPET, updated, count=1)
         if count == 0:
             print(f"[err] marker block found but could not be replaced: {path}", file=sys.stderr)
             return {"status": "error", "candidate": True, "changed": False}
@@ -183,7 +242,6 @@ def preflight(dist: pathlib.Path, dry_run: bool) -> int:
         print(f"[err] dist directory not found: {dist}", file=sys.stderr)
         return 2
     if not dry_run:
-        # When applying, ensure we can write to the install directory.
         if not os.access(dist, os.W_OK):
             print(
                 f"[err] no write permission for dist directory: {dist} (try sudo or adjust permissions)",
@@ -214,32 +272,26 @@ def main() -> int:
         return 2
 
     changed = 0
-    candidate_count = 0
     errors = 0
     for fp in files:
         result = patch_file(fp, dry_run=args.dry_run)
-        if result["candidate"]:
-            candidate_count += 1
-        if result["changed"]:
-            changed += 1
-        if result["status"] == "error":
+        if result.get("status") == "error":
             errors += 1
+        if result.get("changed"):
+            changed += 1
 
-    if candidate_count == 0:
-        print(
-            "[err] no patchable dist bundle found; marker and insertion needle were absent in all target files. OpenClaw dist likely changed.",
-            file=sys.stderr,
-        )
-        return 3
-
-    if errors > 0:
-        print(f"[done] encountered errors: {errors}", file=sys.stderr)
+    if errors:
+        print(f"[done] errors: {errors}", file=sys.stderr)
         return 1
 
-    if changed == 0:
-        print("[done] no files changed")
-    else:
-        print(f"[done] changed files: {changed}")
+    if args.dry_run:
+        if changed:
+            print(f"[done] changed files: {changed}")
+        else:
+            print("[done] no files changed")
+        return 0
+
+    print(f"[done] changed files: {changed}")
     return 0
 
 

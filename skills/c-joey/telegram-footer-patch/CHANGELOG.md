@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.7
+- Fix: footer now appends correctly for Telegram streaming replies that use HTML payloads (not just text payloads).
+- Fix: patch reapply uses a function replacement to avoid accidental backslash/escape expansion when updating marker blocks.
+
 ## 1.0.6
 - Add install/run safety notice to docs.
 - Add preflight checks and disable Python bytecode cache writes in scripts.
