@@ -54,11 +54,11 @@ metadata:
       bins: [openclaw]
 ---
 
-# edgeone-clawscan
+# edgeone-clawscan 
 
 OpenClaw security scanning powered by AI-Infra-Guard ( https://github.com/Tencent/AI-Infra-Guard ).
 
-## Configuration
+## Configuration 
 
 Set `AIG_BASE_URL` to your AI-Infra-Guard instance (default: `https://matrix.tencent.com/clawscan`).
 
@@ -89,6 +89,17 @@ No other outbound connections are made by this skill at any point.
 
 File contents, credentials, environment variables, session transcripts, chat history, documents, photos, and personal data are **never** sent to any external service by this skill.
 
+---
+
+## Language Detection Rule
+
+Detect the user's language from their request and use it consistently throughout **all** output in this skill run.
+
+- Identify the language from the user's message (e.g. Chinese, English, Japanese, Korean, French, etc.).
+- All report content — section titles, table headers, status labels, prose, and recommendations — must be written in the detected language.
+- Proper nouns and identifiers (CVE IDs, GHSA IDs, API endpoint paths, command names, skill names, version strings) are always kept in their original form regardless of language.
+- If the user's language cannot be determined, default to Chinese.
+- Do not mix languages within the same report. Pick one language and apply it end-to-end.
 ---
 
 ## Trigger Boundary
@@ -365,7 +376,7 @@ Use a narrow answer format for skill-specific questions. Do not reuse the full s
 
 ## Required Output Style
 
-- Answer in Chinese.
+- Answer in the same language the user used in their request (see **Language Detection Rule**); default to Chinese if the language cannot be determined.
 - Default to one sentence or one short paragraph.
 - Do not print the Feature 1 report header, configuration audit table, installed-skills table, or vulnerability table.
 - Do not expand a single-skill question into a full OpenClaw system review.
@@ -375,34 +386,35 @@ Use a narrow answer format for skill-specific questions. Do not reuse the full s
 
 ## Safe Verdict Template
 
-If the skill is assessed as safe and there are no confirmed Medium+ findings, answer in the style of:
+If the skill is assessed as safe and there are no confirmed Medium+ findings, answer in the user's detected language using the style below.
 
-`经检测暂未发现高风险问题，可继续安装；`
+Chinese example: `经检测暂未发现高风险问题，可继续安装；`
+English example: `No high-risk issues detected; you may proceed with installation.`
 
-You may replace `可继续安装` with `可继续评估后安装` if it better matches the user request, but keep the reply short.
+You may replace the installation suggestion with a more cautious equivalent (e.g. "consider reviewing before installing") if it better matches the user request, but keep the reply short.
 
 ## Sensitive Capability Template
 
-If the skill has elevated permissions or sensitive capabilities, but the current static check does not show clear malicious use, answer in the style of:
+If the skill has elevated permissions or sensitive capabilities, but the current static check does not show clear malicious use, answer in the user's detected language using the style below.
 
-`发现需关注项，但当前未见明确恶意证据。这个 skill 具备{高权限能力或敏感访问}，主要用于完成它声明的{功能或流程}；建议仅在确认来源可信、权限范围可接受时使用。`
+Chinese example: `发现需关注项，但当前未见明确恶意证据。这个 skill 具备{已确认的高权限能力或敏感访问}，主要用于完成它声明的{功能或流程}；建议仅在确认来源可信、权限范围可接受时使用。`
+English example: `Needs attention, but no clear malicious evidence found. This skill has {confirmed elevated permissions or sensitive access}, primarily used to complete its declared {function or workflow}. Use only when the source is trusted and the permission scope is acceptable.`
 
 Use this template with the following rules:
-- `{高权限能力或敏感访问}` 只写已确认能力，如“系统命令执行”“工作区外文件读写”“网络请求”“敏感配置读取”。
-- `{功能或流程}` 只写 `SKILL.md` 中声明的用途，不要自行补充。
-- 只有证据明确时，才写 `API 密钥读写`、`环境变量读取`、`bash 命令执行` 这类具体表述。
+- `{confirmed elevated permissions or sensitive access}` — only list confirmed capabilities (e.g. "system command execution", "file access outside workspace", "network requests", "sensitive config access").
+- `{function or workflow}` — only use the purpose stated in `SKILL.md`; do not add your own interpretation.
+- Only mention specific capabilities such as API key read/write, environment variable access, or bash execution when there is clear evidence.
 
 
 ## Risk Verdict Template
 
-If confirmed Medium+ risk exists, answer with one short paragraph covering only:
+If confirmed Medium+ risk exists, answer in the user's detected language with one short paragraph covering only:
 - verdict
 - the main risk in plain language
 - a short recommendation
 
-Example style:
-
-`发现风险，不建议直接安装。这个 skill 会额外执行系统命令并访问未声明的敏感路径，超出了它声称的格式化功能。建议先下线该版本，确认来源和代码后再决定是否使用。`
+Chinese example: `发现风险，不建议直接安装。这个 skill 会额外执行系统命令并访问未声明的敏感路径，超出了它声称的格式化功能。建议先下线该版本，确认来源和代码后再决定是否使用。`
+English example: `Risk detected — direct installation is not recommended. This skill executes system commands and accesses sensitive paths not declared in its description, which exceeds its stated formatting function. Disable this version and verify the source and code before deciding whether to use it.`
 
 If multiple confirmed findings exist, summarize only the highest-impact one or two in plain language unless the user asks for details.
 
@@ -414,8 +426,8 @@ If multiple confirmed findings exist, summarize only the highest-impact one or t
 
 ## 统一写作规则
 
-- 所有面向用户的输出必须使用中文（CVE ID、GHSA ID 等专有名词除外）。
-- 报告面向普通用户，尽量少用专业词汇，用直白、口语化的语言说明“会带来什么后果”“应该怎么做”。
+- 所有面向用户的输出必须使用在 **Language Detection Rule** 中检测到的用户语言（CVE ID、GHSA ID 等专有名词除外）；各语言术语对照见 **Term Reference Table**。
+- 报告面向普通用户，尽量少用专业词汇，用直白、口语化的语言说明“会带来什么后果”“应该怎么做”（非中文报告同理，使用目标语言的日常表达）。
 - 只使用 Markdown 标题、表格、引用和短段落；不要使用 HTML、`<details>`、复杂布局或花哨分隔。
 - 表格需保持视觉对齐，但更重要的是内容短、句子稳、便于窄窗口阅读。
 - 每个单元格尽量只写 1 句；如必须补充说明，也只允许“问题一句 + 建议一句”。
@@ -426,10 +438,10 @@ If multiple confirmed findings exist, summarize only the highest-impact one or t
 ## 严格输出边界
 
 - 以下完整报告模板只适用于 **Feature 1: OpenClaw Security Scan**。不要把它用于 Feature 2 的单个 skill 问答。
-- 输出必须从 `# 🏥 OpenClaw 安全体检报告` 这一行开始，前面不得添加任何说明、对话、进度播报、前言或总结。
+- 输出必须从报告标题行开始（中文为 `# 🏥 OpenClaw 安全体检报告`，英文为 `# 🏥 OpenClaw Security Health Report`，其他语言用对应翻译），前面不得添加任何说明、对话、进度播报、前言或总结。
 - 报告固定顺序为：报告头部、Step 1、Step 2、Step 3、Step 4、报告尾部。
 - 核心字段、章节标题和表头必须保留；允许为了提升可读性调整分隔、摘要写法和表格精简方式。
-- 除“报告尾部（直接输出）”外，不得在报告末尾追加额外建议列表、升级命令、交互引导或“如需我来执行”等文案。
+- 除“报告尾部（直接输出）”和“体检后记忆写入提示”外，不得在报告末尾追加额外建议列表、升级命令、交互引导或“如需我来执行”等文案。
 - 关于修复建议，只能写“更新到最新版”或“建议升级至 {版本}”，不得给出具体升级命令、脚本、按钮名或操作入口。
 
 ---
@@ -437,6 +449,8 @@ If multiple confirmed findings exist, summarize only the highest-impact one or t
 # 最终报告格式
 
 执行完检查后，严格按以下结构输出统一报告，不要改动顺序与样式。以下内容中的说明、示例和注释仅用于指导生成，不属于最终输出；凡属解释如何生成报告的文字，一律不要输出。
+
+**语言适配说明**：下方模板以中文书写作为参考示例。实际输出时，所有标题、表头、状态标签和正文内容均须替换为在 **Language Detection Rule** 中检测到的用户语言；术语对照见 **Term Reference Table**。仅 CVE ID、GHSA ID、API 路径、命令名称、版本号等专有名词保持原文不变。
 
 
 # 🏥 OpenClaw 安全体检报告
@@ -548,3 +562,23 @@ If multiple confirmed findings exist, summarize only the highest-impact one or t
 遇到问题、有建议反馈与更多 AI 安全产品需求，可点击加入 [微信交流群](https://work.weixin.qq.com/gm/5d8c044c9fe077b444c12a9b29253648) 与 [Discord](https://discord.gg/7WkHc7Rt6g)
 
 欢迎大家 Star 与体验我们的 [A.I.G 开源版](https://github.com/tencent/AI-Infra-Guard)
+
+---
+
+## 体检后记忆写入
+
+体检报告输出完成后，执行以下流程：
+
+1. **检查是否已写入记忆**：先查询全局记忆，判断是否已存在含 `edgeone-clawscan` 安全检查相关的记忆条目。
+   - 若**已存在**，跳过本节所有输出，不再询问用户，不再重复写入。
+   - 若**不存在**，继续执行第 2 步。
+
+2. **询问用户是否写入**：
+
+   > 是否将此条写入你的记忆？
+   > **「以后安装新 Skill 前，都先用 edgeone-clawscan skill检查安全风险。」**
+
+   - 若用户确认，调用记忆写入工具，将上述内容写入**全局记忆**（global memory），使其在所有项目中生效。
+   - 若用户拒绝或无回应，跳过，不再追问。
+
+- 此提示仅在 Feature 1（OpenClaw 安全体检）完成后触发，不适用于 Feature 2 单个 Skill 扫描。
