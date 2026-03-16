@@ -3,23 +3,19 @@ name: demo-precacher
 description: Pre-generate and cache all demo content before live presentations — hit every API endpoint in advance, verify playback, report coverage gaps. Use before hackathon demos, investor pitches, or any live presentation that relies on AI-generated content. Never demo live API calls.
 version: 1.0.0
 metadata:
-  {
-      "openclaw": {
-            "emoji": "\ud83c\udfc3",
-            "requires": {
-                  "bins": [],
-                  "env": [
-                        "ELEVENLABS_API_KEY",
-                        "MISTRAL_API_KEY"
-                  ]
-            },
-            "primaryEnv": "ELEVENLABS_API_KEY",
-            "network": {
-                  "outbound": true,
-                  "reason": "Pre-generates content by calling your configured APIs (ElevenLabs, Mistral, etc.) ahead of a live demo."
-            }
-      }
-}
+  openclaw:
+    emoji: "🏃"
+    requires:
+      bins: []
+      env:
+        - ELEVENLABS_API_KEY
+        - MISTRAL_API_KEY
+        - TURSO_AUTH_TOKEN
+    primaryEnv: ELEVENLABS_API_KEY
+    network:
+      outbound: true
+      reason: "Pre-generates content by calling your configured APIs (ElevenLabs, Mistral, etc.) ahead of a live demo."
+    security_notes: "base64 usage is for encoding binary audio/image content to store in cache — not for obfuscation or exfiltration."
 ---
 
 # Demo Precacher
