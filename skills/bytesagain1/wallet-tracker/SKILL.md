@@ -1,7 +1,8 @@
 ---
+version: "2.0.0"
 name: Wallet Tracker
-version: 1.0.0
-description: Multi-chain wallet asset tracker — monitor EVM and Solana wallets, aggregate portfolio, and detect holding changes.
+description: "Multi-chain wallet asset tracker — monitor EVM and Solana wallets, aggregate portfolio, and detect holding changes. Use when you need wallet tracker capabilities. Triggers on: wallet tracker."
+author: BytesAgain
 ---
 
 # Wallet Tracker 👛
@@ -111,15 +112,18 @@ Create `~/.wallet-tracker.json` for persistent config:
 
 ## Commands
 
-| Command | What it does |
+| Command | Description |
 |---------|-------------|
-| `portfolio` | Full portfolio aggregation across wallets/chains |
-| `watch` | Real-time monitoring with threshold alerts |
-| `activity` | Transaction activity summary |
-| `monitor` | Balance change detection |
-| `snapshot` | Point-in-time balance export |
-| `compare` | Compare two snapshots for changes |
+| `add` | Add |
+| `list` | List |
+| `check` | Check |
+| `remove` | Remove |
+| `history` | History |
+| `export` | Export |
 
 ## Privacy Note
 
 This tool queries **public blockchain data only**. No private keys are ever required or requested. All data is processed locally.
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
