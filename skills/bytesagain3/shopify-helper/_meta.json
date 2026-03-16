@@ -3,11 +3,16 @@
   "slug": "shopify-helper",
   "displayName": "Shopify Helper",
   "latest": {
-    "version": "2.3.0",
-    "publishedAt": 1773447799864,
-    "commit": "https://github.com/openclaw/skills/commit/f2281409c0b973b5edcb70a524365acdce713cae"
+    "version": "1.0.6",
+    "publishedAt": 1773666997609,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.0",
+      "publishedAt": 1773447799864,
+      "commit": "https://github.com/openclaw/skills/commit/f2281409c0b973b5edcb70a524365acdce713cae"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773444821202,
