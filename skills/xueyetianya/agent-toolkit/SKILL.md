@@ -1,3 +1,10 @@
+---
+version: "2.0.0"
+name: agent-toolkit
+description: "- **name**: Agent Toolkit. Use when you need agent toolkit capabilities. Triggers on: agent toolkit."
+author: BytesAgain
+---
+
 # Agent Toolkit
 
 - **name**: Agent Toolkit
@@ -35,3 +42,16 @@ Use `debug`, `monitor`, and `deploy` to launch with confidence.
 | `debug` | Debug behavior |
 | `monitor` | Monitoring setup |
 | `deploy` | Deployment checklist |
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Quick start
+agent-toolkit help
+
+# Run main function
+agent-toolkit run
+```
