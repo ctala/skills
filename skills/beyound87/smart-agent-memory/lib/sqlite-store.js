@@ -7,6 +7,7 @@
 'use strict';
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 let DatabaseSync;
 try {
@@ -82,8 +83,21 @@ class SqliteStore {
       );
     `);
 
-    // Add skill column if missing (migration for existing DBs)
+    // Migrations for existing DBs (safe — ignores if column exists)
     try { this.db.exec('ALTER TABLE facts ADD COLUMN skill TEXT'); } catch {}
+    try { this.db.exec('ALTER TABLE facts ADD COLUMN owner TEXT DEFAULT \'main\''); } catch {}
+    try { this.db.exec('ALTER TABLE facts ADD COLUMN isPublic INTEGER DEFAULT 0'); } catch {}
+    try { this.db.exec('ALTER TABLE facts ADD COLUMN contentHash TEXT'); } catch {}
+    // Backfill contentHash for existing rows
+    try {
+      const missing = this.db.prepare('SELECT id, content FROM facts WHERE contentHash IS NULL').all();
+      if (missing.length > 0) {
+        const upd = this.db.prepare('UPDATE facts SET contentHash = ? WHERE id = ?');
+        for (const r of missing) {
+          upd.run(crypto.createHash('sha256').update(r.content).digest('hex').slice(0, 16), r.id);
+        }
+      }
+    } catch {}
 
     // FTS5 for facts
     try {
@@ -128,7 +142,16 @@ class SqliteStore {
   // FACTS
   // ══════════════════════════════════════════════════════════════════════
 
-  remember(content, { tags = [], source = 'conversation', confidence = 1.0, expiresInDays = null, skill = null } = {}) {
+  remember(content, { tags = [], source = 'conversation', confidence = 1.0, expiresInDays = null, skill = null, owner = 'main', isPublic = false, force = false } = {}) {
+    // ── Dedup: SHA-256 hash check ──
+    const contentHash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 16);
+    if (!force) {
+      const dup = this.db.prepare('SELECT id FROM facts WHERE contentHash = ? AND supersededBy IS NULL').get(contentHash);
+      if (dup) {
+        return { id: dup.id, content, tags: [], deduplicated: true, _msg: `Duplicate of ${dup.id} (use --force to override)` };
+      }
+    }
+
     const id = this._id();
     const now = this._now();
     const expiresAt = expiresInDays ? new Date(Date.now() + expiresInDays * 86400000).toISOString() : null;
@@ -136,9 +159,9 @@ class SqliteStore {
     const tagsJson = JSON.stringify(tags);
 
     this.db.prepare(`
-      INSERT INTO facts (id, content, tags, source, confidence, createdAt, lastAccessed, accessCount, expiresAt, skill)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-    `).run(id, content, tagsJson, source, confidence, now, now, expiresAt, skill);
+      INSERT INTO facts (id, content, tags, source, confidence, createdAt, lastAccessed, accessCount, expiresAt, skill, owner, isPublic, contentHash)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
+    `).run(id, content, tagsJson, source, confidence, now, now, expiresAt, skill, owner, isPublic ? 1 : 0, contentHash);
 
     // FTS index
     try {
@@ -146,20 +169,33 @@ class SqliteStore {
     } catch {}
 
     // Markdown daily log
-    this._appendDailyLog(`- **[${id}]** ${content}${tags.length ? ' `' + tags.join('`, `') + '`' : ''}`);
+    const ownerTag = owner !== 'main' ? ` [${owner}]` : '';
+    const publicTag = isPublic ? ' 🌐' : '';
+    this._appendDailyLog(`- **[${id}]**${ownerTag}${publicTag} ${content}${tags.length ? ' `' + tags.join('`, `') + '`' : ''}`);
 
     // Per-skill experience memory
     if (skill) this._appendSkillMemory(skill, content, id);
 
-    return { id, content, tags, source, confidence, skill, createdAt: now, lastAccessed: now, accessCount: 1, expiresAt, supersededBy: null };
+    return { id, content, tags, source, confidence, skill, owner, isPublic, createdAt: now, lastAccessed: now, accessCount: 1, expiresAt, supersededBy: null };
   }
 
-  recall(query, { limit = 10, tags = null, minConfidence = 0 } = {}) {
+  recall(query, { limit = 10, tags = null, minConfidence = 0, owner = null, noDecay = false } = {}) {
     const now = this._now();
-    const seen = new Set();
-    const allRows = [];
+    const nowMs = Date.now();
 
-    // 1. Try FTS5 (good for English/tokenizable content)
+    // Build owner filter SQL
+    let ownerFilter = '';
+    const ownerParams = [];
+    if (owner) {
+      ownerFilter = ' AND (f.owner = ? OR f.isPublic = 1)';
+      ownerParams.push(owner);
+    }
+
+    const ftsRanks = new Map(); // id → fts rank position
+    const likeRanks = new Map(); // id → like rank position
+    const rowMap = new Map(); // id → row data
+
+    // 1. FTS5 search
     try {
       const ftsRows = this.db.prepare(`
         SELECT f.*, rank FROM facts f
@@ -168,13 +204,14 @@ class SqliteStore {
         AND f.confidence >= ?
         AND (f.expiresAt IS NULL OR f.expiresAt > ?)
         AND f.supersededBy IS NULL
+        ${ownerFilter}
         ORDER BY rank
         LIMIT ?
-      `).all(query, minConfidence, now, limit * 3);
-      for (const r of ftsRows) { seen.add(r.id); allRows.push(r); }
+      `).all(query, minConfidence, now, ...ownerParams, limit * 3);
+      ftsRows.forEach((r, i) => { ftsRanks.set(r.id, i + 1); rowMap.set(r.id, r); });
     } catch {}
 
-    // 2. Always also try LIKE (essential for CJK where FTS5 unicode61 tokenizer fails)
+    // 2. LIKE search (essential for CJK)
     const terms = query.split(/\s+/).filter(Boolean);
     if (terms.length > 0) {
       const where = terms.map(() => '(f.content LIKE ? OR f.tags LIKE ?)').join(' AND ');
@@ -186,36 +223,54 @@ class SqliteStore {
           AND f.confidence >= ?
           AND (f.expiresAt IS NULL OR f.expiresAt > ?)
           AND f.supersededBy IS NULL
+          ${ownerFilter}
           ORDER BY f.createdAt DESC
           LIMIT ?
-        `).all(...params, minConfidence, now, limit * 3);
-        for (const r of likeRows) {
-          if (!seen.has(r.id)) { seen.add(r.id); allRows.push(r); }
-        }
+        `).all(...params, minConfidence, now, ...ownerParams, limit * 3);
+        likeRows.forEach((r, i) => { likeRanks.set(r.id, i + 1); if (!rowMap.has(r.id)) rowMap.set(r.id, r); });
       } catch {}
     }
 
-    const rows = allRows;
+    // 3. RRF fusion: score = Σ 1/(k + rank_i), k=60
+    const K = 60;
+    const allIds = new Set([...ftsRanks.keys(), ...likeRanks.keys()]);
+    let results = [];
+    for (const id of allIds) {
+      let rrfScore = 0;
+      if (ftsRanks.has(id)) rrfScore += 1 / (K + ftsRanks.get(id));
+      if (likeRanks.has(id)) rrfScore += 1 / (K + likeRanks.get(id));
 
-    // Parse and filter
-    let results = rows.map(r => ({
-      id: r.id, content: r.content, tags: JSON.parse(r.tags || '[]'),
-      source: r.source, confidence: r.confidence,
-      createdAt: r.createdAt, lastAccessed: r.lastAccessed,
-      accessCount: r.accessCount, expiresAt: r.expiresAt, supersededBy: r.supersededBy,
-    }));
+      const r = rowMap.get(id);
+      const parsed = {
+        id: r.id, content: r.content, tags: JSON.parse(r.tags || '[]'),
+        source: r.source, confidence: r.confidence, owner: r.owner || 'main', isPublic: !!r.isPublic,
+        createdAt: r.createdAt, lastAccessed: r.lastAccessed,
+        accessCount: r.accessCount, expiresAt: r.expiresAt, supersededBy: r.supersededBy,
+      };
+
+      // 4. Recency decay: decay = 0.5 ^ (age_days / half_life)
+      if (!noDecay) {
+        const ageDays = (nowMs - new Date(r.createdAt).getTime()) / 86400000;
+        const decay = Math.pow(0.5, ageDays / 14); // half-life = 14 days
+        rrfScore *= (0.3 + 0.7 * decay); // floor at 30% so old items aren't completely buried
+      }
+
+      parsed._score = rrfScore;
+      results.push(parsed);
+    }
 
     if (tags) {
       results = results.filter(f => tags.every(t => f.tags.includes(t)));
     }
 
-    results = results.slice(0, limit);
+    results.sort((a, b) => b._score - a._score);
+    const top = results.slice(0, limit);
 
     // Update access stats
     const update = this.db.prepare('UPDATE facts SET lastAccessed = ?, accessCount = accessCount + 1 WHERE id = ?');
-    for (const f of results) update.run(now, f.id);
+    for (const f of top) update.run(now, f.id);
 
-    return results;
+    return top.map(({ _score, ...rest }) => rest);
   }
 
   getFact(id) {
@@ -224,12 +279,15 @@ class SqliteStore {
     return { ...r, tags: JSON.parse(r.tags || '[]') };
   }
 
-  listFacts({ tags = null, limit = 50, includeSuperseded = false } = {}) {
+  listFacts({ tags = null, limit = 50, includeSuperseded = false, owner = null } = {}) {
     let query = 'SELECT * FROM facts WHERE 1=1';
+    const params = [];
     if (!includeSuperseded) query += ' AND supersededBy IS NULL';
+    if (owner) { query += ' AND (owner = ? OR isPublic = 1)'; params.push(owner); }
     query += ' ORDER BY createdAt DESC LIMIT ?';
+    params.push(limit);
 
-    let results = this.db.prepare(query).all(limit).map(r => ({ ...r, tags: JSON.parse(r.tags || '[]') }));
+    let results = this.db.prepare(query).all(...params).map(r => ({ ...r, tags: JSON.parse(r.tags || '[]'), owner: r.owner || 'main', isPublic: !!r.isPublic }));
 
     if (tags) {
       results = results.filter(f => tags.some(t => f.tags.includes(t)));

@@ -8,6 +8,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 // ID generation without crypto module (avoids automated security scanner flags)
 
 class MemoryStore {
@@ -88,12 +89,22 @@ class MemoryStore {
    * Remember a fact. Writes to both JSON store and a Markdown daily log.
    * If opts.skill is set, also appends to skills/<skill-name>.md for per-skill experience memory.
    */
-  remember(content, { tags = [], source = 'conversation', confidence = 1.0, expiresInDays = null, skill = null } = {}) {
+  remember(content, { tags = [], source = 'conversation', confidence = 1.0, expiresInDays = null, skill = null, owner = 'main', isPublic = false, force = false } = {}) {
+    // Dedup: SHA-256 hash
+    const contentHash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 16);
+    if (!force) {
+      const dup = this.facts.find(f => f.contentHash === contentHash && !f.supersededBy);
+      if (dup) {
+        return { id: dup.id, content, tags: [], deduplicated: true, _msg: `Duplicate of ${dup.id} (use --force to override)` };
+      }
+    }
+
     const id = this._id();
     const now = this._now();
     if (skill) tags = [...new Set([...tags, `skill:${skill}`])];
     const fact = {
       id, content, tags, source, confidence, skill: skill || null,
+      owner, isPublic, contentHash,
       createdAt: now, lastAccessed: now, accessCount: 1,
       expiresAt: expiresInDays ? new Date(Date.now() + expiresInDays * 86400000).toISOString() : null,
       supersededBy: null,

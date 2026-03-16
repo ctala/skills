@@ -3,11 +3,16 @@
   "slug": "smart-agent-memory",
   "displayName": "Smart Agent Memory",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773106400257,
-    "commit": "https://github.com/openclaw/skills/commit/e1927c996725960f839fb60bbda717937a371c9b"
+    "version": "2.0.5",
+    "publishedAt": 1773450013606,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773106400257,
+      "commit": "https://github.com/openclaw/skills/commit/e1927c996725960f839fb60bbda717937a371c9b"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772883971558,

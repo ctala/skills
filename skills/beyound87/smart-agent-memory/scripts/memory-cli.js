@@ -156,23 +156,35 @@ function main() {
 
     case 'remember': {
       const content = positionalArgs().join(' ');
-      if (!content) return usage('remember <content> [--tags t1,t2] [--source conversation] [--confidence 1.0]');
+      if (!content) return usage('remember <content> [--tags t1,t2] [--owner agentId] [--public] [--force]');
       const tags = flagVal('--tags', '').split(',').filter(Boolean);
       const source = flagVal('--source', 'conversation');
       const confidence = parseFloat(flagVal('--confidence', '1.0'));
       const skill = flagVal('--skill');
-      const fact = store.remember(content, { tags, source, confidence, skill });
-      console.log(`${c.green('✓')} Remembered: ${c.bold(fact.id)}`);
-      console.log(`  "${content}"`);
-      if (tags.length) console.log(`  Tags: ${tags.join(', ')}`);
+      const owner = flagVal('--owner', 'main');
+      const isPublic = flag('--public');
+      const force = flag('--force');
+      const fact = store.remember(content, { tags, source, confidence, skill, owner, isPublic, force });
+      if (fact.deduplicated) {
+        console.log(`${c.yellow('⚠')} Duplicate detected: already stored as ${c.bold(fact.id)}`);
+        console.log(`  Use --force to store anyway.`);
+      } else {
+        console.log(`${c.green('✓')} Remembered: ${c.bold(fact.id)}`);
+        console.log(`  "${content}"`);
+        if (tags.length) console.log(`  Tags: ${tags.join(', ')}`);
+        if (owner !== 'main') console.log(`  Owner: ${owner}`);
+        if (isPublic) console.log(`  Visibility: 🌐 public`);
+      }
       break;
     }
 
     case 'recall': {
       const query = positionalArgs().join(' ');
-      if (!query) return usage('recall <query> [--limit 10]');
+      if (!query) return usage('recall <query> [--limit 10] [--owner agentId] [--no-decay]');
       const limit = flagInt('--limit', 10);
-      const results = store.recall(query, { limit });
+      const owner = flagVal('--owner');
+      const noDecay = flag('--no-decay');
+      const results = store.recall(query, { limit, owner, noDecay });
       if (results.length === 0) {
         console.log(c.yellow('No matching facts found.'));
       } else {
@@ -198,7 +210,8 @@ function main() {
     case 'facts': {
       const tags = flagVal('--tags', '').split(',').filter(Boolean);
       const limit = flagInt('--limit', 50);
-      const facts = store.listFacts({ tags: tags.length ? tags : null, limit });
+      const owner = flagVal('--owner');
+      const facts = store.listFacts({ tags: tags.length ? tags : null, limit, owner });
       if (facts.length === 0) {
         console.log(c.yellow('No facts stored.'));
       } else {
@@ -464,6 +477,68 @@ function main() {
       break;
     }
 
+    // ── Setup: inject memory bootstrap into ALL workspaces ─────────────
+    case 'setup': {
+      const MARKER = '<!-- smart-agent-memory-bootstrap -->';
+      const BLOCK = `
+${MARKER}
+## 🧠 Smart Agent Memory — Auto Start
+
+每次 session 启动时，**在做任何事之前**，执行：
+
+\`\`\`bash
+node ~/.openclaw/skills/smart-agent-memory/scripts/memory-cli.js session-start
+\`\`\`
+
+过程中有重要信息时立即保存：
+\`\`\`bash
+node ~/.openclaw/skills/smart-agent-memory/scripts/memory-cli.js remember "关键信息" --tags tag1,tag2
+\`\`\`
+
+session 结束前保存摘要：
+\`\`\`bash
+node ~/.openclaw/skills/smart-agent-memory/scripts/memory-cli.js session-end "本次做了什么"
+\`\`\`
+
+> ⚠️ 不执行 session-start = 失忆。这是强制步骤，不是可选的。
+${MARKER}
+`;
+
+      // Auto-discover ALL workspaces under ~/.openclaw/workspace*
+      const openclawDir = path.join(os.homedir(), '.openclaw');
+      let workspaces = [];
+      try {
+        const entries = fs.readdirSync(openclawDir, { withFileTypes: true });
+        workspaces = entries
+          .filter(e => e.isDirectory() && e.name.startsWith('workspace'))
+          .map(e => path.join(openclawDir, e.name));
+      } catch (_) {}
+
+      if (workspaces.length === 0) {
+        // Fallback: just use default workspace
+        workspaces = [path.join(openclawDir, 'workspace')];
+      }
+
+      let injected = 0, skipped = 0;
+      for (const wsDir of workspaces) {
+        const bootstrapPath = path.join(wsDir, 'BOOTSTRAP.md');
+        let existing = '';
+        try { existing = fs.readFileSync(bootstrapPath, 'utf8'); } catch (_) {}
+
+        if (existing.includes(MARKER)) {
+          console.log(`${c.yellow('⚠')} Already injected: ${bootstrapPath}`);
+          skipped++;
+        } else {
+          fs.writeFileSync(bootstrapPath, existing + BLOCK, 'utf8');
+          console.log(`${c.green('✓')} Injected: ${bootstrapPath}`);
+          injected++;
+        }
+      }
+
+      console.log(`\nDone: ${injected} injected, ${skipped} already had it, ${workspaces.length} workspaces total.`);
+      break;
+    }
+
     // ── Session Lifecycle (simulate mem9 hooks) ───────────────────────
     case 'session-start': {
       // Simulates mem9's before_prompt_build: load index + recent context
@@ -499,22 +574,54 @@ function main() {
 
     case 'session-end': {
       // Simulates mem9's before_reset + agent_end: save session summary
-      const summary = positionalArgs().join(' ');
-      if (!summary) return usage('session-end <session summary text>');
+      let summary = positionalArgs().join(' ');
+      const today = new Date().toISOString().slice(0, 10);
 
-      console.log('📤 Session End — Saving summary...\n');
+      // Auto-generate summary if none provided
+      if (!summary) {
+        console.log('📤 Session End — Auto-generating summary...\n');
+        // Gather today's facts
+        const todayFacts = store.listFacts ? store.listFacts({ limit: 100 }) : [];
+        const recentFacts = todayFacts.filter(f => f.createdAt && f.createdAt.startsWith(today));
+
+        if (recentFacts.length === 0) {
+          console.log(c.yellow('No facts recorded today. Provide a summary manually:'));
+          return usage('session-end [summary text]');
+        }
+
+        // Collect all tags
+        const allTags = new Set();
+        for (const f of recentFacts) { for (const t of (f.tags || [])) allTags.add(t); }
+        // Remove meta tags
+        ['session-summary', 'session-end'].forEach(t => allTags.delete(t));
+        for (const t of allTags) { if (t.startsWith('date:')) allTags.delete(t); }
+
+        // Build structured summary
+        const topics = allTags.size > 0 ? [...allTags].slice(0, 10).join(', ') : 'general';
+        const keyPoints = recentFacts.slice(0, 5).map(f => f.content.slice(0, 120)).join(' | ');
+
+        summary = `## Goal\nSession on ${today}\n## Key Topics\n${topics}\n## Key Points\n${keyPoints}\n## Facts Recorded\n${recentFacts.length} facts`;
+        console.log(`  Auto-generated from ${recentFacts.length} facts today.`);
+      } else {
+        console.log('📤 Session End — Saving summary...\n');
+      }
+
       const fact = store.remember(summary, {
-        tags: ['session-summary', `date:${new Date().toISOString().slice(0, 10)}`],
+        tags: ['session-summary', `date:${today}`],
         source: 'session-end',
       });
-      console.log(`${c.green('✓')} Session summary saved: ${c.bold(fact.id)}`);
-      console.log(`  "${summary.slice(0, 100)}${summary.length > 100 ? '...' : ''}"`);
+      if (fact.deduplicated) {
+        console.log(`${c.yellow('⚠')} Summary already saved for this session.`);
+      } else {
+        console.log(`${c.green('✓')} Session summary saved: ${c.bold(fact.id)}`);
+        console.log(`  "${summary.slice(0, 100)}${summary.length > 100 ? '...' : ''}"`);
+      }
       break;
     }
 
     default:
       console.log(`
-🧠 Smart Agent Memory v2.0.0
+🧠 Smart Agent Memory v2.1.0
    Cross-platform memory system for OpenClaw agents
 
 Commands:
@@ -522,10 +629,10 @@ Commands:
   ${c.bold('context')}  [--tag x] [--skill x] [--days n]  ${c.cyan('★')} Load scoped context on demand
   ${c.bold('skill-mem')} <skill-name>                  ${c.cyan('★')} Get skill experience memory
   ${c.bold('skill-list')}                              ${c.cyan('★')} List all skill experience memories
-  ${c.bold('remember')} <content> [--tags t1,t2] [--skill name]  Store a fact (with optional skill tag)
-  ${c.bold('recall')}   <query> [--limit 10]          Search facts
+  ${c.bold('remember')} <content> [--tags t1,t2] [--skill name] [--owner id] [--public] [--force]
+  ${c.bold('recall')}   <query> [--limit 10] [--owner id] [--no-decay]
   ${c.bold('forget')}   <id>                          Delete a fact
-  ${c.bold('facts')}    [--tags t1] [--limit 50]      List all facts
+  ${c.bold('facts')}    [--tags t1] [--limit 50] [--owner id]
   ${c.bold('learn')}    --action --context --outcome --insight   Record a lesson
   ${c.bold('lessons')}  [--context topic]              List lessons
   ${c.bold('entity')}   <name> <type> [--attr k=v]    Track entity
