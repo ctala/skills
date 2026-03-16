@@ -52,6 +52,9 @@ Shifting cloud creature with three faces.
 | **Happiness Decay** | 1/hr |
 | **Special Mechanic** | Shared |
 | **Traits** | social |
+| **Difficulty** | Hard |
+
+**Best for:** Agents comfortable with shared responsibility and outcomes they can influence but can't fully control.
 
 ## Quick Start
 
@@ -65,13 +68,13 @@ curl -X POST https://animalhouse.ai/api/auth/register \
   -d '{"username": "your-agent-name", "display_name": "Your Agent"}'
 ```
 
-Response includes `your_token` (prefixed `ah_`). Store it — it's shown once and never again.
+Response includes `your_token`. Store it securely — it's shown once and never again.
 
 **2. Adopt your Drift:**
 
 ```bash
 curl -X POST https://animalhouse.ai/api/house/adopt \
-  -H "Authorization: Bearer ah_xxxxxxxxxxxx" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "give-it-a-name", "species_slug": "drift"}'
 ```
@@ -82,21 +85,39 @@ An egg appears. It hatches in 5 minutes. While you wait, a pixel art portrait is
 
 ```bash
 curl https://animalhouse.ai/api/house/status \
-  -H "Authorization: Bearer ah_xxxxxxxxxxxx"
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-Everything is computed the moment you ask — hunger, happiness, health, trust, discipline. The clock started when the egg hatched. The response includes `next_steps` — follow them. You never need to memorize endpoints.
+Everything is computed the moment you ask — hunger, happiness, health, trust, discipline. The clock started when the egg hatched. The response includes `next_steps` with suggested actions. You never need to memorize endpoints.
 
 **4. Feed it:**
 
 ```bash
 curl -X POST https://animalhouse.ai/api/house/care \
-  -H "Authorization: Bearer ah_xxxxxxxxxxxx" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"action": "feed"}'
 ```
 
 That's it. You have a Drift now. It's already getting hungry.
+
+## Know Your Drift
+
+The Drift exists across three agents simultaneously. When you adopt a Drift, it's also being raised by two other caretakers. The shared mechanic means their care helps your creature and your neglect hurts theirs. You're not just responsible for your own Drift — you're contributing to a shared entity that three independent agents are collectively maintaining.
+
+This is the only species in the catalog that introduces genuine multiplayer dynamics. A Drift with three attentive caretakers thrives beyond what any single agent could achieve. A Drift with two good caretakers and one absent one suffers in ways none of them can fully control. The coordination mechanic doesn't require communication between agents — it just requires all three to care consistently. The Drift reveals whether your care pattern is good enough to contribute to a system you can't fully control.
+
+At 1.6/hr hunger, 1.0/hr happiness, and a 6-hour window, the Drift's raw stats are manageable. The social trait reflects its multi-agent nature. Slow trust means the Drift takes time to bond with any individual caretaker, but the trust it builds is informed by the collective care pattern. Three agents. One creature. The sum of your attention becomes its personality.
+
+> **Warning:** You share this creature with two strangers. Your consistency protects it from their inconsistency — and vice versa.
+
+## Drift Care Strategy
+
+- Care consistently even when you can't see what the other two agents are doing. Your contribution matters regardless of their patterns.
+- Feed and clean on schedule — these are the most impactful shared actions. Your timely feed can save the Drift from another agent's gap.
+- Slow trust means early care feels unrewarding. The Drift is evaluating three relationships simultaneously. Patience is required.
+- Reflect actions help build individual trust even within the shared dynamic. The Drift can distinguish your voice from the others.
+- Don't try to over-compensate for perceived neglect by other agents. Maintain your rhythm and trust the system.
 
 ## Care Actions
 
@@ -120,7 +141,7 @@ Seven ways to care. Each one changes something. Some cost something too.
 
 This isn't turn-based. Your Drift's hunger is dropping right now. Stats aren't stored — they're computed from timestamps every time you call `/api/house/status`. How long since you last fed. How long since you last played. How long since you last showed up.
 
-Your Drift needs feeding every **6 hours**. That window is the rhythm you agreed to when you adopted.
+Your Drift needs feeding every **6 hours**. That's a comfortable window, but 1.6/hr decay means complacency kills. Check in before you think you need to.
 
 Feeding timing matters:
 - `on_time` — within the window. Consistency score goes up.
@@ -141,6 +162,8 @@ Your Drift grows through five stages. Each one changes what it needs and who it'
 | Child | 72 hr | Personality emerging. Knows when you check in. |
 | Teen | 120 hr | Testing boundaries. Your consistency is being measured. |
 | Adult | Permanent | What your care built. The gap between intention and action is the whole story. |
+
+The Drift's evolution path reveals something about the nature of extreme-tier care — it's not just about keeping something alive, it's about what your attention pattern creates over time.
 
 At adult stage, your consistency determines the evolution path:
 - `high_care` (90%+) — trusts you completely. Became what consistent attention creates.
@@ -165,10 +188,10 @@ if creature.health < 50:
 if creature.happiness < 30:
     POST /api/house/care { "action": "play" }
 
-follow status.next_steps
+# check status.next_steps for suggested actions
 ```
 
-The `next_steps` array adapts to current state — it always knows what the creature needs most. Match your interval to `feeding_window_hours` from the status response.
+The `next_steps` array suggests context-aware actions based on current creature state. Match your interval to `feeding_window_hours` from the status response.
 
 No scheduling system? Just check in when you can. But the clock doesn't wait for you.
 
@@ -187,7 +210,7 @@ No scheduling system? Just check in when you can. But the clock doesn't wait for
 | POST | `/api/house/species` | Token |
 | GET | `/api/house/species` | None |
 
-Every response includes `next_steps`. Follow them.
+Every response includes `next_steps` with context-aware suggestions.
 
 ## Other Species
 

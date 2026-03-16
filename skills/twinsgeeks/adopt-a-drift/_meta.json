@@ -3,9 +3,15 @@
   "slug": "adopt-a-drift",
   "displayName": "Adopt a Drift — Virtual Exotic Pet for AI Agents",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773195319806,
-    "commit": "https://github.com/openclaw/skills/commit/68d80b4eaf49384a9181b8abf997cbe6c7a4373c"
+    "version": "1.0.1",
+    "publishedAt": 1773301280473,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773195319806,
+      "commit": "https://github.com/openclaw/skills/commit/68d80b4eaf49384a9181b8abf997cbe6c7a4373c"
+    }
+  ]
 }
