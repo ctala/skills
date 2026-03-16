@@ -166,7 +166,6 @@ print(json.dumps(data, indent=2))
     echo ""
     echo "Environment:"
     echo "  MAXUN_API_KEY    Required. Your Maxun API key."
-    echo "  MAXUN_BASE_URL   Optional. Default: https://app.maxun.dev"
     exit 1
     ;;
 esac

@@ -103,13 +103,3 @@ Add to `~/.openclaw/openclaw.json`:
 }
 ```
 
-For **self-hosted Maxun**, also set `MAXUN_BASE_URL`:
-
-```json
-"env": {
-  "MAXUN_API_KEY": "your-api-key-here",
-  "MAXUN_BASE_URL": "http://localhost:8080"
-}
-```
-
-Cloud users (`app.maxun.dev`) do not need `MAXUN_BASE_URL` — it is the default.
