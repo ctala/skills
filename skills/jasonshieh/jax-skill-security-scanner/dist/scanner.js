@@ -37,6 +37,8 @@ exports.SkillScanner = void 0;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const trojan_detector_js_1 = require("./trojan-detector.js");
+const prompt_poison_detector_js_1 = require("./prompt-poison-detector.js");
+const hallucination_detector_js_1 = require("./hallucination-detector.js");
 class SkillScanner {
     constructor(scanPath, sensitiveKeywords) {
         this.scanPath = scanPath;
@@ -48,6 +50,8 @@ class SkillScanner {
             'execFile', 'fork', 'execSync', 'spawnSync', 'execFileSync'
         ];
         this.trojanDetector = new trojan_detector_js_1.TrojanDetector();
+        this.promptPoisonDetector = new prompt_poison_detector_js_1.PromptPoisonDetector();
+        this.hallucinationDetector = new hallucination_detector_js_1.HallucinationDetector();
     }
     async scan() {
         const skills = await this.scanSkillsDirectory();
@@ -84,10 +88,17 @@ class SkillScanner {
         }
         // 运行木马检测
         const trojanDetection = await this.trojanDetector.scanSkill(skillPath);
+
+        // 运行AI投毒检测
+        const promptPoisonDetection = await this.promptPoisonDetector.scanSkill(skillPath);
+
+        // 运行虚假信息检测
+        const hallucinationDetection = await this.hallucinationDetector.scanSkill(skillPath);
+
         // 评估可信度
         const trustLevel = this.evaluateTrustLevel(skillName, skillPath);
         // 确定风险等级（结合功能风险和可信度）
-        const riskLevel = this.determineRiskLevel(issues, trojanDetection, trustLevel);
+        const riskLevel = this.determineRiskLevel(issues, trojanDetection, trustLevel, promptPoisonDetection, hallucinationDetection);
         return {
             skillName,
             skillPath,
@@ -96,7 +107,9 @@ class SkillScanner {
             sensitiveOperations: [...new Set(issues.map(issue => issue.operation))],
             filesScanned,
             issues,
-            trojanDetection
+            trojanDetection,
+            promptPoisonDetection,
+            hallucinationDetection
         };
     }
     evaluateTrustLevel(skillName, skillPath) {
@@ -182,7 +195,7 @@ class SkillScanner {
         }
         return issues;
     }
-    determineRiskLevel(issues, trojanDetection, trustLevel) {
+    determineRiskLevel(issues, trojanDetection, trustLevel, promptPoisonDetection, hallucinationDetection) {
         // 木马检测结果优先
         if (trojanDetection.hasTrojan || trojanDetection.riskLevel === 'high') {
             return 'high';
@@ -190,6 +203,23 @@ class SkillScanner {
         if (trojanDetection.riskLevel === 'medium') {
             return 'medium';
         }
+
+        // AI投毒检测结果
+        if (promptPoisonDetection && (promptPoisonDetection.hasPoison || promptPoisonDetection.riskLevel === 'high')) {
+            return 'high';
+        }
+        if (promptPoisonDetection && promptPoisonDetection.riskLevel === 'medium') {
+            return 'medium';
+        }
+
+        // 虚假信息检测结果
+        if (hallucinationDetection && (hallucinationDetection.hasHallucination || hallucinationDetection.riskLevel === 'high')) {
+            return 'high';
+        }
+        if (hallucinationDetection && hallucinationDetection.riskLevel === 'medium') {
+            return 'medium';
+        }
+
         // 基于敏感操作数量确定风险等级
         const highRiskOps = ['exec', 'shell', 'rm', 'delete', 'format', 'shutdown', 'reboot', 'sudo'];
         const mediumRiskOps = ['chmod', 'chown', 'kill', 'uninstall', 'eval', 'Function'];
@@ -228,9 +258,21 @@ class SkillScanner {
         const mediumRiskCount = skillReports.filter(r => r.riskLevel === 'medium').length;
         const lowRiskCount = skillReports.filter(r => r.riskLevel === 'low').length;
         const criticalRiskCount = skillReports.filter(r => r.riskLevel === 'critical').length;
+
         const trojanHighRisk = skillReports.filter(r => r.trojanDetection.riskLevel === 'high').length;
         const trojanMediumRisk = skillReports.filter(r => r.trojanDetection.riskLevel === 'medium').length;
         const suspiciousFiles = skillReports.reduce((count, report) => count + report.trojanDetection.suspiciousFiles.length, 0);
+
+        // AI投毒检测统计
+        const poisonHighRisk = skillReports.filter(r => r.promptPoisonDetection && r.promptPoisonDetection.riskLevel === 'high').length;
+        const poisonMediumRisk = skillReports.filter(r => r.promptPoisonDetection && r.promptPoisonDetection.riskLevel === 'medium').length;
+        const poisonDetections = skillReports.reduce((count, report) => count + (report.promptPoisonDetection?.detections?.length || 0), 0);
+
+        // 虚假信息检测统计
+        const hallucinationHighRisk = skillReports.filter(r => r.hallucinationDetection && r.hallucinationDetection.riskLevel === 'high').length;
+        const hallucinationMediumRisk = skillReports.filter(r => r.hallucinationDetection && r.hallucinationDetection.riskLevel === 'medium').length;
+        const hallucinationDetections = skillReports.reduce((count, report) => count + (report.hallucinationDetection?.detections?.length || 0), 0);
+
         return {
             timestamp: new Date().toISOString(),
             scanPath: this.scanPath,
@@ -246,6 +288,18 @@ class SkillScanner {
                     highRisk: trojanHighRisk,
                     mediumRisk: trojanMediumRisk,
                     suspiciousFiles
+                },
+                promptPoisonDetectionSummary: {
+                    totalScanned: skillReports.length,
+                    highRisk: poisonHighRisk,
+                    mediumRisk: poisonMediumRisk,
+                    totalDetections: poisonDetections
+                },
+                hallucinationDetectionSummary: {
+                    totalScanned: skillReports.length,
+                    highRisk: hallucinationHighRisk,
+                    mediumRisk: hallucinationMediumRisk,
+                    totalDetections: hallucinationDetections
                 }
             }
         };

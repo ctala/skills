@@ -6,6 +6,7 @@
  */
 
 const { SkillScanner, SecurityReporter } = require('../dist/index.js');
+const { HallucinationDetector } = require('../dist/hallucination-detector.js');
 const path = require('path');
 const fs = require('fs');
 
@@ -18,7 +19,8 @@ function parseArgs() {
     enhancedReport: false,
     riskSummary: false,
     help: false,
-    version: false
+    version: false,
+    scanText: null  // 新增：直接扫描文本
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -46,6 +48,11 @@ function parseArgs() {
       options.enhancedReport = true;
     } else if (arg === '--risk-summary' || arg === '-r') {
       options.riskSummary = true;
+    } else if (arg === '--text' || arg === '-t') {
+      // 扫描指定文本
+      if (i + 1 < args.length) {
+        options.scanText = args[++i];
+      }
     } else if (arg.startsWith('--')) {
       console.error(`错误：未知选项 "${arg}"`);
       process.exit(1);
@@ -64,7 +71,7 @@ function parseArgs() {
 // 显示帮助信息
 function showHelp() {
   console.log(`
-OpenClaw技能安全扫描工具 v1.0.2
+OpenClaw技能安全扫描工具 v1.0.4
 
 用法：
   skill-security-scan [选项] [扫描路径]
@@ -76,6 +83,7 @@ OpenClaw技能安全扫描工具 v1.0.2
   -p, --scan-path <路径>      要扫描的技能目录路径
   -e, --enhanced              生成增强报告（包含中高危技能详细清单）
   -r, --risk-summary          只显示中高危技能摘要
+  -t, --text <文本>           直接扫描文本中的虚假信息/广告
 
 输出格式说明：
   text             基本文本报告
@@ -83,6 +91,10 @@ OpenClaw技能安全扫描工具 v1.0.2
   markdown         Markdown格式报告
   enhanced-text    增强文本报告（包含中高危技能清单）
   enhanced-markdown 增强Markdown报告（包含中高危技能清单）
+
+文本扫描示例：
+  skill-security-scan --text "您的账号存在异常，请立即转账到安全账户"
+  skill-security-scan -t "投资理财，每月稳赚10万"
 
 示例：
   skill-security-scan
@@ -115,6 +127,32 @@ async function main() {
 
   if (options.version) {
     showVersion();
+    return;
+  }
+
+  // 如果指定了文本扫描，直接扫描文本
+  if (options.scanText) {
+    console.log(`🔍 扫描文本中的虚假信息...\n`);
+    const detector = new HallucinationDetector();
+    const result = await detector.scanText(options.scanText);
+    
+    console.log(`📝 扫描文本: "${options.scanText.substring(0, 50)}..."\n`);
+    console.log(`📊 风险等级: ${result.riskLevel.toUpperCase()}`);
+    console.log(`📋 检测结果: ${result.summary}\n`);
+    
+    if (result.detections.length > 0) {
+      console.log(`🔴 检测到 ${result.detections.length} 个问题:\n`);
+      result.detections.forEach((d, i) => {
+        console.log(`  ${i + 1}. [${d.severity.toUpperCase()}] ${d.description}`);
+        console.log(`     匹配内容: "${d.matched}"`);
+        console.log(`     类别: ${d.category}`);
+        console.log();
+      });
+    }
+    
+    console.log(`💡 建议:`);
+    result.suggestions.forEach(s => console.log(`  ${s}`));
+    
     return;
   }
 

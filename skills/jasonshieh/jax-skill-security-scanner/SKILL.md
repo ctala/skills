@@ -11,7 +11,7 @@ install:
     package: "@jax-npm/skill-security-scanner"
 tags: [security, scanner, audit, safety, openclaw, plugin]
 author: jax-npm
-version: 1.0.2
+version: 1.0.5
 ---
 
 # 🔐 OpenClaw技能安全扫描器
@@ -35,6 +35,21 @@ version: 1.0.2
 - **数据外传**: 发现crypto, Buffer, base64等数据加密外传
 - **代码混淆**: 识别eval, Function构造器等代码隐藏技术
 - **组合模式**: 检测高风险的操作组合模式
+
+### 🤖 **AI投毒检测 (新增)**
+- **提示注入**: 检测ignore previous, disregard, override等指令覆盖攻击
+- **越狱攻击**: 检测jailbreak, DAN, roleplay等绕过安全限制尝试
+- **系统提示提取**: 检测提取system prompt的恶意请求
+- **上下文污染**: 检测JSON/XML格式的伪装指令
+- **代码注入**: 检测eval/import等危险代码执行
+- **社会工程**: 检测诱导确认、伪装无害等手法
+
+### 🎭 **虚假信息/幻觉检测 (新增)**
+- **虚假广告**: 检测夸张宣传、虚假折扣、假冒促销
+- **诈骗识别**: 检测中奖诈骗、账户安全诈骗、诱导转账
+- **假冒产品**: 检测高仿、A货、假冒品牌
+- **违规内容**: 检测违法交易、违规服务推广
+- **虚假宣传**: 检测软文推广、虚假体验分享
 
 ### 📊 **专业报告系统**
 - **多格式输出**: 文本、Markdown、JSON、增强文本、增强Markdown格式报告

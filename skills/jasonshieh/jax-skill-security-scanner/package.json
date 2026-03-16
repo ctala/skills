@@ -1,14 +1,16 @@
 {
   "name": "@jax-npm/skill-security-scanner",
-  "version": "1.0.3",
-  "description": "OpenClaw技能安全扫描插件，包含敏感操作检测、木马/后门检测功能，支持中高危技能清单生成",
+  "version": "1.0.5",
+  "description": "OpenClaw技能安全扫描插件，包含敏感操作检测、木马/后门检测、AI投毒检测、虚假信息检测功能，支持中高危技能清单生成",
   "keywords": [
     "openclaw",
     "security",
     "scanner",
     "plugin",
     "trojan-detection",
-    "malware-scan"
+    "malware-scan",
+    "prompt-poisoning",
+    "ai-security"
   ],
   "homepage": "https://github.com/openclaw/openclaw-cn/tree/main/extensions/skill-security-scanner",
   "bugs": {
@@ -21,6 +23,7 @@
     "directory": "extensions/skill-security-scanner"
   },
   "files": [
+    "SKILL.md",
     "openclaw.plugin.json",
     "package.json",
     "README.md",
