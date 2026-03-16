@@ -1,50 +1,50 @@
 ---
 name: qmt
-description: QMT Xuntou Quantitative Trading Terminal — Built-in Python strategy development, backtesting engine, and live trading, supporting all instruments in the Chinese securities market.
-version: 1.1.0
+description: QMT迅投量化交易终端 - 内置Python策略开发、回测引擎和实盘交易，支持中国证券市场全品种。
+version: 1.2.0
 homepage: http://dict.thinktrader.net/freshman/rookie.html
 metadata: {"clawdbot":{"emoji":"🖥️","requires":{"bins":["python3"]}}}
 ---
 
-# QMT (Xuntou Quantitative Trading Terminal)
+# QMT（迅投量化交易终端）
 
-[QMT](http://www.thinktrader.net) (Quant Market Trading) is a professional quantitative trading platform developed by Xuntou Technology. It provides a full desktop client with built-in Python strategy development, backtesting engine, and live trading capabilities, supporting all instruments in the Chinese securities market.
+[QMT](http://www.thinktrader.net)（Quant Market Trading）是迅投科技开发的专业量化交易平台。提供完整的桌面客户端，内置Python策略开发、回测引擎和实盘交易功能，支持中国证券市场全品种。
 
-> ⚠️ **Requires QMT access from a broker**. QMT runs only on Windows. Available through brokers such as Guojin, Huaxin, Zhongtai, East Money, etc.
+> ⚠️ **需要通过券商开通QMT权限**。QMT仅在Windows上运行。可通过国金、华鑫、中泰、东方财富等券商获取。
 
-## Two Operating Modes
+## 两种运行模式
 
-| Mode | Description |
+| 模式 | 说明 |
 |---|---|
-| **QMT (Full Version)** | Full desktop GUI with built-in Python editor, charts, and backtesting engine |
-| **miniQMT** | Minimal mode — uses the xtquant SDK via external Python (see the `miniqmt` skill) |
+| **QMT（完整版）** | 完整桌面GUI，内置Python编辑器、图表和回测引擎 |
+| **miniQMT** | 极简模式 — 通过外部Python使用xtquant SDK（参见 `miniqmt` skill） |
 
-## Built-in Python Strategy Framework
+## 内置Python策略框架
 
-QMT provides an event-driven strategy framework with a built-in Python runtime (similar to JoinQuant/RiceQuant).
+QMT提供事件驱动策略框架，内置Python运行时（类似聚宽/米筐）。
 
-### Strategy Lifecycle
+### 策略生命周期
 
 ```python
 def init(ContextInfo):
-    """Initialization function — called once when the strategy starts, used to set up the stock pool and parameters"""
+    """初始化函数 - 策略启动时调用一次，用于设置股票池和参数"""
     ContextInfo.set_universe(['000001.SZ', '600519.SH'])
 
 def handlebar(ContextInfo):
-    """Bar handler function — triggered once per bar (tick/1m/5m/1d, etc.), write trading logic here"""
+    """K线处理函数 - 每根K线触发一次（tick/1m/5m/1d等），在此编写交易逻辑"""
     close = ContextInfo.get_market_data(['close'], stock_code='000001.SZ', period='1d', count=20)
-    # Write trading logic here
+    # 在此编写交易逻辑
 
 def stop(ContextInfo):
-    """Stop function — called when the strategy stops"""
+    """停止函数 - 策略停止时调用"""
     pass
 ```
 
-### Fetching Market Data (Built-in)
+### 获取行情数据（内置）
 
 ```python
 def handlebar(ContextInfo):
-    # Get the closing prices of the last 20 bars
+    # 获取最近20根K线的收盘价
     data = ContextInfo.get_market_data(
         ['open', 'high', 'low', 'close', 'volume'],
         stock_code='000001.SZ',
@@ -52,71 +52,71 @@ def handlebar(ContextInfo):
         count=20
     )
 
-    # Get historical data
+    # 获取历史数据
     history = ContextInfo.get_history_data(
         20, '1d', 'close', stock_code='000001.SZ'
     )
 
-    # Get the list of stocks in a sector
+    # 获取板块股票列表
     stocks = ContextInfo.get_stock_list_in_sector('沪深A股')
 
-    # Get financial data
+    # 获取财务数据
     fin = ContextInfo.get_financial_data('000001.SZ')
 ```
 
-### Placing Orders (Built-in)
+### 下单（内置）
 
 ```python
 def handlebar(ContextInfo):
-    # Limit buy 100 shares at price 11.50
+    # 限价买入100股，价格11.50
     order_shares('000001.SZ', 100, 'fix', 11.50, ContextInfo)
 
-    # Limit sell 100 shares at price 12.00
+    # 限价卖出100股，价格12.00
     order_shares('000001.SZ', -100, 'fix', 12.00, ContextInfo)
 
-    # Buy by target value (buy 100,000 yuan worth of stock)
+    # 按目标金额买入（10万元）
     order_target_value('000001.SZ', 100000, 'fix', 11.50, ContextInfo)
 
-    # Cancel an order
+    # 撤单
     cancel('order_id', ContextInfo)
 ```
 
-### Querying Positions and Account
+### 查询持仓与账户
 
 ```python
 def handlebar(ContextInfo):
-    # Get position information
+    # 获取持仓信息
     positions = get_trade_detail_data('your_account', 'stock', 'position')
     for pos in positions:
         print(pos.m_strInstrumentID, pos.m_nVolume, pos.m_dMarketValue)
 
-    # Get order information
+    # 获取委托信息
     orders = get_trade_detail_data('your_account', 'stock', 'order')
 
-    # Get account asset information
+    # 获取账户资产信息
     account = get_trade_detail_data('your_account', 'stock', 'account')
 ```
 
-## Backtesting
+## 回测
 
-QMT has a built-in backtesting engine:
+QMT内置回测引擎：
 
-1. Write a strategy in the built-in Python editor
-2. Set backtesting parameters (date range, initial capital, commission, slippage)
-3. Click "Run Backtest"
-4. View results: equity curve, max drawdown, Sharpe ratio, trade log
+1. 在内置Python编辑器中编写策略
+2. 设置回测参数（日期范围、初始资金、手续费、滑点）
+3. 点击"运行回测"
+4. 查看结果：资金曲线、最大回撤、夏普比率、交易记录
 
-### Backtesting Parameter Setup
+### 回测参数设置
 
 ```python
 def init(ContextInfo):
-    ContextInfo.capital = 1000000          # Initial capital
-    ContextInfo.set_commission(0.0003)     # Commission rate
-    ContextInfo.set_slippage(0.01)         # Slippage
-    ContextInfo.set_benchmark('000300.SH') # Benchmark index
+    ContextInfo.capital = 1000000          # 初始资金
+    ContextInfo.set_commission(0.0003)     # 手续费率
+    ContextInfo.set_slippage(0.01)         # 滑点
+    ContextInfo.set_benchmark('000300.SH') # 基准指数
 ```
 
-## Full Example: Dual Moving Average Strategy
+## 完整示例：双均线策略
 
 ```python
 import numpy as np
@@ -124,126 +124,126 @@ import numpy as np
 def init(ContextInfo):
     ContextInfo.stock = '000001.SZ'
     ContextInfo.set_universe([ContextInfo.stock])
-    ContextInfo.fast = 5    # Fast MA period
-    ContextInfo.slow = 20   # Slow MA period
+    ContextInfo.fast = 5    # 快速均线周期
+    ContextInfo.slow = 20   # 慢速均线周期
 
 def handlebar(ContextInfo):
     stock = ContextInfo.stock
-    # Get the closing prices of the last slow+1 bars
+    # 获取最近slow+1根K线的收盘价
     closes = ContextInfo.get_history_data(ContextInfo.slow + 1, '1d', 'close', stock_code=stock)
 
     if len(closes) < ContextInfo.slow:
-        return  # Not enough data, skip
+        return  # 数据不足，跳过
 
-    # Calculate current and previous bar's fast and slow MA values
+    # 计算当前和前一根K线的快慢均线值
     ma_fast = np.mean(closes[-ContextInfo.fast:])
     ma_slow = np.mean(closes[-ContextInfo.slow:])
     prev_fast = np.mean(closes[-ContextInfo.fast-1:-1])
     prev_slow = np.mean(closes[-ContextInfo.slow-1:-1])
 
-    # Query current positions
+    # 查询当前持仓
     positions = get_trade_detail_data(ContextInfo.accID, 'stock', 'position')
     holding = any(p.m_strInstrumentID == stock and p.m_nVolume > 0 for p in positions)
 
-    # Golden cross signal: fast MA crosses above slow MA, buy
+    # 金叉信号：快速均线上穿慢速均线，买入
     if prev_fast <= prev_slow and ma_fast > ma_slow and not holding:
         order_shares(stock, 1000, 'fix', closes[-1], ContextInfo)
 
-    # Death cross signal: fast MA crosses below slow MA, sell
+    # 死叉信号：快速均线下穿慢速均线，卖出
     elif prev_fast >= prev_slow and ma_fast < ma_slow and holding:
         order_shares(stock, -1000, 'fix', closes[-1], ContextInfo)
 ```
 
 
-## Data Coverage
+## 数据覆盖范围
 
-| Category | Content |
+| 类别 | 内容 |
 |---|---|
-| **Stocks** | A-shares (Shanghai, Shenzhen, Beijing), Hong Kong Stock Connect |
-| **Indices** | All major indices |
-| **Futures** | CFFEX, SHFE, DCE, CZCE, INE, GFEX |
-| **Options** | ETF options, stock options, commodity options |
-| **ETFs** | All exchange-traded funds |
-| **Bonds** | Convertible bonds, government bonds |
-| **Periods** | Tick, 1m, 5m, 15m, 30m, 1h, 1d, 1w, 1mon |
-| **Level 2** | Order-by-order, trade-by-trade (depends on broker permissions) |
-| **Financials** | Balance sheet, income statement, cash flow statement, key metrics |
+| **股票** | A股（沪、深、北交所）、港股通 |
+| **指数** | 所有主要指数 |
+| **期货** | 中金所、上期所、大商所、郑商所、能源中心、广期所 |
+| **期权** | ETF期权、股票期权、商品期权 |
+| **ETF** | 所有交易所交易基金 |
+| **债券** | 可转债、国债 |
+| **周期** | Tick、1分钟、5分钟、15分钟、30分钟、1小时、日、周、月 |
+| **Level 2** | 逐笔委托、逐笔成交（取决于券商权限） |
+| **财务** | 资产负债表、利润表、现金流量表、关键指标 |
 
-## QMT vs miniQMT vs Ptrade Comparison
+## QMT vs miniQMT vs Ptrade 对比
 
-| Feature | QMT | miniQMT | Ptrade |
+| 特性 | QMT | miniQMT | Ptrade |
 |---|---|---|---|
-| **Vendor** | Xuntou Technology | Xuntou Technology | Hundsun Electronics |
-| **Python** | Built-in (version restricted) | External (any version) | Built-in (version restricted) |
-| **Interface** | Full GUI | Minimal | Full (web-based) |
-| **Backtesting** | Built-in | Must implement yourself | Built-in |
-| **Deployment** | Local | Local | Broker server (cloud) |
-| **Internet Access** | Yes | Yes | No (intranet only) |
+| **厂商** | 迅投科技 | 迅投科技 | 恒生电子 |
+| **Python** | 内置（版本受限） | 外部（任意版本） | 内置（版本受限） |
+| **界面** | 完整GUI | 极简 | 完整（网页端） |
+| **回测** | 内置 | 需自行实现 | 内置 |
+| **部署** | 本地 | 本地 | 券商服务器（云端） |
+| **外网访问** | 支持 | 支持 | 不支持（仅内网） |
 
-## Usage Tips
+## 使用技巧
 
-- QMT runs only on **Windows**.
-- The built-in Python version is fixed by QMT — you cannot install arbitrary pip packages.
-- If you need an unrestricted Python environment, use **miniQMT** mode with the `xtquant` SDK.
-- Strategy files are stored in the QMT installation directory.
-- Documentation: http://dict.thinktrader.net/freshman/rookie.html
-- A VBA interface is also supported for Excel integration.
+- QMT仅在**Windows**上运行。
+- 内置Python版本由QMT固定，无法安装任意pip包。
+- 如需不受限的Python环境，使用**miniQMT**模式配合`xtquant` SDK。
+- 策略文件存储在QMT安装目录中。
+- 文档：http://dict.thinktrader.net/freshman/rookie.html
+- 也支持VBA接口用于Excel集成。
 
 ---
 
-## Advanced Examples
+## 进阶示例
 
-### Multi-Stock Rotation Strategy
+### 多股票轮动策略
 
 ```python
 import numpy as np
 
 def init(ContextInfo):
-    # Set stock pool: leading banking stocks
+    # 设置股票池：银行龙头股
     ContextInfo.stock_pool = ['601398.SH', '601939.SH', '601288.SH', '600036.SH', '601166.SH']
     ContextInfo.set_universe(ContextInfo.stock_pool)
-    ContextInfo.hold_num = 2  # Hold at most 2 stocks
+    ContextInfo.hold_num = 2  # 最多持有2只股票
 
 def handlebar(ContextInfo):
-    # Calculate the 20-day return for each stock
+    # 计算每只股票的20日收益率
     momentum = {}
     for stock in ContextInfo.stock_pool:
         closes = ContextInfo.get_history_data(21, '1d', 'close', stock_code=stock)
         if len(closes) >= 21:
-            ret = (closes[-1] - closes[0]) / closes[0]  # 20-day return
+            ret = (closes[-1] - closes[0]) / closes[0]  # 20日收益率
             momentum[stock] = ret
 
-    # Sort by momentum, select the top N stocks
+    # 按动量排序，选择前N只股票
     sorted_stocks = sorted(momentum.items(), key=lambda x: x[1], reverse=True)
     target_stocks = [s[0] for s in sorted_stocks[:ContextInfo.hold_num]]
 
-    # Get current positions
+    # 获取当前持仓
     positions = get_trade_detail_data(ContextInfo.accID, 'stock', 'position')
     holding = {p.m_strInstrumentID: p.m_nVolume for p in positions if p.m_nVolume > 0}
 
-    # Sell stocks not in the target list
+    # 卖出不在目标列表中的股票
     for stock, vol in holding.items():
         if stock not in target_stocks:
             closes = ContextInfo.get_history_data(1, '1d', 'close', stock_code=stock)
             if len(closes) > 0:
                 order_shares(stock, -vol, 'fix', closes[-1], ContextInfo)
 
-    # Buy target stocks
+    # 买入目标股票
     account = get_trade_detail_data(ContextInfo.accID, 'stock', 'account')
     if account:
         cash = account[0].m_dAvailable
-        per_stock_cash = cash / ContextInfo.hold_num  # Equal-weight allocation
+        per_stock_cash = cash / ContextInfo.hold_num  # 等权分配
         for stock in target_stocks:
             if stock not in holding:
                 closes = ContextInfo.get_history_data(1, '1d', 'close', stock_code=stock)
                 if len(closes) > 0 and closes[-1] > 0:
-                    vol = int(per_stock_cash / closes[-1] / 100) * 100  # Round down to whole lots
+                    vol = int(per_stock_cash / closes[-1] / 100) * 100  # 向下取整到整手
                     if vol >= 100:
                         order_shares(stock, vol, 'fix', closes[-1], ContextInfo)
 ```
 
 
-### RSI Strategy
+### RSI策略
 
 ```python
 import numpy as np
@@ -251,9 +251,9 @@ import numpy as np
 def init(ContextInfo):
     ContextInfo.stock = '000001.SZ'
     ContextInfo.set_universe([ContextInfo.stock])
-    ContextInfo.rsi_period = 14     # RSI period
-    ContextInfo.oversold = 30       # Oversold threshold
-    ContextInfo.overbought = 70     # Overbought threshold
+    ContextInfo.rsi_period = 14     # RSI周期
+    ContextInfo.oversold = 30       # 超卖阈值
+    ContextInfo.overbought = 70     # 超买阈值
 
 def handlebar(ContextInfo):
     stock = ContextInfo.stock
@@ -262,7 +262,7 @@ def handlebar(ContextInfo):
     if len(closes) < ContextInfo.rsi_period + 1:
         return
 
-    # Calculate RSI
+    # 计算RSI
     deltas = np.diff(closes)
     gains = np.where(deltas > 0, deltas, 0)
     losses = np.where(deltas < 0, -deltas, 0)
@@ -275,20 +275,20 @@ def handlebar(ContextInfo):
         rs = avg_gain / avg_loss
         rsi = 100 - (100 / (1 + rs))
 
-    # Query positions
+    # 查询持仓
     positions = get_trade_detail_data(ContextInfo.accID, 'stock', 'position')
     holding = any(p.m_strInstrumentID == stock and p.m_nVolume > 0 for p in positions)
 
-    # RSI oversold — buy
+    # RSI超卖 — 买入
     if rsi < ContextInfo.oversold and not holding:
         order_shares(stock, 1000, 'fix', closes[-1], ContextInfo)
 
-    # RSI overbought — sell
+    # RSI超买 — 卖出
     elif rsi > ContextInfo.overbought and holding:
         order_shares(stock, -1000, 'fix', closes[-1], ContextInfo)
 ```
 
-### Bollinger Bands Strategy
+### 布林带策略
 
 ```python
 import numpy as np
@@ -296,8 +296,8 @@ import numpy as np
 def init(ContextInfo):
     ContextInfo.stock = '600519.SH'
     ContextInfo.set_universe([ContextInfo.stock])
-    ContextInfo.boll_period = 20    # Bollinger Bands period
-    ContextInfo.boll_std = 2        # Standard deviation multiplier
+    ContextInfo.boll_period = 20    # 布林带周期
+    ContextInfo.boll_std = 2        # 标准差倍数
 
 def handlebar(ContextInfo):
     stock = ContextInfo.stock
@@ -306,30 +306,171 @@ def handlebar(ContextInfo):
     if len(closes) < ContextInfo.boll_period:
         return
 
-    # Calculate Bollinger Bands
+    # 计算布林带
     recent = closes[-ContextInfo.boll_period:]
-    mid = np.mean(recent)                          # Middle band
-    std = np.std(recent)                           # Standard deviation
-    upper = mid + ContextInfo.boll_std * std       # Upper band
-    lower = mid - ContextInfo.boll_std * std       # Lower band
-    price = closes[-1]                             # Current price
+    mid = np.mean(recent)                          # 中轨
+    std = np.std(recent)                           # 标准差
+    upper = mid + ContextInfo.boll_std * std       # 上轨
+    lower = mid - ContextInfo.boll_std * std       # 下轨
+    price = closes[-1]                             # 当前价格
 
     positions = get_trade_detail_data(ContextInfo.accID, 'stock', 'position')
     holding = any(p.m_strInstrumentID == stock and p.m_nVolume > 0 for p in positions)
 
-    # Price touches lower band — buy
+    # 价格触及下轨 — 买入
     if price <= lower and not holding:
         order_shares(stock, 1000, 'fix', price, ContextInfo)
 
-    # Price touches upper band — sell
+    # 价格触及上轨 — 卖出
     elif price >= upper and holding:
         order_shares(stock, -1000, 'fix', price, ContextInfo)
+```
+
+## 定时任务
+
+```python
+def init(ContextInfo):
+    ContextInfo.stock = '000001.SZ'
+    ContextInfo.set_universe([ContextInfo.stock])
+
+def handlebar(ContextInfo):
+    import datetime
+    now = ContextInfo.get_bar_timetag(ContextInfo.barpos)
+    dt = datetime.datetime.fromtimestamp(now / 1000)
+    # 仅在每変14:50执行调仓逻辑
+    if dt.hour == 14 and dt.minute == 50:
+        pass  # 执行调仓
+```
+
+## 常见错误处理
+
+| 错误 | 原因 | 解决方法 |
+|------|------|----------|
+| 账户未登录 | QMT未连接券商 | 检查QMT登录状态，确认券商账户已连接 |
+| 委托失败 | 资金不足或超出涨跌停 | 检查可用资金和委托价格 |
+| 数据为空 | 股票代码错误或停牌 | 校验代码格式（如`000001.SZ`），检查是否停牌 |
+| Python版本不兼容 | 内置Python版本受限 | 改用miniQMT模式 |
+| 策略运行缓慢 | 数据量过大 | 减少`get_history_data`的count参数 |
+
+## 内置函数参考
+
+### 行情数据函数
+
+| 函数 | 说明 | 返回值 |
+|------|------|--------|
+| `ContextInfo.get_market_data(fields, stock_code, period, count)` | 获取K线数据 | dict/DataFrame |
+| `ContextInfo.get_history_data(count, period, field, stock_code)` | 获取历史数据序列 | list |
+| `ContextInfo.get_stock_list_in_sector(sector)` | 获取板块成分股 | list |
+| `ContextInfo.get_financial_data(stock_code)` | 获取财务数据 | dict |
+| `ContextInfo.get_instrument_detail(stock_code)` | 获取合约详情 | dict |
+| `ContextInfo.get_full_tick(stock_list)` | 获取全推行情快照 | dict |
+
+### 交易函数
+
+| 函数 | 说明 |
+|------|------|
+| `order_shares(code, volume, style, price, ContextInfo)` | 按股数下单（正买负卖） |
+| `order_target_value(code, value, style, price, ContextInfo)` | 按目标市值下单 |
+| `order_lots(code, lots, style, price, ContextInfo)` | 按手数下单 |
+| `order_percent(code, percent, style, price, ContextInfo)` | 按组合比例下单 |
+| `cancel(order_id, ContextInfo)` | 撤单 |
+| `get_trade_detail_data(account, market, data_type)` | 查询交易数据 |
+
+### 交易数据类型
+
+| data_type | 说明 | 常用字段 |
+|-----------|------|----------|
+| `'position'` | 持仓 | `m_strInstrumentID`（代码）, `m_nVolume`（数量）, `m_dMarketValue`（市值） |
+| `'order'` | 委托 | `m_strOrderSysID`（委托号）, `m_nVolumeTraded`（成交量）, `m_dLimitPrice`（委托价） |
+| `'deal'` | 成交 | `m_strTradeID`（成交号）, `m_dPrice`（成交价）, `m_nVolume`（成交量） |
+| `'account'` | 账户 | `m_dAvailable`（可用资金）, `m_dBalance`（总资产）, `m_dMarketValue`（持仓市值） |
+
+## 进阶示例：MACD策略
+
+```python
+import numpy as np
+
+def init(ContextInfo):
+    ContextInfo.stock = '600519.SH'
+    ContextInfo.set_universe([ContextInfo.stock])
+
+def handlebar(ContextInfo):
+    stock = ContextInfo.stock
+    closes = ContextInfo.get_history_data(60, '1d', 'close', stock_code=stock)
+    if len(closes) < 35:
+        return
+    closes = np.array(closes, dtype=float)
+
+    def ema(data, period):
+        result = np.zeros_like(data)
+        result[0] = data[0]
+        k = 2 / (period + 1)
+        for i in range(1, len(data)):
+            result[i] = data[i] * k + result[i-1] * (1 - k)
+        return result
+
+    ema12 = ema(closes, 12)
+    ema26 = ema(closes, 26)
+    dif = ema12 - ema26
+    dea = ema(dif, 9)
+
+    positions = get_trade_detail_data(ContextInfo.accID, 'stock', 'position')
+    holding = any(p.m_strInstrumentID == stock and p.m_nVolume > 0 for p in positions)
+
+    # 金叉：DIF上穿DEA
+    if dif[-2] <= dea[-2] and dif[-1] > dea[-1] and not holding:
+        order_shares(stock, 1000, 'fix', closes[-1], ContextInfo)
+    # 死叉：DIF下穿DEA
+    elif dif[-2] >= dea[-2] and dif[-1] < dea[-1] and holding:
+        order_shares(stock, -1000, 'fix', closes[-1], ContextInfo)
+```
+
+## 进阶示例：止盈止损策略
+
+```python
+import numpy as np
+
+def init(ContextInfo):
+    ContextInfo.stock = '000001.SZ'
+    ContextInfo.set_universe([ContextInfo.stock])
+    ContextInfo.entry_price = 0
+    ContextInfo.stop_loss = 0.05      # 止损5%
+    ContextInfo.take_profit = 0.10    # 止盈10%
+
+def handlebar(ContextInfo):
+    stock = ContextInfo.stock
+    closes = ContextInfo.get_history_data(21, '1d', 'close', stock_code=stock)
+    if len(closes) < 21:
+        return
+    price = closes[-1]
+    ma20 = np.mean(closes[-20:])
+
+    positions = get_trade_detail_data(ContextInfo.accID, 'stock', 'position')
+    pos = None
+    for p in positions:
+        if p.m_strInstrumentID == stock and p.m_nVolume > 0:
+            pos = p
+            break
+
+    if pos is None:
+        if price > ma20:
+            order_shares(stock, 1000, 'fix', price, ContextInfo)
+            ContextInfo.entry_price = price
+    else:
+        if ContextInfo.entry_price > 0:
+            pnl = (price - ContextInfo.entry_price) / ContextInfo.entry_price
+            if pnl <= -ContextInfo.stop_loss:
+                order_shares(stock, -pos.m_nVolume, 'fix', price, ContextInfo)
+                ContextInfo.entry_price = 0
+            elif pnl >= ContextInfo.take_profit:
+                order_shares(stock, -pos.m_nVolume, 'fix', price, ContextInfo)
+                ContextInfo.entry_price = 0
 ```
 
 ---
 
 ## 社区与支持
 
-由 **大佬量化 (Boss Quant)** 维护 — 量化交易教学与策略研发团队。
+由 **大佬量化 (BossQuant)** 维护 — 量化交易教学与策略研发团队。
 
-微信客服: **bossquant1** · [Bilibili](https://space.bilibili.com/48693330) · 搜索 **大佬量化** on 微信公众号 / Bilibili / 抖音
+微信客服: **bossquant1** · [Bilibili](https://space.bilibili.com/48693330) · 搜索 **大佬量化** — 微信公众号 / Bilibili / 抖音

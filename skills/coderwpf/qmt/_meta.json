@@ -3,9 +3,15 @@
   "slug": "qmt",
   "displayName": "QMT",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773365100887,
-    "commit": "https://github.com/openclaw/skills/commit/fffa29642826ad915eca7f7ac4cbcfea8f16fbf2"
+    "version": "1.0.2",
+    "publishedAt": 1773643489239,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773365100887,
+      "commit": "https://github.com/openclaw/skills/commit/fffa29642826ad915eca7f7ac4cbcfea8f16fbf2"
+    }
+  ]
 }
