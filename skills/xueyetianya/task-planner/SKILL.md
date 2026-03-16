@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: task-planner
-description: "==================================================. Use when you need task planner capabilities."
+description: "- **name**: Task Planner. Use when you need task planner capabilities. Triggers on: task planner."
+author: BytesAgain
 ---
 
 # Task Planner
@@ -22,13 +24,26 @@ description: "==================================================. Use when you n
 
 ## Commands
 
-| Command | Purpose |
-|---------|---------|
-| `plan` | Break into subtasks |
-| `estimate` | Time/complexity scoring |
-| `dependencies` | Find task dependencies |
-| `prioritize` | Impact/effort ranking |
-| `parallel` | Find parallelizable work |
-| `risk` | Identify risks per task |
+| Command | Description |
+|---------|-------------|
+| `plan` | Break task into subtasks |
+| `estimate` | Time/complexity estimation |
+| `dependencies` | Identify task dependencies |
+| `prioritize` | Rank by remaining work |
+| `parallel` | Find parallelizable tasks |
+| `risk` | Risk assessment per task |
 | `progress` | Track completion |
-| `retrospective` | Post-completion review |
+| `retrospective` | Retrospective |
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+task-planner help
+
+# Run
+task-planner run
+```
