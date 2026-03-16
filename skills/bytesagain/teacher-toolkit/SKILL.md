@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: teacher-toolkit
 description: "教师工具箱。教案设计、评分标准(Rubric)、课堂活动、评估设计、学生反馈、家长沟通。Teacher toolkit with lesson planning, rubrics, activities, assessments, student feedback, parent communication. Use when you need teacher toolkit capabilities. Triggers on: teacher toolkit, 教案含时间自动分配, 试卷含题型分值分配, 评分量表含5维度, 课程大纲含周次进度, 10种经典课堂活动."
+author: BytesAgain
 ---
 # teacher-toolkit
 
@@ -23,7 +25,6 @@ A: 主要输出Markdown格式，方便复制和编辑。
 - **feedback** — feedback
 - **parent** — parent
 
-
 ## 专业建议
 
 - SMART目标**: 具体、可衡量、可达到、相关、有时限
@@ -37,3 +38,17 @@ A: 主要输出Markdown格式，方便复制和编辑。
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+teacher-toolkit help
+
+# Run
+teacher-toolkit run
+```
+
+## Commands
+
+Run `teacher-toolkit help` to see all available commands.
