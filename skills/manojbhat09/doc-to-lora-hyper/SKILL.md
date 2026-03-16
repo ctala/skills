@@ -7,16 +7,28 @@ description: >
   URL, create a LoRA adapter from a document, answer questions from a document using
   a small on-device model, or run knowledge-grounded inference on a Mac. Also use
   when asked about Doc-to-LoRA, HyperLoRA, or document internalization.
+license: MIT
 compatibility: >
-  macOS with Apple Silicon (M1+), 16GB+ RAM. Requires Python 3.10+, uv package
-  manager, and ~10GB disk for model weights. Works on CPU/MPS (no CUDA needed).
-  MLX path recommended for Apple Silicon.
+  macOS with Apple Silicon (M1+), 16GB+ RAM. Requires: Python 3.10+, uv package
+  manager (https://docs.astral.sh/uv/), HF_TOKEN env var with Gemma model access
+  (https://huggingface.co/google/gemma-2-2b-it), ~10GB disk for model weights.
+  Works on CPU/MPS (no CUDA needed). MLX path recommended for Apple Silicon.
+  This skill must be used inside a clone of the doc-to-lora repository
+  (https://github.com/Manojbhat09/doc-to-lora-hyper-skill).
 metadata:
-  author: affine-cortex
-  version: "0.1.0"
+  author: Manojbhat09
+  version: "1.2.0"
   paper: "https://arxiv.org/abs/2602.15902"
   base-model: google/gemma-2-2b-it
   framework: pytorch,mlx
+  openclaw:
+    requires:
+      env:
+        - HF_TOKEN
+      bins:
+        - python3
+        - uv
+    os: darwin
 ---
 
 # Doc-to-LoRA Skill
@@ -40,11 +52,39 @@ Document --> Context Encoder --> Perceiver --> HyperLoRA --> LoRA weights
 
 For architecture details, read `references/ARCHITECTURE.md` in this skill directory.
 
+## Security Notes
+
+- **Checkpoint loading**: `internalize.py` uses `torch.load(weights_only=False)`
+  because D2L checkpoints embed Python config dataclasses (AggregatorConfig,
+  LoraConfig, HypernetConfig) alongside tensor weights. The upstream D2L project
+  uses this format. **Only load checkpoints you trust.** The default checkpoint
+  source is the official `SakanaAI/doc-to-lora` HuggingFace repository.
+- **HF_TOKEN**: Required for downloading gated Gemma weights. This is a sensitive
+  secret. The scripts only pass it to `huggingface-cli download` and
+  `transformers` model loading. It is not sent anywhere else.
+- **No remote code execution**: setup.sh does not download or execute remote
+  scripts. It requires `uv` and `python3` to be pre-installed by the user.
+  All dependency installation is done via `uv pip install` with pinned versions.
+- **Checkpoint integrity**: After downloading, you can verify the checkpoint
+  against the HuggingFace repo's commit hash. The download uses `huggingface-cli`
+  which verifies checksums automatically.
+
 ## Prerequisites
 
-Run setup once. This installs dependencies and downloads model weights (~7GB total).
+This skill runs inside a clone of the **doc-to-lora repository**. It is not
+a standalone tool.
+
+Required before setup:
+- `python3` (3.10+)
+- `uv` package manager: https://docs.astral.sh/uv/getting-started/installation/
+- `HF_TOKEN` env var: https://huggingface.co/settings/tokens (with Gemma access)
+- Clone of the D2L repo with `install_mac.sh` present
+
+Run setup once. This installs Python dependencies and downloads model weights
+(~7GB total).
 
 ```bash
+export HF_TOKEN=hf_your_token_here
 bash ${CLAUDE_SKILL_DIR}/scripts/setup.sh
 ```
 
@@ -56,12 +96,14 @@ test -d trained_d2l/gemma_demo && echo "Weights present" || echo "Run setup firs
 ## Workflow A: PyTorch Path (simpler, ~10GB RAM)
 
 Use this when the user provides a document and wants answers.
+The `internalize.py` script handles both internalization and querying in one call.
 
-### Step 1: Internalize a document
+### Internalize a document and ask questions
 
 ```bash
 python ${CLAUDE_SKILL_DIR}/scripts/internalize.py \
   --input "path/to/document.txt" \
+  --question "What is the main finding?" \
   --checkpoint trained_d2l/gemma_demo/checkpoint-80000/pytorch_model.bin
 ```
 
@@ -69,22 +111,20 @@ Or pass text directly:
 ```bash
 python ${CLAUDE_SKILL_DIR}/scripts/internalize.py \
   --text "Paste the document content here..." \
-  --checkpoint trained_d2l/gemma_demo/checkpoint-80000/pytorch_model.bin
-```
-
-### Step 2: Ask questions
-
-```bash
-python ${CLAUDE_SKILL_DIR}/scripts/query.py \
-  --question "What is the main finding?" \
-  --checkpoint trained_d2l/gemma_demo/checkpoint-80000/pytorch_model.bin
+  --question "What is this about?"
 ```
 
 For multiple questions, pass them comma-separated:
 ```bash
-python ${CLAUDE_SKILL_DIR}/scripts/query.py \
-  --question "Question 1?,Question 2?,Question 3?" \
-  --checkpoint trained_d2l/gemma_demo/checkpoint-80000/pytorch_model.bin
+python ${CLAUDE_SKILL_DIR}/scripts/internalize.py \
+  --input "path/to/document.txt" \
+  --question "Question 1?,Question 2?,Question 3?"
+```
+
+For programmatic use, output results as JSON:
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/internalize.py \
+  --input doc.txt --question "Q?" --output-json results.json
 ```
 
 ## Workflow B: MLX Path (faster, ~6GB RAM, recommended for Mac)
@@ -131,22 +171,7 @@ python ${CLAUDE_SKILL_DIR}/scripts/query_mlx.py \
 |---------|-----|
 | `ModuleNotFoundError: No module named 'ctx_to_lora'` | Run setup: `bash ${CLAUDE_SKILL_DIR}/scripts/setup.sh` |
 | `FileNotFoundError: trained_d2l/...` | Download weights: `uv run huggingface-cli download SakanaAI/doc-to-lora --local-dir trained_d2l` |
+| `FileNotFoundError: install_mac.sh` | This skill must be used inside a doc-to-lora repo clone that contains `install_mac.sh` |
 | `RuntimeError: MPS backend out of memory` | Use MLX path instead, or close other apps |
 | `ImportError: bitsandbytes` | Expected on Mac. The scripts auto-disable quantization on non-CUDA. |
 | Answers seem wrong / generic | Check if LoRA is applied: outputs should differ from baseline. Try rephrasing. |
-
-## Example End-to-End
-
-User: "Internalize this Wikipedia article and tell me about the person."
-
-```bash
-# Save the article
-cat > /tmp/article.txt << 'EOF'
-Albert Einstein was a German-born theoretical physicist...
-EOF
-
-# Internalize + query (PyTorch path)
-python ${CLAUDE_SKILL_DIR}/scripts/internalize.py --input /tmp/article.txt
-python ${CLAUDE_SKILL_DIR}/scripts/query.py --question "Where was Einstein born?"
-# Expected: "Germany" or "Ulm, Germany"
-```

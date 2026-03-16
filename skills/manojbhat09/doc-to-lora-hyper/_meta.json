@@ -3,9 +3,15 @@
   "slug": "doc-to-lora-hyper",
   "displayName": "Doc-to-LoRA",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773086196788,
-    "commit": "https://github.com/openclaw/skills/commit/20358d918810a34f5ace13024ce5fca2c551a936"
+    "version": "1.2.0",
+    "publishedAt": 1773543811328,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773086196788,
+      "commit": "https://github.com/openclaw/skills/commit/20358d918810a34f5ace13024ce5fca2c551a936"
+    }
+  ]
 }
