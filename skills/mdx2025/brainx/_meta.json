@@ -1,11 +1,17 @@
 {
   "owner": "mdx2025",
   "slug": "brainx",
-  "displayName": "BrainX — The First Brain for OpenClaw",
+  "displayName": "BrainX V5",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772693906422,
-    "commit": "https://github.com/openclaw/skills/commit/3f6c9ddadc270c1d526dfa615e59246802e9df6b"
+    "version": "0.1.2",
+    "publishedAt": 1773630708509,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772693906422,
+      "commit": "https://github.com/openclaw/skills/commit/3f6c9ddadc270c1d526dfa615e59246802e9df6b"
+    }
+  ]
 }
