@@ -3,9 +3,15 @@
   "slug": "necessity-pain-point-selection",
   "displayName": "Necessity Pain Point Selection",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1772786566164,
-    "commit": "https://github.com/openclaw/skills/commit/26702090e3b5cd3f55deafeeacda7dc1c3bc082a"
+    "version": "0.1.2",
+    "publishedAt": 1773197331984,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1772786566164,
+      "commit": "https://github.com/openclaw/skills/commit/26702090e3b5cd3f55deafeeacda7dc1c3bc082a"
+    }
+  ]
 }
