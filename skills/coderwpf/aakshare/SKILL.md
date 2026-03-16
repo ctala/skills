@@ -1,36 +1,36 @@
 ---
 name: akshare
-description: Comprehensive free financial data API library — supports A-shares, Hong Kong stocks, US stocks, futures, options, funds, bonds, forex, and macro data, no API key required.
-version: 1.1.0
+description: AKShare 开源金融数据接口库 - 支持A股、港股、美股、期货、期权、基金、债券、外汇、宏观数据，免费无需API Key。
+version: 1.2.0
 homepage: https://github.com/akfamily/akshare
 metadata: {"clawdbot":{"emoji":"💹","requires":{"bins":["python3"]}}}
 ---
 
-# AKShare (Open-Source Financial Data API Library)
+# AKShare（开源金融数据API库）
 
-[AKShare](https://github.com/akfamily/akshare) is a comprehensive, free Python financial data API library covering A-shares, Hong Kong stocks, US stocks, futures, options, funds, bonds, forex, and macroeconomic data. No registration or API key is required, and all functions return `pandas.DataFrame`.
+[AKShare](https://github.com/akfamily/akshare) 是一个全面的免费Python金融数据API库，覆盖A股、港股、美股、期货、期权、基金、债券、外汇和宏观经济数据。无需注册或API Key，所有函数返回 `pandas.DataFrame`。
 
-> Documentation: https://akshare.akfamily.xyz/
+> 文档：https://akshare.akfamily.xyz/
 
-## Installation
+## 安装
 
 ```bash
 pip install akshare --upgrade
 ```
 
-Requires Python 3.9+ (64-bit).
+需要 Python 3.9+（64位）。
 
-## Basic Usage
+## 基本用法
 
 ```python
 import akshare as ak
 
-# Get daily candlestick data for Ping An Bank
+# 获取平安银行日K线数据
 df = ak.stock_zh_a_hist(symbol="000001", period="daily", start_date="20240101", end_date="20240630")
 print(df)
 ```
 
-## Function Naming Convention
+## 函数命名规则
 
 ```
 {asset_type}_{market}_{data_type}_{data_source}
@@ -43,221 +43,221 @@ print(df)
 
 ---
 
-## Stock Data (A-Shares)
+## 股票数据（A股）
 
-### Real-Time Quotes — All A-Shares
+### 实时行情 — 全部A股
 
 ```python
 import akshare as ak
 
-# Get real-time quotes for all A-shares
+# 获取全部A股实时行情
 df = ak.stock_zh_a_spot_em()
-# Returned columns: 序号 (index), 代码 (code), 名称 (name), 最新价 (latest price), 涨跌幅 (change %), 涨跌额 (change amount), 成交量 (volume), 成交额 (turnover), 振幅 (amplitude), 最高 (high), 最低 (low), 今开 (open), 昨收 (prev close), 量比 (volume ratio), 换手率 (turnover rate), 市盈率 (P/E ratio), 市净率 (P/B ratio), ...
+# 返回字段: 序号、代码、名称、最新价、涨跌幅、涨跌额、成交量、成交额、振幅、最高、最低、今开、昨收、量比、换手率、市盈率、市净率 ...
 ```
 
-### Historical Candlestick Data
+### 历史K线数据
 
 ```python
-# Get historical daily candlestick data for a specific stock
+# 获取指定股票历史日K线数据
 df = ak.stock_zh_a_hist(
-    symbol="000001",       # Stock code (without prefix)
-    period="daily",        # Period: "daily", "weekly", "monthly"
-    start_date="20240101", # Start date, format YYYYMMDD
-    end_date="20240630",   # End date
-    adjust=""              # Adjustment: "" (unadjusted), "qfq" (forward-adjusted), "hfq" (backward-adjusted)
+    symbol="000001",       # 股票代码（不带前缀）
+    period="daily",        # 周期: "daily"(日), "weekly"(周), "monthly"(月)
+    start_date="20240101", # 开始日期，格式YYYYMMDD
+    end_date="20240630",   # 结束日期
+    adjust=""              # 复权: ""(不复权), "qfq"(前复权), "hfq"(后复权)
 )
-# Returned columns: 日期 (date), 开盘 (open), 收盘 (close), 最高 (high), 最低 (low), 成交量 (volume), 成交额 (turnover), 振幅 (amplitude), 涨跌幅 (change %), 涨跌额 (change amount), 换手率 (turnover rate)
+# 返回字段: 日期、开盘、收盘、最高、最低、成交量、成交额、振幅、涨跌幅、涨跌额、换手率
 ```
 
-### Minute-Level Candlestick Data
+### 分钟级K线数据
 
 ```python
-# Get minute-level candlestick data
+# 获取分钟级K线数据
 df = ak.stock_zh_a_hist_min_em(
     symbol="000001",
-    period="5",            # Minute interval: "1", "5", "15", "30", "60"
+    period="5",            # 分钟间隔: "1", "5", "15", "30", "60"
     start_date="2024-01-02 09:30:00",
     end_date="2024-01-02 15:00:00",
-    adjust=""              # Adjustment type
+    adjust=""              # 复权类型
 )
 ```
 
-### Individual Stock Basic Info
+### 个股基本信息
 
 ```python
-# Get basic information for an individual stock
+# 获取个股基本信息
 df = ak.stock_individual_info_em(symbol="000001")
-# Returned columns: 总市值 (total market cap), 流通市值 (circulating market cap), 行业 (industry), 上市时间 (listing date), 股票代码 (stock code), 股票简称 (stock name), 总股本 (total shares), 流通股 (circulating shares) ...
+# 返回字段: 总市值、流通市值、行业、上市时间、股票代码、股票简称、总股本、流通股 ...
 ```
 
 ---
 
-## Hong Kong Stock Data
+## 港股数据
 
 ```python
-# Hong Kong stock real-time quotes
+# 港股实时行情
 df = ak.stock_hk_spot_em()
 
-# Hong Kong stock historical candlestick data
+# 港股历史K线数据
 df = ak.stock_hk_hist(
-    symbol="00700",        # Tencent Holdings
-    period="daily",        # Daily bars
+    symbol="00700",        # 腾讯控股
+    period="daily",        # 日线
     start_date="20240101",
     end_date="20240630",
-    adjust="qfq"           # Forward-adjusted
+    adjust="qfq"           # 前复权
 )
 ```
 
 ---
 
-## US Stock Data
+## 美股数据
 
 ```python
-# US stock daily candlestick data
+# 美股日线数据
 df = ak.stock_us_daily(symbol="AAPL", adjust="qfq")
 
-# US stock real-time quotes
+# 美股实时行情
 df = ak.stock_us_spot_em()
 ```
 
 ---
 
-## Index Data
+## 指数数据
 
 ```python
-# A-share index historical data (e.g., Shanghai Composite Index 000001)
+# A股指数历史数据 (e.g., Shanghai Composite Index 000001)
 df = ak.stock_zh_index_daily_em(symbol="sh000001")
 
-# Index constituents (e.g., CSI 300)
+# 指数成分股 (e.g., CSI 300)
 df = ak.index_stock_cons_csindex(symbol="000300")
 ```
 
 ---
 
-## Fund Data
+## 基金数据
 
 ```python
-# ETF real-time quotes
+# ETF实时行情
 df = ak.fund_etf_spot_em()
 
-# ETF historical candlestick data
+# ETF历史K线数据
 df = ak.fund_etf_hist_em(
-    symbol="510300",       # CSI 300 ETF
+    symbol="510300",       # 沪深300ETF
     period="daily",
     start_date="20240101",
     end_date="20240630",
     adjust="qfq"
 )
 
-# Open-end fund daily NAV
+# 开放式基金每日净值
 df = ak.fund_open_fund_daily_em(symbol="000001")
 
-# Fund ratings
+# 基金评级
 df = ak.fund_rating_all()
 ```
 
 ---
 
-## Futures Data
+## 期货数据
 
 ```python
-# Futures daily data (aggregated by exchange)
+# 期货日线数据（按交易所汇总）
 from akshare import get_futures_daily
 df = get_futures_daily(start_date="20240101", end_date="20240102", market="CFFEX")
-# market options: "CFFEX" (China Financial Futures Exchange), "SHFE" (Shanghai Futures Exchange), "DCE" (Dalian Commodity Exchange), "CZCE" (Zhengzhou Commodity Exchange), "INE" (Shanghai International Energy Exchange), "GFEX" (Guangzhou Futures Exchange)
+# 交易所选项: "CFFEX"(中金所), "SHFE"(上期所), "DCE"(大商所), "CZCE"(郑商所), "INE"(上海国际能源交易中心), "GFEX"(广期所)
 
-# Futures real-time quotes
+# 期货实时行情
 df = ak.futures_zh_spot()
 
-# Futures inventory data
+# 期货库存数据
 df = ak.futures_inventory_99(symbol="豆一")
 ```
 
 ---
 
-## Options Data
+## 期权数据
 
 ```python
-# Exchange options historical data
+# 交易所期权历史数据
 df = ak.option_hist_dce(symbol="豆粕期权")
 
-# SSE 50 ETF options
+# 上证50ETF期权
 df = ak.option_sse_spot_price(symbol="510050")
 ```
 
 ---
 
-## Bond Data
+## 债券数据
 
 ```python
-# Convertible bond list
+# 可转债列表
 df = ak.bond_zh_cov()
 
-# Convertible bond historical candlestick data
+# 可转债历史K线数据
 df = ak.bond_zh_hs_cov_daily(symbol="sz123456")
 
-# China bond spot quotes
+# 中国债券现货报价
 df = ak.bond_spot_quote()
 ```
 
 ---
 
-## Forex Data
+## 外汇数据
 
 ```python
-# Forex real-time quotes (East Money)
+# 外汇实时行情（东方财富）
 df = ak.forex_spot_em()
 
-# Forex spot quotes (China Foreign Exchange Trade System)
+# 外汇即期报价（中国外汇交易中心）
 df = ak.fx_spot_quote()
 
-# Forex swap quotes
+# 外汇掉期报价
 df = ak.fx_swap_quote()
 ```
 
 ---
 
-## Macroeconomic Data
+## 宏观经济数据
 
 ```python
-# China CPI annual data
+# 中国CPI年度数据
 df = ak.macro_china_cpi_yearly()
 
-# China GDP annual data
+# 中国GDP年度数据
 df = ak.macro_china_gdp_yearly()
 
-# China PMI data
+# 中国PMI数据
 df = ak.macro_china_pmi()
 
-# US Non-Farm Payrolls data
+# 美国非农就业数据
 df = ak.macro_usa_non_farm()
 
-# US CPI monthly data
+# 美国CPI月度数据
 df = ak.macro_usa_cpi_monthly()
 ```
 
 ---
 
-## News and Sentiment
+## 新闻与舆情
 
 ```python
-# Individual stock financial news (East Money)
+# 个股财经新闻（东方财富）
 df = ak.stock_news_em(symbol="000001")
 
-# CCTV news
+# 央视新闻
 df = ak.news_cctv(date="20240101")
 ```
 
 ---
 
-## Complete Example: Download Data and Plot a Candlestick Chart
+## 完整示例：下载数据并绘制K线图
 
 ```python
 import akshare as ak
 import pandas as pd
 import mplfinance as mpf  # pip install mplfinance
 
-# Get forward-adjusted daily candlestick data for Kweichow Moutai
+# 获取贵州茅台前复权日K线数据
 df = ak.stock_zh_a_hist(
     symbol="600519",
     period="daily",
@@ -266,46 +266,46 @@ df = ak.stock_zh_a_hist(
     adjust="qfq"
 )
 
-# Set date index and rename columns to English (required by mplfinance)
-df.index = pd.to_datetime(df["日期"])  # 日期 = Date
+# 设置日期索引并重命名列为英文（mplfinance要求）
+df.index = pd.to_datetime(df["日期"])  # 设置日期为索引
 df.rename(columns={
-    "开盘": "Open",    # 开盘 = Open price
-    "收盘": "Close",   # 收盘 = Close price
-    "最高": "High",    # 最高 = High price
-    "最低": "Low",     # 最低 = Low price
-    "成交量": "Volume" # 成交量 = Volume
+    "开盘": "Open",    # 开盘价
+    "收盘": "Close",   # 收盘价
+    "最高": "High",    # 最高价
+    "最低": "Low",     # 最低价
+    "成交量": "Volume" # 成交量
 }, inplace=True)
 
-# Plot candlestick chart with 5/10/20-day moving averages and volume
+# 绘制K线图（含5/10/20日均线和成交量）
 mpf.plot(df, type="candle", mav=(5, 10, 20), volume=True)
 ```
 
-## Usage Tips
+## 使用技巧
 
-- **No API key or registration required** — works out of the box.
-- All functions return **pandas DataFrame** — ready for analysis, export, and visualization.
-- A-share data columns are in **Chinese**; US/HK stock data columns are in English.
-- Use `--upgrade` to keep akshare up to date — interfaces update frequently due to upstream data source changes.
-- Non-Python users can use the [AKTools](https://aktools.readthedocs.io/) HTTP API wrapper.
-- Data is for **academic research** only — not investment advice.
-- Full API reference: https://akshare.akfamily.xyz/data/index.html
+- **无需API Key或注册** — 开箱即用。
+- 所有函数返回 **pandas DataFrame** — 可直接用于分析、导出和可视化。
+- A股数据列名为**中文**；美股/港股数据列名为英文。
+- 使用 `--upgrade` 保持akshare最新版 — 由于上游数据源变化，接口更新频繁。
+- 非Python用户可使用 [AKTools](https://aktools.readthedocs.io/) HTTP API封装。
+- 数据仅供**学术研究**使用 — 不构成投资建议。
+- 完整API参考：https://akshare.akfamily.xyz/data/index.html
 
 ---
 
-## Advanced Examples
+## 进阶示例
 
-### Batch Download Multiple Stocks
+### 批量下载多只股票
 
 ```python
 import akshare as ak
 import pandas as pd
 
-# Define the list of stocks to download
+# 定义要下载的股票列表
 stock_list = ["000001", "600519", "300750", "601318", "000858"]
 
 all_data = {}
 for symbol in stock_list:
-    # Download forward-adjusted daily candlestick data for each stock
+    # 下载每只股票的前复权日K线数据
     df = ak.stock_zh_a_hist(
         symbol=symbol,
         period="daily",
@@ -313,193 +313,193 @@ for symbol in stock_list:
         end_date="20240630",
         adjust="qfq"
     )
-    df["股票代码"] = symbol  # Add stock code column (股票代码) for later merging
+    df["股票代码"] = symbol  # 添加股票代码列，便于后续合并
     all_data[symbol] = df
-    print(f"Downloaded {symbol}, {len(df)} records")
+    print(f"已下载 {symbol}，共 {len(df)} 条记录")
 
-# Merge all stock data into one large DataFrame
+# 合并所有股票数据为一个大的DataFrame
 combined = pd.concat(all_data.values(), ignore_index=True)
 combined.to_csv("multi_stock_data.csv", index=False)
-print(f"Combined total: {len(combined)} records")
+print(f"合并总计: {len(combined)} 条记录")
 ```
 
-### Calculate Technical Indicators (Moving Averages, MACD, RSI)
+### 计算技术指标（均线、MACD、RSI）
 
 ```python
 import akshare as ak
 import pandas as pd
 import numpy as np
 
-# Get forward-adjusted daily candlestick data for Kweichow Moutai
+# 获取贵州茅台前复权日K线数据
 df = ak.stock_zh_a_hist(symbol="600519", period="daily",
                          start_date="20240101", end_date="20241231", adjust="qfq")
 
-# Convert close price to float (收盘 = close price)
+# 将收盘价转换为浮点数 (收盘 = close price)
 df["收盘"] = df["收盘"].astype(float)
 
-# Calculate moving averages
-df["MA5"] = df["收盘"].rolling(window=5).mean()    # 5-day moving average
-df["MA10"] = df["收盘"].rolling(window=10).mean()   # 10-day moving average
-df["MA20"] = df["收盘"].rolling(window=20).mean()   # 20-day moving average
-df["MA60"] = df["收盘"].rolling(window=60).mean()   # 60-day moving average
+# 计算均线
+df["MA5"] = df["收盘"].rolling(window=5).mean()    # 5日均线
+df["MA10"] = df["收盘"].rolling(window=10).mean()   # 10日均线
+df["MA20"] = df["收盘"].rolling(window=20).mean()   # 20日均线
+df["MA60"] = df["收盘"].rolling(window=60).mean()   # 60日均线
 
-# Calculate MACD indicator
-ema12 = df["收盘"].ewm(span=12, adjust=False).mean()  # 12-day exponential moving average
-ema26 = df["收盘"].ewm(span=26, adjust=False).mean()  # 26-day exponential moving average
-df["DIF"] = ema12 - ema26                              # Fast line (DIF)
-df["DEA"] = df["DIF"].ewm(span=9, adjust=False).mean() # Slow line (DEA)
-df["MACD"] = 2 * (df["DIF"] - df["DEA"])               # MACD histogram
+# 计算MACD指标
+ema12 = df["收盘"].ewm(span=12, adjust=False).mean()  # 12日指数移动平均
+ema26 = df["收盘"].ewm(span=26, adjust=False).mean()  # 26日指数移动平均
+df["DIF"] = ema12 - ema26                              # 快线（DIF）
+df["DEA"] = df["DIF"].ewm(span=9, adjust=False).mean() # 慢线（DEA）
+df["MACD"] = 2 * (df["DIF"] - df["DEA"])               # MACD柱
 
-# Calculate RSI indicator (14-day)
+# 计算RSI指标（14日）
 delta = df["收盘"].diff()
-gain = delta.where(delta > 0, 0)       # Upward movement
-loss = -delta.where(delta < 0, 0)      # Downward movement
+gain = delta.where(delta > 0, 0)       # 上涨幅度
+loss = -delta.where(delta < 0, 0)      # 下跌幅度
 avg_gain = gain.rolling(window=14).mean()
 avg_loss = loss.rolling(window=14).mean()
 rs = avg_gain / avg_loss
-df["RSI14"] = 100 - (100 / (1 + rs))   # RSI value
+df["RSI14"] = 100 - (100 / (1 + rs))   # RSI值
 
-# Calculate Bollinger Bands (20-day)
-df["BOLL_MID"] = df["收盘"].rolling(window=20).mean()           # Middle band
-df["BOLL_UP"] = df["BOLL_MID"] + 2 * df["收盘"].rolling(window=20).std()  # Upper band
-df["BOLL_DN"] = df["BOLL_MID"] - 2 * df["收盘"].rolling(window=20).std()  # Lower band
+# 计算布林带（20日）
+df["BOLL_MID"] = df["收盘"].rolling(window=20).mean()           # 中轨
+df["BOLL_UP"] = df["BOLL_MID"] + 2 * df["收盘"].rolling(window=20).std()  # 上轨
+df["BOLL_DN"] = df["BOLL_MID"] - 2 * df["收盘"].rolling(window=20).std()  # 下轨
 
-# 日期 = date, 收盘 = close price
+# 展示：日期、收盘价及各技术指标
 print(df[["日期", "收盘", "MA5", "MA20", "DIF", "DEA", "MACD", "RSI14"]].tail(10))
 ```
 
-### Filter Limit-Up Stocks
+### 筛选涨停股
 
 ```python
 import akshare as ak
 
-# Get real-time quotes for all A-shares
+# 获取全部A股实时行情
 df = ak.stock_zh_a_spot_em()
 
-# Filter stocks with gain > 9.5% (near daily limit-up)
+# 筛选涨幅>9.5%的股票（接近涨停）
 df["涨跌幅"] = df["涨跌幅"].astype(float)  # 涨跌幅 = change percentage
 limit_up = df[df["涨跌幅"] >= 9.5].sort_values("涨跌幅", ascending=False)
-print(f"Today's limit-up / near limit-up stocks: {len(limit_up)} total")
-# 代码 = code, 名称 = name, 最新价 = latest price, 涨跌幅 = change %, 成交额 = turnover, 换手率 = turnover rate
+print(f"今日涨停/接近涨停股票: 共 {len(limit_up)} 只")
+# 展示：代码、名称、最新价、涨跌幅、成交额、换手率
 print(limit_up[["代码", "名称", "最新价", "涨跌幅", "成交额", "换手率"]].head(20))
 ```
 
-### Get Dragon-Tiger List Data
+### 获取龙虎榜数据
 
 ```python
 import akshare as ak
 
-# Get Dragon-Tiger list detail data
+# 获取龙虎榜详细数据
 df = ak.stock_lhb_detail_em(start_date="20240101", end_date="20240131")
 print(df.head())
 
-# Get Dragon-Tiger list brokerage branch rankings
+# 获取龙虎榜营业部排名
 df_dept = ak.stock_lhb_hyyyb_em(start_date="20240101", end_date="20240131")
 print(df_dept.head())
 ```
 
-### Get Margin Trading Data
+### 获取融资融券数据
 
 ```python
 import akshare as ak
 
-# Get Shanghai-Shenzhen margin trading summary data
+# 获取沪深融资融券汇总数据
 df = ak.stock_margin_sse(start_date="20240101", end_date="20240630")
 print(df.head())
 
-# Get individual stock margin trading details
+# 获取个股融资融券明细
 df_detail = ak.stock_margin_detail_sse(date="20240102")
 print(df_detail.head())
 ```
 
-### Get Northbound Capital (Stock Connect) Data
+### 获取北向资金（陆港通）数据
 
 ```python
 import akshare as ak
 
-# Get northbound capital historical data
+# 获取北向资金历史数据
 df = ak.stock_hsgt_hist_em(symbol="北向资金")  # 北向资金 = Northbound capital
 print(df.tail(10))
 
-# Get northbound capital stock holdings details
+# 获取北向资金持股明细
 df_hold = ak.stock_hsgt_hold_stock_em(market="北向", indicator="今日排行")  # 北向 = Northbound, 今日排行 = Today's ranking
 print(df_hold.head(20))
 ```
 
-### Get Shareholder Data
+### 获取股东数据
 
 ```python
 import akshare as ak
 
-# Get top 10 shareholders
+# 获取前十大股东
 df = ak.stock_gdfx_top_10_em(symbol="600519", date="20231231")
 print(df)
 
-# Get top 10 tradable shareholders
+# 获取前十大流通股东
 df_float = ak.stock_gdfx_free_top_10_em(symbol="600519", date="20231231")
 print(df_float)
 ```
 
-### Get Sector Quotes Data
+### 获取板块行情数据
 
 ```python
 import akshare as ak
 
-# Get industry sector quotes
+# 获取行业板块行情
 df_industry = ak.stock_board_industry_name_em()
 print(df_industry.head(20))
 
-# Get concept sector quotes
+# 获取概念板块行情
 df_concept = ak.stock_board_concept_name_em()
 print(df_concept.head(20))
 
-# Get constituent stocks of a specific sector
+# 获取特定板块成分股
 df_stocks = ak.stock_board_industry_cons_em(symbol="银行")  # 银行 = Banking
 print(df_stocks)
 ```
 
-### Get Lock-Up Share Release Data
+### 获取限售解禁数据
 
 ```python
 import akshare as ak
 
-# Get lock-up share release data
+# 获取限售解禁数据
 df = ak.stock_restricted_release_queue_em(symbol="全部A股")  # 全部A股 = All A-shares
 print(df.head(20))
 ```
 
-### Get Market Capital Flow
+### 获取市场资金流向
 
 ```python
 import akshare as ak
 
-# Get overall market capital flow
+# 获取大盘资金流向
 df = ak.stock_market_fund_flow()
 print(df.tail(10))
 
-# Get individual stock capital flow
+# 获取个股资金流向
 df_stock = ak.stock_individual_fund_flow(stock="000001", market="sz")
 print(df_stock.tail(10))
 ```
 
-### Complete Example: Multi-Factor Stock Screening
+### 完整示例：多因子选股
 
 ```python
 import akshare as ak
 import pandas as pd
 
-# Step 1: Get all A-share real-time quotes
+# 步骤1：获取全部A股实时行情
 df = ak.stock_zh_a_spot_em()
 
-# Step 2: Convert data types
+# 步骤2：转换数据类型
 for col in ["市盈率-动态", "市净率", "换手率", "涨跌幅", "成交额"]:
     df[col] = pd.to_numeric(df[col], errors="coerce")
 
-# Step 3: Multi-factor screening
-# Condition 1: PE between 5-30 (exclude loss-making and overvalued)
-# Condition 2: PB between 0.5-5
-# Condition 3: Turnover rate > 1% (reasonable liquidity)
-# Condition 4: Daily change between -3% and 3% (exclude abnormal volatility)
+# 步骤3：多因子筛选
+# 条件1：PE 在5-30之间（排除亏损和高估值）
+# 条件2：PB 在0.5-5之间
+# 条件3：换手率 > 1%（合理流动性）
+# 条件4：涨跌幅在-3%到3%之间（排除异常波动）
 filtered = df[
     (df["市盈率-动态"] > 5) & (df["市盈率-动态"] < 30) &
     (df["市净率"] > 0.5) & (df["市净率"] < 5) &
@@ -507,9 +507,9 @@ filtered = df[
     (df["涨跌幅"] > -3) & (df["涨跌幅"] < 3)
 ].copy()
 
-# Step 4: Sort by PE, select top 20 lowest PE stocks
+# 步骤4：按PE排序，选取最低PE的前20只股票
 result = filtered.sort_values("市盈率-动态").head(20)
-print(f"Selected {len(result)} stocks:")
+print(f"筛选出 {len(result)} 只股票:")
 print(result[["代码", "名称", "最新价", "市盈率-动态", "市净率", "换手率", "涨跌幅"]])
 ```
 
@@ -517,6 +517,6 @@ print(result[["代码", "名称", "最新价", "市盈率-动态", "市净率", 
 
 ## 社区与支持
 
-由 **大佬量化 (Boss Quant)** 维护 — 量化交易教学与策略研发团队。
+由 **大佬量化 (BossQuant)** 维护 — 量化交易教学与策略研发团队。
 
-微信客服: **bossquant1** · [Bilibili](https://space.bilibili.com/48693330) · 搜索 **大佬量化** on 微信公众号 / Bilibili / 抖音
+微信客服: **bossquant1** · [Bilibili](https://space.bilibili.com/48693330) · 搜索 **大佬量化** — 微信公众号 / Bilibili / 抖音
