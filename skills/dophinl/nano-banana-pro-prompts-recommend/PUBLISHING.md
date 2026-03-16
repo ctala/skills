@@ -44,24 +44,21 @@ Edit `package.json`:
 }
 ```
 
-### 3. Clone from GitHub and prepare a publish-ready directory
+### 3. Create a temp directory with only the required files
 
-GitHub is the single source of truth. Clone fresh, then copy only the required files — **do NOT publish the full clone** as it includes 31 MB of references data that exceeds ClawHub's 20 MB upload limit.
+**Do NOT publish the full directory** — it includes 31 MB of references data that will exceed ClawHub's 20 MB upload limit.
 
 ```bash
-REPO="https://github.com/YouMind-OpenLab/nano-banana-pro-prompts-recommend-skill.git"
-CLONE_DIR=$(mktemp -d)
 TMP_DIR=$(mktemp -d)
+SKILL_DIR=~/clawd/skills/nano-banana-pro-prompts-recommend
 
-git clone "$REPO" "$CLONE_DIR"
-
-cp "$CLONE_DIR/SKILL.md"      "$TMP_DIR/"
-cp "$CLONE_DIR/README.md"     "$TMP_DIR/"
-cp "$CLONE_DIR/package.json"  "$TMP_DIR/"
+cp "$SKILL_DIR/SKILL.md"   "$TMP_DIR/"
+cp "$SKILL_DIR/README.md"  "$TMP_DIR/"
+cp "$SKILL_DIR/package.json" "$TMP_DIR/"
 mkdir -p "$TMP_DIR/scripts"
-cp "$CLONE_DIR/scripts/setup.js" "$TMP_DIR/scripts/"
+cp "$SKILL_DIR/scripts/setup.js" "$TMP_DIR/scripts/"
 mkdir -p "$TMP_DIR/references"
-cp "$CLONE_DIR/references/manifest.json" "$TMP_DIR/references/"
+cp "$SKILL_DIR/references/manifest.json" "$TMP_DIR/references/"
 ```
 
 Total upload size: ~50 KB.
@@ -79,7 +76,7 @@ clawhub publish "$TMP_DIR" \
 ### 5. Clean up
 
 ```bash
-rm -rf "$CLONE_DIR" "$TMP_DIR"
+rm -rf "$TMP_DIR"
 ```
 
 ---
