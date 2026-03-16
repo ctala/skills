@@ -157,6 +157,35 @@ City page: `en.uhomes.com/us/boston`
 
 ---
 
+## Japan
+
+### Tokyo
+City page: `en.uhomes.com/jp/tokyo`
+
+| University | Slug | URL |
+|-----------|------|-----|
+| University of Tokyo | `university-of-tokyo` | `en.uhomes.com/jp/tokyo/university-of-tokyo` |
+| Waseda University | `waseda-university` | `en.uhomes.com/jp/tokyo/waseda-university` |
+| Keio University | `keio-university` | `en.uhomes.com/jp/tokyo/keio-university` |
+| Tokyo Institute of Technology | `tokyo-institute-of-technology` | `en.uhomes.com/jp/tokyo/tokyo-institute-of-technology` |
+
+### Osaka
+City page: `en.uhomes.com/jp/osaka`
+
+| University | Slug | URL |
+|-----------|------|-----|
+| Osaka University | `osaka-university` | `en.uhomes.com/jp/osaka/osaka-university` |
+
+### Other JP Cities
+
+| City | City Page |
+|------|-----------|
+| Kyoto | `en.uhomes.com/jp/kyoto` |
+| Nagoya | `en.uhomes.com/jp/nagoya` |
+| Fukuoka | `en.uhomes.com/jp/fukuoka` |
+
+---
+
 ## Slug Construction Guide
 
 When a university is not in this index, construct the slug from the university's full English name:
