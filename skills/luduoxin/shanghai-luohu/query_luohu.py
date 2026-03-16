@@ -2,15 +2,17 @@
 """
 上海落户公示查询工具
 功能：抓取上海国际人才网的落户公示信息并使用浏览器打开
+支持：macOS, Windows, Linux 全平台
 """
 
 import subprocess
 import sys
 import re
 import argparse
+import platform
+import webbrowser
 from urllib.request import urlopen, Request
 from datetime import datetime
-import html
 
 # 公示列表页 URL
 LIST_URL = "https://www.sh-italent.com/News/NewsList.aspx?TagID=5696"
@@ -18,81 +20,96 @@ BASE_URL = "https://www.sh-italent.com"
 
 # User-Agent
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 }
+
+
+def get_platform():
+    """获取当前操作系统"""
+    system = platform.system().lower()
+    if system == 'darwin':
+        return 'macos'
+    elif system == 'windows':
+        return 'windows'
+    elif system == 'linux':
+        return 'linux'
+    return system
+
 
 def fetch_url(url):
     """获取网页内容"""
     try:
         req = Request(url, headers=HEADERS)
-        with urlopen(req, timeout=10) as response:
+        with urlopen(req, timeout=15) as response:
             return response.read().decode('utf-8', errors='ignore')
     except Exception as e:
         print(f"错误：无法获取 {url}: {e}")
         return None
 
+
 def extract_links(html_content):
     """从列表页面提取公示链接"""
-    # 匹配公示文章链接
     pattern = r'href="(https://www\.sh-italent\.com/Article/\d+/\d+\.shtml)"'
     links = re.findall(pattern, html_content)
     return links
 
+
 def extract_article_info(html_content):
     """提取公示文章信息"""
-    # 提取标题
     title_match = re.search(r'<title>([^<]+)</title>', html_content)
     title = title_match.group(1).replace('_上海国际人才网', '').strip() if title_match else "未知标题"
     
-    # 提取公示时间
     date_match = re.search(r'(\d{4}-\d{2}-\d{2})', html_content)
     date = date_match.group(1) if date_match else "未知日期"
     
-    # 提取公示人数（通过表格行数）
-    tr_count = len(re.findall(r'<tr', html_content, re.IGNORECASE))
-    # 估算人数（减去表头）
-    count = max(0, tr_count - 3) if tr_count > 5 else "未知"
-    
-    return {
-        'title': title,
-        'date': date,
-        'count': count
-    }
+    return {'title': title, 'date': date}
 
-def get_default_browser():
-    """检测 macOS 默认浏览器"""
+
+def open_browser(urls, browser=None):
+    """打开浏览器（跨平台）"""
+    platform_name = get_platform()
+    
+    print(f"正在打开浏览器...")
+    
+    # 如果指定了浏览器，尝试使用指定的浏览器
+    if browser:
+        try:
+            # 使用 webbrowser 模块
+            browser_map = {
+                'Chrome': 'chrome',
+                'Firefox': 'firefox',
+                'Edge': 'edge',
+                'Safari': 'safari',
+                'Brave': 'brave',
+                'Opera': 'opera',
+            }
+            browser_name = browser_map.get(browser, browser.lower())
+            
+            for url in urls:
+                webbrowser.get(browser_name).open(url)
+            return True
+        except:
+            print(f"警告：无法使用 {browser}，使用默认浏览器")
+    
+    # macOS 特殊处理：使用 AppleScript 支持多标签页
+    if platform_name == 'macos':
+        return open_browser_macos(urls, browser)
+    
+    # Windows / Linux: 使用默认浏览器
     try:
-        result = subprocess.run(
-            ['osascript', '-e', 'tell application "System Events" to get name of first login item'],
-            capture_output=True, text=True
-        )
-        # 通过默认浏览器配置文件检测
-        result = subprocess.run(
-            ['osascript', '-e', 
-             'do shell script "defaults read com.apple.LaunchServices/com.apple.launchservices.secure LSHandlers | grep -A1 \\"LSHandlerRoleAll\\\\" | tail -1 | cut -d\'\\"\' -f2"'],
-            capture_output=True, text=True
-        )
-        bundle_id = result.stdout.strip()
-        
-        # 映射 bundle ID 到浏览器名称
-        browser_map = {
-            'com.apple.Safari': 'Safari',
-            'com.google.Chrome': 'Chrome',
-            'org.mozilla.firefox': 'Firefox',
-            'com.microsoft.edgemac': 'Edge',
-            'com.brave.Browser': 'Brave',
-            'com.operasoftware.Opera': 'Opera',
-        }
-        return browser_map.get(bundle_id, 'Safari')
-    except:
-        return 'Safari'
+        for url in urls:
+            webbrowser.open(url)
+        return True
+    except Exception as e:
+        print(f"打开浏览器失败: {e}")
+        return False
 
-def open_browser_with_applescript(urls, browser=None):
-    """使用 AppleScript 打开浏览器"""
+
+def open_browser_macos(urls, browser=None):
+    """macOS 使用 AppleScript 打开浏览器"""
     if browser is None:
-        browser = get_default_browser()
+        browser = 'Safari'
     
-    # 浏览器 AppleScript 名称映射
     browser_names = {
         'Safari': 'Safari',
         'Chrome': 'Google Chrome',
@@ -104,129 +121,43 @@ def open_browser_with_applescript(urls, browser=None):
     
     app_name = browser_names.get(browser, 'Safari')
     
-    print(f"正在使用 {browser} 浏览器打开...")
-    
-    # 根据不同浏览器生成 AppleScript
-    if browser == 'Safari':
-        applescript = f'''
-tell application "Safari"
+    applescript = f'''
+tell application "{app_name}"
     activate
 '''
-        for i, url in enumerate(urls):
-            if i == 0:
-                applescript += f'''
-    open location "{url}"
-    delay 1
-'''
-            else:
-                applescript += f'''
-    tell application "System Events" to keystroke "t" using {{command down}}
-    delay 0.5
-    set URL of document 1 to "{url}"
-    delay 0.5
-'''
-        applescript += '''
-end tell
-'''
-    elif browser == 'Chrome':
-        applescript = f'''
-tell application "Google Chrome"
-    activate
-'''
-        for i, url in enumerate(urls):
-            applescript += f'''
-    if (count of windows) = 0 then
-        make new window
-    end if
+    for i, url in enumerate(urls):
+        applescript += f'''
     open location "{url}"
     delay 0.5
 '''
-        applescript += '''
-end tell
-'''
-    elif browser == 'Firefox':
-        applescript = f'''
-tell application "Firefox"
-    activate
-'''
-        for url in urls:
-            applescript += f'''
-    open location "{url}"
-    delay 1
-'''
-        applescript += '''
-end tell
-'''
-    elif browser == 'Edge':
-        applescript = f'''
-tell application "Microsoft Edge"
-    activate
-'''
-        for url in urls:
-            applescript += f'''
-    open location "{url}"
-    delay 0.5
-'''
-        applescript += '''
-end tell
-'''
-    elif browser == 'Brave':
-        applescript = f'''
-tell application "Brave"
-    activate
-'''
-        for url in urls:
-            applescript += f'''
-    open location "{url}"
-    delay 0.5
-'''
-        applescript += '''
-end tell
-'''
-    elif browser == 'Opera':
-        applescript = f'''
-tell application "Opera"
-    activate
-'''
-        for url in urls:
-            applescript += f'''
-    open location "{url}"
-    delay 0.5
-'''
-        applescript += '''
-end tell
-'''
-    else:
-        # 默认使用 Safari
-        applescript = f'''
-tell application "Safari"
-    activate
-    open location "{urls[0]}"
+    applescript += '''
 end tell
 '''
     
     try:
         subprocess.run(['osascript', '-e', applescript], check=True)
         return True
-    except subprocess.CalledProcessError as e:
-        print(f"警告：无法打开 {browser}，尝试使用默认浏览器...")
-        # 回退到使用 macOS 默认打开方式
+    except:
+        # 回退到 webbrowser
         try:
             for url in urls:
-                subprocess.run(['open', url], check=True)
+                webbrowser.open(url)
             return True
-        except Exception as e2:
-            print(f"打开浏览器失败: {e2}")
+        except:
             return False
 
+
 def main():
-    # 解析命令行参数
     parser = argparse.ArgumentParser(description='上海落户公示信息查询工具')
     parser.add_argument('-b', '--browser', 
                         choices=['Safari', 'Chrome', 'Firefox', 'Edge', 'Brave', 'Opera'],
-                        help='指定使用的浏览器 (Safari/Chrome/Firefox/Edge/Brave/Opera)')
+                        help='指定使用的浏览器')
     parser.add_argument('-n', '--no-browser', action='store_true',
                         help='不打开浏览器，仅输出查询结果')
+    parser.add_argument('-c', '--company', type=str,
+                        help='查询指定公司的落户公示名单')
+    parser.add_argument('-p', '--person', type=str,
+                        help='查询指定人员的落户公示')
     args = parser.parse_args()
     
     print("=" * 50)
@@ -255,20 +186,13 @@ def main():
     talent_url = None
     juzhuan_url = None
     
-    for link in links[:5]:  # 只检查前5个链接
-        if '引进人才' in link or talent_url is None:
-            html_content = fetch_url(link)
-            if html_content:
-                if '引进人才' in html_content and talent_url is None:
-                    talent_url = link
-                elif '居住证' in html_content and juzhuan_url is None:
-                    juzhuan_url = link
-    
-    # 如果上面没找到，就用列表顺序
-    if not talent_url and len(links) > 0:
-        talent_url = links[0]
-    if not juzhuan_url and len(links) > 1:
-        juzhuan_url = links[1]
+    for link in links[:5]:
+        html_content = fetch_url(link)
+        if html_content:
+            if '引进人才' in html_content and talent_url is None:
+                talent_url = link
+            elif '居住证' in html_content and juzhuan_url is None:
+                juzhuan_url = link
     
     print(f"✓ 人才引进公示: {talent_url}")
     print(f"✓ 居转户公示: {juzhuan_url}")
@@ -321,6 +245,7 @@ def main():
     
     print("=" * 50)
     print(f"查询时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"运行平台: {get_platform().upper()}")
     print("=" * 50)
     print()
     
@@ -328,15 +253,13 @@ def main():
     if args.no_browser:
         print("提示：跳过浏览器打开（使用了 --no-browser 参数）")
     else:
-        print("正在打开浏览器查看公示页面...")
-        
         urls_to_open = [LIST_URL]
         if talent_url:
             urls_to_open.append(talent_url)
         if juzhuan_url:
             urls_to_open.append(juzhuan_url)
         
-        if open_browser_with_applescript(urls_to_open, args.browser):
+        if open_browser(urls_to_open, args.browser):
             print("✓ 浏览器已打开")
         else:
             print("提示：请手动访问以下链接查看公示：")
@@ -345,6 +268,7 @@ def main():
     
     print()
     print("提示：公示期通常为 5 天，每月两次公示（月中和月底）")
+
 
 if __name__ == "__main__":
     main()
