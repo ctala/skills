@@ -1,11 +1,17 @@
 {
   "owner": "chenchaoqun",
   "slug": "ssq-lottery",
-  "displayName": "Ssq Lottery",
+  "displayName": "双色球开奖查询",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772802500651,
-    "commit": "https://github.com/openclaw/skills/commit/61b8f837c5069caa8440018a7ba9c430391ba4bb"
+    "version": "1.0.2",
+    "publishedAt": 1773418999098,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772802500651,
+      "commit": "https://github.com/openclaw/skills/commit/61b8f837c5069caa8440018a7ba9c430391ba4bb"
+    }
+  ]
 }

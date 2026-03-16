@@ -6,7 +6,7 @@
 数据源优先级:
 1. http://kaijiang.zhcw.com/zhcw/html/ssq/list.html  (中国福彩网 - 官方)
 2. http://m.zhcw.com/ssq/  (福彩网手机版 - 官方备用)
-3. https://www.500.com/ssq/  (500 彩票网 - 第三方)
+3. https://zx.500.com/ssq/  (500 彩票网 - 第三方，新地址)
 4. https://lottery.sina.com.cn/ssq/  (新浪彩票 - 第三方)
 
 Usage: python ssq_lottery.py [期号]
@@ -40,8 +40,8 @@ DATA_SOURCES = [
     },
     {
         'name': '500 彩票网',
-        'url_list': 'https://www.500.com/ssq/',
-        'url_issue': 'https://www.500.com/ssq/kjgg/{issue}.shtml',
+        'url_list': 'https://zx.500.com/ssq/',
+        'url_issue': 'https://zx.500.com/ssq/',  # 新地址不支持按期号查询，返回列表页
         'priority': 'third_party',
         'timeout': 10,
     },
@@ -68,8 +68,25 @@ def fetch_lottery_page(url: str, timeout: int = 15) -> str:
     try:
         req = urllib.request.Request(url, headers=HEADERS)
         with urllib.request.urlopen(req, timeout=timeout) as response:
-            html = response.read().decode('utf-8')
-            # 检查是否是错误页面
+            # 尝试检测编码
+            content_type = response.headers.get('Content-Type', '')
+            charset = 'utf-8'
+            if 'charset=' in content_type:
+                charset = content_type.split('charset=')[-1].split(';')[0].strip()
+            
+            raw_html = response.read()
+            try:
+                html = raw_html.decode(charset)
+            except (UnicodeDecodeError, LookupError):
+                # 编码检测失败时尝试 utf-8 或 gb2312
+                try:
+                    html = raw_html.decode('utf-8')
+                except:
+                    try:
+                        html = raw_html.decode('gb2312')
+                    except:
+                        html = raw_html.decode('utf-8', errors='ignore')
+            
             if '404' in html or '无法访问' in html or '页面不存在' in html:
                 return f"ERROR:页面不存在 (404)"
             return html
@@ -126,25 +143,49 @@ def parse_zhcw(html: str) -> dict:
 
 
 def parse_500(html: str) -> dict:
-    """解析 500 彩票网数据"""
+    """
+    解析 500 彩票网数据 (新地址：zx.500.com)
+    
+    新页面结构:
+    - 红球：<li class="redball">XX</li>
+    - 蓝球：<li class="blueball">XX</li>
+    - 期号：从开奖链接提取 (如 /ssq/n_dt/kj/20260226_699541.shtml)
+    """
     result = {'issue': '', 'date': '', 'red_balls': [], 'blue_ball': '', 'prize_pool': '', 'source': '500 彩票网'}
     html = unescape(html)
     
-    # 期号
-    match = re.search(r'第\s*(\d{7,8})\s*期', html)
-    if match:
-        result['issue'] = match.group(1)
+    # 移除 HTML 注释干扰
+    html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
+    
+    # 期号：从开奖链接提取 (最新一期的链接)
+    # 格式：/ssq/n_dt/kj/20260226_699541.shtml
+    # 找所有期号，取第一个（最新）
+    matches = re.findall(r'/ssq/n_dt/kj/(\d{8})_\d+\.shtml', html)
+    if matches:
+        # 取最大的期号（最新一期）
+        result['issue'] = max(matches)
     
     # 日期
     match = re.search(r'(\d{4}-\d{2}-\d{2})', html)
     if match:
         result['date'] = match.group(1)
     
-    # 号码 (500 网格式：红球 + 蓝球)
-    combo_match = re.search(r'(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})', html)
-    if combo_match:
-        result['red_balls'] = list(combo_match.groups()[:6])
-        result['blue_ball'] = combo_match.group(7).zfill(2) if len(combo_match.groups()) > 6 else ''
+    # 红球：<li class="redball">XX</li>
+    red_matches = re.findall(r'class="redball">(\d{2})<', html)
+    if red_matches:
+        result['red_balls'] = red_matches[:6]
+    
+    # 蓝球：<li class="blueball">XX</li>
+    blue_matches = re.findall(r'class="blueball">(\d{2})<', html)
+    if blue_matches:
+        result['blue_ball'] = blue_matches[0].zfill(2)
+    
+    # 如果上面的方法失败，回退到旧格式
+    if not result['red_balls'] or not result['blue_ball']:
+        combo_match = re.search(r'(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})', html)
+        if combo_match:
+            result['red_balls'] = list(combo_match.groups()[:6])
+            result['blue_ball'] = combo_match.group(7).zfill(2) if len(combo_match.groups()) > 6 else ''
     
     return result
 
