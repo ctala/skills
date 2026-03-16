@@ -33,7 +33,7 @@ Or configure per request (see below).
 
 ### Transcribe Audio File
 ```bash
-curl -X POST "${WILLOW_BASE_URL}/asr" \
+curl -X POST "${WILLOW_BASE_URL}/api/asr" \
   -F "audio_file=@/path/to/audio.m4a" \
   -F "language=auto"
 ```

@@ -3,9 +3,15 @@
   "slug": "willow-inference-server",
   "displayName": "Willow Inference Server",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772966073103,
-    "commit": "https://github.com/openclaw/skills/commit/d885b1b8b4f2460013615c80532a8e0379fd38b2"
+    "version": "1.0.1",
+    "publishedAt": 1773675304304,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772966073103,
+      "commit": "https://github.com/openclaw/skills/commit/d885b1b8b4f2460013615c80532a8e0379fd38b2"
+    }
+  ]
 }
