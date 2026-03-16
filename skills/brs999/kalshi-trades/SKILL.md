@@ -1,6 +1,9 @@
 ---
-name: kalshi-trading
+name: kalshi-trades
 description: Read-only Kalshi OpenAPI scouting skill for market discovery, liquidity checks, and market validation. Use for scanning and ranking Kalshi opportunities. Pair with a separate paper-trading skill if you want open/close execution.
+homepage: https://docs.kalshi.com
+user-invocable: true
+disable-model-invocation: true
 metadata:
   {
     "openclaw":
@@ -11,7 +14,7 @@ metadata:
   }
 ---
 
-# Kalshi Trading (OpenAPI, Read-Only)
+# Kalshi Trades (OpenAPI Read-Only)
 
 Use this skill for Kalshi scouting and market validation only.
 
@@ -26,23 +29,23 @@ Use this skill for Kalshi scouting and market validation only.
 Exchange status:
 
 ```bash
-node skills/kalshi-trading/scripts/kalshi_openapi_reader.mjs status --pretty
+node {baseDir}/scripts/kalshi-trades.mjs status --pretty
 ```
 
 Broad market scan:
 
 ```bash
-node skills/kalshi-trading/scripts/kalshi_openapi_reader.mjs markets --status open --limit 1000 --pretty
-node skills/kalshi-trading/scripts/kalshi_openapi_reader.mjs events --limit 100 --pretty
-node skills/kalshi-trading/scripts/kalshi_openapi_reader.mjs series --limit 400 --pretty
+node {baseDir}/scripts/kalshi-trades.mjs markets --status open --limit 1000 --pretty
+node {baseDir}/scripts/kalshi-trades.mjs events --limit 100 --pretty
+node {baseDir}/scripts/kalshi-trades.mjs series --limit 400 --pretty
 ```
 
 Focused validation:
 
 ```bash
-node skills/kalshi-trading/scripts/kalshi_openapi_reader.mjs market --ticker <TICKER> --pretty
-node skills/kalshi-trading/scripts/kalshi_openapi_reader.mjs trades --ticker <TICKER> --limit 200 --pretty
-node skills/kalshi-trading/scripts/kalshi_openapi_reader.mjs orderbook --ticker <TICKER> --pretty
+node {baseDir}/scripts/kalshi-trades.mjs market --ticker <TICKER> --pretty
+node {baseDir}/scripts/kalshi-trades.mjs trades --ticker <TICKER> --limit 200 --pretty
+node {baseDir}/scripts/kalshi-trades.mjs orderbook --ticker <TICKER> --pretty
 ```
 
 ## Optional Integration: Paper Ledger Skill Required
@@ -67,5 +70,5 @@ export KALSHI_BASE_URL="https://api.elections.kalshi.com/trade-api/v2"
 Run the Kalshi reader smoke tests:
 
 ```bash
-node --test skills/kalshi-trading/tests/kalshi_openapi_reader.test.mjs
+node --test {baseDir}/tests/kalshi-trades.test.mjs
 ```

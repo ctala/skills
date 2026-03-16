@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const scriptPath = resolve(__dirname, '../scripts/kalshi_openapi_reader.mjs');
+const scriptPath = resolve(__dirname, '../scripts/kalshi-trades.mjs');
 
 function runCli(args) {
   const res = spawnSync(process.execPath, [scriptPath, ...args], {
@@ -22,7 +22,7 @@ test('help prints usage and exits 0', () => {
   const out = runCli(['help']);
   assert.equal(out.code, 0, `Expected success. stderr:\n${out.stderr}`);
   assert.match(out.stdout, /Usage:/);
-  assert.match(out.stdout, /kalshi_openapi_reader\.mjs/);
+  assert.match(out.stdout, /kalshi-trades\.mjs/);
 });
 
 test('status returns JSON with exchange fields', () => {

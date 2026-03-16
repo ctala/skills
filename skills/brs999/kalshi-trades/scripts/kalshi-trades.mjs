@@ -82,17 +82,17 @@ async function main() {
   if (!cmd || cmd === "help" || cmd === "--help") {
     process.stdout.write(
       [
-        "kalshi_openapi_reader.mjs",
+        "kalshi-trades.mjs",
         "",
         "Usage:",
-        "  node kalshi_openapi_reader.mjs status [--pretty]",
-        "  node kalshi_openapi_reader.mjs markets --limit 500 [--status open] [--series KXBTC] [--event <ticker>] [--cursor <c>] [--pretty]",
-        "  node kalshi_openapi_reader.mjs market --ticker <market_ticker> [--pretty]",
-        "  node kalshi_openapi_reader.mjs orderbook --ticker <market_ticker> [--depth 50] [--pretty]",
-        "  node kalshi_openapi_reader.mjs trades [--ticker <market_ticker>] [--limit 100] [--cursor <c>] [--min_ts <unix>] [--max_ts <unix>] [--pretty]",
-        "  node kalshi_openapi_reader.mjs events [--limit 100] [--status open] [--series <series_ticker>] [--cursor <c>] [--pretty]",
-        "  node kalshi_openapi_reader.mjs event --event <event_ticker> [--pretty]",
-        "  node kalshi_openapi_reader.mjs series [--limit 400] [--category Economics] [--cursor <c>] [--pretty]",
+        "  node kalshi-trades.mjs status [--pretty]",
+        "  node kalshi-trades.mjs markets --limit 500 [--status open] [--series KXBTC] [--event <ticker>] [--cursor <c>] [--pretty]",
+        "  node kalshi-trades.mjs market --ticker <market_ticker> [--pretty]",
+        "  node kalshi-trades.mjs orderbook --ticker <market_ticker> [--depth 50] [--pretty]",
+        "  node kalshi-trades.mjs trades [--ticker <market_ticker>] [--limit 100] [--cursor <c>] [--min_ts <unix>] [--max_ts <unix>] [--pretty]",
+        "  node kalshi-trades.mjs events [--limit 100] [--status open] [--series <series_ticker>] [--cursor <c>] [--pretty]",
+        "  node kalshi-trades.mjs event --event <event_ticker> [--pretty]",
+        "  node kalshi-trades.mjs series [--limit 400] [--category Economics] [--cursor <c>] [--pretty]",
       ].join("\n"),
     );
     return;
