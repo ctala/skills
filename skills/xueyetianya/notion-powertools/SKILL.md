@@ -1,12 +1,13 @@
 ---
+version: "2.0.0"
 name: notion-powertools
 description: "Unknown: help. Use when you need notion powertools capabilities. Triggers on: notion powertools, token, database-id, page-id, title, content."
+author: BytesAgain
 ---
 
 # Notion Powertools
 
-
-A comprehensive Notion API toolkit for managing pages, databases, blocks, and content directly from the command line. Create and update pages, query databases with filters, manage block content, search across your workspace, and export structured data — all using the official Notion API with your own integration token.
+A complete Notion API toolkit for managing pages, databases, blocks, and content directly from the command line. Create and update pages, query databases with filters, manage block content, search across your workspace, and export structured data — all using the official Notion API with your own integration token.
 
 ## Description
 
@@ -14,21 +15,21 @@ Notion Powertools provides full programmatic access to your Notion workspace. Wh
 
 ## Requirements
 
-- `NOTION_API_KEY` — Your Notion integration token (starts with `ntn_` or `secret_`)
-- Create an integration at https://www.notion.so/my-integrations
+- `search` — Search workspace (--query)
+- `list-databases` — List all databases
+- `query-database` — Query a database (--database-id)
+- `create-page` — Create a page (--database-id --title --content)
+- `get-page` — Get page details (--page-id)
+- `update-page` — Update a page (--page-id --title)
+- `list-blocks` — List page blocks (--page-id)
+- `append-block` — Append content to page (--page-id --content)
+- Create an integration at [configured-endpoint]
 - Share target pages/databases with your integration
 
 ## Commands
 
-- `append-block` — Error: --page-id required
-- `create-page` — Error: --database-id required
-- `database-id` — -gt 0 ]; do
-- `get-page` — Error: --page-id required
-- `list-blocks` — Error: --page-id required
-- `list-databases` — Execute list-databases
-- `query-database` — Error: --database-id required
-- `stdin` — Execute stdin
-- `update-page` — Error: --page-id required
+See commands above.
+
 ## Environment Variables
 
 | Variable | Required | Description |
