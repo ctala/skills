@@ -1,14 +1,13 @@
 ---
+version: "2.0.0"
 name: raspberry-pi-manager
-version: 1.0.0
-description: Manage Raspberry Pi devices — GPIO control, system monitoring (CPU/temp/memory), service management, sensor data reading, and remote deployment.
+description: "Manage Raspberry Pi devices — GPIO control, system monitoring (CPU/temp/memory), service management, sensor data reading, and remote deployment. Use when you need raspberry pi manager capabilities. Triggers on: raspberry pi manager."
+author: BytesAgain
 ---
 
 # Raspberry Pi Manager
 
 A Swiss Army knife for Raspberry Pi administration. Whether you're running a single Pi as a home server or managing a fleet of IoT nodes, this toolkit gives you instant access to system stats, GPIO pins, services, sensors, and deployment workflows.
-
-## How It Works
 
 The script runs locally on the Pi or connects remotely via SSH. For local use, just execute the script directly. For remote management, configure SSH access.
 
@@ -259,3 +258,10 @@ bash scripts/pi-manager.sh alert check
 ```
 
 Designed to be used standalone or as part of a larger IoT management workflow. Pair with `homeassistant-toolkit` for full smart home integration.
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Commands
+
+Run `raspberry-pi-manager help` to see all available commands.
