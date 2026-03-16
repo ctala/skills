@@ -1,7 +1,7 @@
 ---
 name: ai-task-hub
 description: AI task hub for image analysis, background removal, speech-to-text, text-to-speech, markdown conversion, points balance/ledger lookup, and async execute/poll/presentation orchestration. Use when users need hosted AI outcomes while host runtime manages identity, credits, payment, and risk control.
-version: 3.2.5
+version: 3.2.10
 metadata:
   openclaw:
     skillKey: ai-task-hub
@@ -104,7 +104,8 @@ Identifier format constraints used by gateway auth:
 
 - `agent_uid` must match `^agent_[a-z0-9][a-z0-9_-]{5,63}$`.
 - `conversation_id` must match `^[A-Za-z0-9._:-]{8,128}$`.
-- Do not pass persona aliases like `code`/`ops` directly as `agent_uid`; host should map internal agent IDs to canonical `agent_uid`.
+- In direct task-token mode, do not pass short host aliases like `assistant`/`planner` directly as `agent_uid`; host should map internal agent IDs to canonical `agent_uid`.
+- In deployed bridge mode, host may pass its own stable runtime agent identifier and the gateway bridge will canonicalize it server-side.
 
 Required scope per action:
 
@@ -129,6 +130,14 @@ CLI argument order for `scripts/skill.mjs`:
 Host-side token bridge (outside published package):
 
 - To keep this package compliant and low-privilege, token issuance is expected to happen in host runtime.
+- Preferred deployed bridge endpoint: `POST /agent/skill/bridge/invoke`.
+- That bridge endpoint is served by gateway runtime, not bundled into this published package, and does not require caller-managed `AGENT_TASK_TOKEN`.
+- Bridge request body should include `action`, `agent_uid`, `conversation_id`, and optional `payload`.
+- `conversation_id` should be a host-generated opaque session/install identifier, not a public chat ID, raw thread ID, or PII.
+- Public bridge derives session-scoped owner identity from `conversation_id` and shares one account across agent aliases inside that conversation.
+- Cross-conversation account continuity requires a trusted host token bridge or direct mode with host-issued `AGENT_TASK_TOKEN`; public bridge intentionally does not accept owner overrides.
+- Gateway bridge will canonicalize `agent_uid`, repair binding when missing, issue short-lived internal task token, and run the action server-side.
+- `base_url`, `gateway_api_key`, `api_key`, `user_token`, `agent_task_token`, `owner_uid_hint`, and `install_channel` overrides are rejected by the deployed bridge endpoint.
 - Host may call `POST /agent/task-token/issue` with host-managed gateway credential headers and then inject the returned `AGENT_TASK_TOKEN`.
 - Recommended host behavior: retry once on `AUTH_UNAUTHORIZED` by refreshing task token, then re-run the same action.
 
@@ -148,7 +157,31 @@ Binding bootstrap on `SYSTEM_NOT_FOUND`:
 
 ## Agent Invocation Quickstart
 
-Preferred invocation modes for agents:
+Preferred invocation mode for host-integrated agents (recommended):
+
+- Deployed bridge API:
+```json
+{
+  "action": "portal.account.balance",
+  "agent_uid": "support_assistant",
+  "conversation_id": "host_session_20260316_opaque_001",
+  "payload": {}
+}
+```
+
+- Send that body to `POST /agent/skill/bridge/invoke`.
+- This is the recommended production entrypoint for agent-friendly integration.
+- `agent_uid` should be your host-defined stable runtime agent identifier.
+- `conversation_id` should be your host-generated opaque session/install identifier; it is not tied to Telegram or any single tool.
+- Reuse the same opaque `conversation_id` across agent aliases when those aliases should share one account inside the same host session.
+- If you need one account across multiple conversations or threads, use a trusted host token bridge instead of passing owner identity through the public bridge request.
+
+Direct `scripts/skill.mjs` invocation is fallback-only:
+
+- Use direct mode only when runtime already injects short-lived `AGENT_TASK_TOKEN`.
+- Do not ask end users to paste token manually in normal host-integrated flows.
+
+Fallback direct mode examples:
 
 - Action-first + env token:
 ```bash
@@ -159,7 +192,7 @@ AGENT_TASK_TOKEN=<token> node scripts/skill.mjs portal.account.balance '{}'
 node scripts/skill.mjs <agent_task_token> portal.skill.poll '{"run_id":"run_123"}'
 ```
 
-Action payload templates:
+Action payload templates (same for bridge API and direct mode):
 
 - `portal.skill.execute`
 ```json
@@ -188,11 +221,19 @@ Action payload templates:
 
 Agent-side decision flow:
 
+- Always prefer `POST /agent/skill/bridge/invoke` so binding repair and token lifecycle stay host-managed.
 - New task: call `portal.skill.execute`, then poll with `portal.skill.poll` until `data.terminal=true`, then fetch `portal.skill.presentation`.
 - Account query: call `portal.account.balance` or `portal.account.ledger` directly.
-- If `AUTH_UNAUTHORIZED` + `agent task token is required`: request host to issue/inject short-lived `AGENT_TASK_TOKEN`, then retry once.
-- If `AUTH_UNAUTHORIZED` + `agent_uid claim format is invalid`: use canonical `agent_uid` (`agent_...`) instead of persona alias (`code`, `ops`).
+- Reuse the same opaque `conversation_id` across agent aliases when one host session should share one balance/ledger.
+- For cross-conversation continuity, use a trusted host token bridge or direct mode with host-issued `AGENT_TASK_TOKEN`; do not pass `owner_uid_hint` to the public bridge endpoint.
+- If using direct mode and `AUTH_UNAUTHORIZED` + `agent task token is required`: request host to issue/inject short-lived `AGENT_TASK_TOKEN`, then retry once.
+- If `AUTH_UNAUTHORIZED` + `agent_uid claim format is invalid`: use canonical `agent_uid` (`agent_...`) instead of a short host alias (`assistant`, `planner`).
 - If `SYSTEM_NOT_FOUND` + `agent binding not found`: host should run one binding bootstrap cycle, then retry token issuance.
+
+Host token-issue auth headers:
+
+- `X-API-Key: <gateway_api_key>` + `x-agent-uid: <agent_uid>`
+- or `Authorization: Bearer <gateway_api_key>` + `x-agent-uid: <agent_uid>`
 
 Output parsing contract:
 

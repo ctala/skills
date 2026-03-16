@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Task Hub Skill API",
-    "version": "3.2.5",
+    "version": "3.2.10",
     "description": "Public skill contract for execute/poll/presentation/account balance/account ledger via host-managed agent task token."
   },
   "servers": [
@@ -106,14 +106,13 @@
     "interactive_fallback_authorization_url_template": "https://<host-owned-domain>/agent-auth?agent_uid=<agent_uid>&conversation_id=<conversation_id>"
   },
   "x-agent-invocation-guide": {
+    "preferred_entrypoint": "bridge_api",
+    "host_bridge_note": "Host bridge entrypoint is host-owned integration code and is not bundled in this published package.",
     "cli_modes": [
       {
-        "name": "action_first_env_token",
-        "command": "AGENT_TASK_TOKEN=<token> node scripts/skill.mjs portal.account.balance '{}'"
-      },
-      {
-        "name": "explicit_token_arg",
-        "command": "node scripts/skill.mjs <agent_task_token> portal.skill.poll '{\"run_id\":\"run_123\"}'"
+        "name": "direct_preinjected_token",
+        "command": "AGENT_TASK_TOKEN=<token> node scripts/skill.mjs portal.account.balance '{}'",
+        "recommended": false
       }
     ],
     "action_payload_templates": {
@@ -160,7 +159,31 @@
         },
         "host_action": "run_binding_bootstrap_once_then_retry_token_issue"
       }
-    ]
+    ],
+    "host_token_issue_auth_headers": [
+      "X-API-Key: <gateway_api_key> + x-agent-uid: <agent_uid>",
+      "Authorization: Bearer <gateway_api_key> + x-agent-uid: <agent_uid>"
+    ],
+    "bridge_api": {
+      "endpoint": "/agent/skill/bridge/invoke",
+      "method": "POST",
+      "requires_caller_managed_task_token": false,
+      "request_body": {
+        "action": "portal.account.balance",
+        "agent_uid": "support_assistant",
+        "conversation_id": "host_session_20260316_opaque_001",
+        "payload": {}
+      },
+      "notes": [
+        "Preferred production entrypoint for agent-friendly integration.",
+        "agent_uid should be the host-defined stable runtime agent identifier; bridge canonicalizes it server-side per session-scoped owner.",
+        "conversation_id should be a host-generated opaque session or install identifier, not a public chat id, raw thread id, or PII.",
+        "Public bridge derives session-scoped owner identity from conversation_id and shares one account across agent aliases inside that conversation.",
+        "Cross-conversation account continuity requires a trusted host token bridge; public bridge intentionally stays conversation-scoped.",
+        "Gateway canonicalizes agent_uid, repairs binding when missing, and issues action-scoped task token internally.",
+        "base_url, gateway_api_key, api_key, user_token, agent_task_token, owner_uid_hint, and install_channel overrides are rejected by this bridge endpoint."
+      ]
+    }
   },
   "paths": {
     "/agent/skill/execute": {
@@ -221,6 +244,73 @@
             "AgentTaskToken": []
           }
         ]
+      }
+    },
+    "/agent/skill/bridge/invoke": {
+      "post": {
+        "summary": "Preferred bridge invoke endpoint",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "action",
+                  "agent_uid",
+                  "conversation_id"
+                ],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "portal.skill.execute",
+                      "portal.skill.poll",
+                      "portal.skill.presentation",
+                      "portal.account.balance",
+                      "portal.account.ledger"
+                    ]
+                  },
+                  "agent_uid": {
+                    "type": "string"
+                  },
+                  "conversation_id": {
+                    "type": "string"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "options": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                      "expires_in_seconds": {
+                        "type": "integer",
+                        "minimum": 60,
+                        "maximum": 900
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bridge-invoked read/poll/presentation result"
+          },
+          "202": {
+            "description": "Bridge-invoked execute accepted"
+          },
+          "400": {
+            "description": "Invalid bridge request"
+          },
+          "429": {
+            "description": "Bootstrap rate limit exceeded"
+          }
+        }
       }
     }
   },

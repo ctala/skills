@@ -1,7 +1,7 @@
 ---
 name: ai-task-hub
 description: AI Task Hub 用于图像检测与分析、去背景与抠图、语音转文字、文本转语音、文档转 Markdown、积分余额/流水查询和异步任务编排。适用于用户需要通过 execute/poll/presentation 与账户积分查询完成结果交付，且由宿主统一管理身份、积分、支付和风控的场景。
-version: 3.2.5
+version: 3.2.10
 metadata:
   openclaw:
     skillKey: ai-task-hub
@@ -102,7 +102,8 @@ Action 与接口映射：
 
 - `agent_uid` 必须匹配 `^agent_[a-z0-9][a-z0-9_-]{5,63}$`。
 - `conversation_id` 必须匹配 `^[A-Za-z0-9._:-]{8,128}$`。
-- 不要把 `code`/`ops` 这类人格别名直接当作 `agent_uid`；宿主应先映射到规范化 `agent_uid`。
+- 在直连 task-token 模式下，不要把 `assistant`/`planner` 这类宿主短别名直接当作 `agent_uid`；宿主应先映射到规范化 `agent_uid`。
+- 在已部署 bridge 模式下，宿主可以传入自己的稳定运行时 agent 标识，由网关 bridge 在服务端完成规范化。
 
 Action 对应必需 scope：
 
@@ -127,6 +128,14 @@ Token 时效策略：
 宿主侧 token 桥接（不属于公开发布包）：
 
 - 为保持公开包低权限与合规，token 签发应在宿主运行时完成。
+- 推荐的已部署桥接入口：`POST /agent/skill/bridge/invoke`。
+- 该桥接入口由网关运行时提供，不打包在本公开 skill 包里，也不要求调用方自己管理 `AGENT_TASK_TOKEN`。
+- bridge 请求体应包含 `action`、`agent_uid`、`conversation_id` 以及可选 `payload`。
+- `conversation_id` 应是宿主生成的 opaque 会话/安装标识，不应直接使用公开 chat id、原始 thread id 或任何 PII。
+- 公开 bridge 会仅基于 `conversation_id` 推导会话级 owner，并让同一会话内的多个 agent alias 共享一个账户。
+- 若需要跨多个会话/线程复用同一账户，应改走可信宿主 token bridge，或使用宿主预注入 `AGENT_TASK_TOKEN` 的直连模式；公开 bridge 不接受 owner 覆盖。
+- 网关 bridge 会在服务端完成 `agent_uid` 规范化、缺失绑定修复、短期 task token 签发和 action 执行。
+- 已部署 bridge 会拒绝 `base_url`、`gateway_api_key`、`api_key`、`user_token`、`agent_task_token`、`owner_uid_hint`、`install_channel` 这类覆盖字段。
 - 宿主可用自身托管网关凭证头调用 `POST /agent/task-token/issue`，再把返回的 `AGENT_TASK_TOKEN` 注入 skill 调用。
 - 建议宿主在出现 `AUTH_UNAUTHORIZED` 时只自动续签重试一次，再返回最终结果。
 
@@ -146,7 +155,31 @@ Token 时效策略：
 
 ## Agent 调用速查
 
-推荐给 agent 的调用方式：
+宿主集成场景推荐单入口（推荐）：
+
+- 已部署 bridge API 请求体：
+```json
+{
+  "action": "portal.account.balance",
+  "agent_uid": "support_assistant",
+  "conversation_id": "host_session_20260316_opaque_001",
+  "payload": {}
+}
+```
+
+- 将该请求体发送到 `POST /agent/skill/bridge/invoke`。
+- 这是面向 agent 友好接入的推荐生产入口。
+- `agent_uid` 应表示宿主侧稳定的运行时 agent 标识。
+- `conversation_id` 应表示宿主生成的 opaque 会话/安装标识，不绑定 Telegram 或任一单一工具。
+- 当同一宿主会话中的多个 agent alias 需要共享一个账户时，应复用同一个 opaque `conversation_id`。
+- 若需要跨多个会话保持同一账户，应走可信宿主 token bridge，而不是向公开 bridge 传 owner 标识。
+
+直接调用 `scripts/skill.mjs` 仅作为兜底：
+
+- 仅在运行时已经自动注入短期 `AGENT_TASK_TOKEN` 时使用。
+- 正常宿主集成流程下，不应要求最终用户手动粘贴 token。
+
+兜底直连示例：
 
 - Action 优先 + 环境变量 token：
 ```bash
@@ -157,7 +190,7 @@ AGENT_TASK_TOKEN=<token> node scripts/skill.mjs portal.account.balance '{}'
 node scripts/skill.mjs <agent_task_token> portal.skill.poll '{"run_id":"run_123"}'
 ```
 
-Action payload 模板：
+Action payload 模板（bridge API 与直连模式一致）：
 
 - `portal.skill.execute`
 ```json
@@ -186,11 +219,19 @@ Action payload 模板：
 
 agent 侧决策流程：
 
+- 优先走 `POST /agent/skill/bridge/invoke`，让绑定修复与 token 生命周期都留在宿主侧。
 - 新任务：先调 `portal.skill.execute`，再轮询 `portal.skill.poll` 到 `data.terminal=true`，最后调 `portal.skill.presentation`。
 - 账户查询：直接调 `portal.account.balance` 或 `portal.account.ledger`。
-- 若报 `AUTH_UNAUTHORIZED` 且消息是 `agent task token is required`：让宿主签发/注入短期 `AGENT_TASK_TOKEN`，再重试一次。
-- 若报 `AUTH_UNAUTHORIZED` 且消息是 `agent_uid claim format is invalid`：使用规范化 `agent_uid`（`agent_...`），不要用人格别名（`code`、`ops`）。
+- 若希望同一宿主会话中的多个 agent alias 共用一个账本与余额，应复用同一个 opaque `conversation_id`。
+- 若需要跨多个会话保持同一账户，应走可信宿主 token bridge 或宿主预注入 `AGENT_TASK_TOKEN` 的直连模式；不要向公开 bridge 传 `owner_uid_hint`。
+- 若走直连模式时报 `AUTH_UNAUTHORIZED` 且消息是 `agent task token is required`：让宿主签发/注入短期 `AGENT_TASK_TOKEN`，再重试一次。
+- 若报 `AUTH_UNAUTHORIZED` 且消息是 `agent_uid claim format is invalid`：使用规范化 `agent_uid`（`agent_...`），不要用宿主短别名（如 `assistant`、`planner`）。
 - 若报 `SYSTEM_NOT_FOUND` 且消息是 `agent binding not found`：让宿主执行一次绑定自愈流程，再重试签发 token。
+
+宿主签发 task-token 的鉴权头：
+
+- `X-API-Key: <gateway_api_key>` + `x-agent-uid: <agent_uid>`
+- 或 `Authorization: Bearer <gateway_api_key>` + `x-agent-uid: <agent_uid>`
 
 输出解析约定：
 
