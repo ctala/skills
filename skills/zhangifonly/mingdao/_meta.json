@@ -3,9 +3,15 @@
   "slug": "mingdao",
   "displayName": "Mingdao",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1772984152200,
-    "commit": "https://github.com/openclaw/skills/commit/81c8bdc000efc8905b942a5af877030c061c2699"
+    "version": "1.0.1",
+    "publishedAt": 1773653057958,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1772984152200,
+      "commit": "https://github.com/openclaw/skills/commit/81c8bdc000efc8905b942a5af877030c061c2699"
+    }
+  ]
 }
