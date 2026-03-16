@@ -1,7 +1,9 @@
 ---
+version: "2.0.0"
 name: Excel Formula Helper
-description: >-
+description: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━. Use when you need excel formula capabilities. Triggers on: excel formula."
   Excel公式助手。根据描述生成公式、解释公式、诊断错误、公式转换、场景模板(CSV输出)、快捷键速查、透视表建议。Excel formula generator, explainer, error diagnosis, cross-platform converter, CSV templates, shortcuts, pivot table advisor. Excel公式、函数、VLOOKUP、数据透视表。
+author: BytesAgain
 ---
 # Excel Formula Helper
 
@@ -27,7 +29,6 @@ Excel公式助手。根据描述生成公式、解释公式、诊断错误、公
 | `shortcut` | shortcut |
 | `pivot` | pivot |
 
-
 ## 专业建议
 
 - ```
@@ -38,3 +39,10 @@ Excel公式助手。根据描述生成公式、解释公式、诊断错误、公
 
 ---
 *Excel Formula Helper by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Commands
+
+Run `excel-formula help` to see all available commands.
