@@ -9,7 +9,7 @@ import click
 from . import __version__
 from .commands.kline import kline
 from .commands.market import config, history, market, search
-from .commands.quote import quote
+from .commands.quote import news, plate, quote
 
 
 @click.group()
@@ -38,6 +38,8 @@ def cli(ctx: click.Context, verbose: bool, interval: int, no_color: bool):
 
 cli.add_command(market)
 cli.add_command(quote)
+cli.add_command(plate)
+cli.add_command(news)
 cli.add_command(search)
 cli.add_command(history)
 cli.add_command(config)

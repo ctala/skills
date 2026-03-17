@@ -37,6 +37,46 @@ def test_quote_output(monkeypatch):
     assert "- 换手率: 5.52%" in result.output
 
 
+def test_plate_output(monkeypatch):
+    monkeypatch.setattr(
+        quote_command,
+        "get_stock_plate_change",
+        lambda _symbol: {
+            "code": "sh600519",
+            "area": [{"name": "贵州板块", "zdf": "0.12"}],
+            "industry": [{"name": "酿酒行业", "zdf": "-0.35"}],
+            "concept": [{"name": "白酒概念", "zdf": "1.28"}],
+        },
+    )
+    result = runner.invoke(cli, ["plate", "600519"])
+    assert result.exit_code == 0
+    assert "# 相关板块涨跌幅" in result.output
+    assert "股票代码: sh600519" in result.output
+    assert "- 贵州板块: +0.12%" in result.output
+    assert "- 酿酒行业: -0.35%" in result.output
+    assert "- 白酒概念: +1.28%" in result.output
+
+
+def test_news_output(monkeypatch):
+    monkeypatch.setattr(
+        quote_command,
+        "get_stock_latest_news",
+        lambda _symbol: {
+            "symbol": "sh600519",
+            "news": [
+                {"publishTime": "1741420800", "abstract": "公司发布年度业绩预告，盈利能力持续提升。"},
+                {"publishTime": "1741507200", "abstract": "行业需求回暖，机构维持增持评级。"},
+            ],
+        },
+    )
+    result = runner.invoke(cli, ["news", "600519"])
+    assert result.exit_code == 0
+    assert "# 最新资讯" in result.output
+    assert "股票代码: sh600519" in result.output
+    assert "公司发布年度业绩预告，盈利能力持续提升。" in result.output
+    assert "行业需求回暖，机构维持增持评级。" in result.output
+
+
 def test_search_table():
     result = runner.invoke(cli, ["search", "Apple"])
     assert result.exit_code == 0

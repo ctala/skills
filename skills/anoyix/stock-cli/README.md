@@ -4,11 +4,13 @@
 [![PyPI version](https://img.shields.io/pypi/v/stock-cli.svg)](https://pypi.org/project/stock-cli/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://pypi.org/project/stock-cli/)
 
-股市数据命令行工具，支持个股行情。
+股市数据命令行工具，支持个股行情、相关板块涨跌幅与最新资讯查询。
 
 ## 功能特性
 
 - 🎯 **个股行情**：按股票代码查询实时价格、涨跌幅、成交额、K 线
+- 🧭 **相关板块涨跌幅**：按股票代码查看地域、行业、概念板块表现
+- 📰 **个股最新资讯**：按股票代码查看最新资讯摘要
 
 ## 安装
 
@@ -31,6 +33,8 @@ uv tool upgrade stock-cli
 
 ```bash
 stock quote 000001
+stock plate 000001
+stock news 000001
 ```
 
 ## 开发
@@ -56,7 +60,8 @@ uv tool uninstall stock-cli
 
 # 调试
 uv run python -m stock_cli quote 000001
-```
+uv run python -m stock_cli plate 000001
+uv run python -m stock_cli news 000001
 ```
 
 ## License

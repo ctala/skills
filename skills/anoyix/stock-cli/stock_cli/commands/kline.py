@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from urllib.error import HTTPError, URLError
-from urllib.parse import quote as url_quote
-from urllib.request import Request, urlopen
 
 import click
+import requests
 
 from .quote import get_query_code
 
@@ -181,25 +179,24 @@ def _parse_lines(raw_lines: list[list[str]]) -> list[DayLineItem]:
 
 def get_kline_data(symbol: str, count: int = 45) -> dict:
     query_code = get_query_code(symbol)
-    url = (
-        "https://proxy.finance.qq.com/ifzqgtimg/appstock/app/newfqkline/get"
-        f"?param={url_quote(query_code)},day,,,90,qfq"
-    )
-    req = Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-            "Referer": "https://gu.qq.com/",
-            "Accept": "application/json,text/plain,*/*",
-        },
-    )
+    url = "https://proxy.finance.qq.com/ifzqgtimg/appstock/app/newfqkline/get"
     try:
-        with urlopen(req, timeout=10) as resp:
-            text = resp.read().decode("utf-8", errors="ignore")
-    except HTTPError as exc:
-        raise click.ClickException(f"日K接口请求失败: HTTP {exc.code}") from exc
-    except URLError as exc:
-        raise click.ClickException(f"日K接口不可用: {exc.reason}") from exc
+        response = requests.get(
+            url,
+            params={"param": f"{query_code},day,,,90,qfq"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+                "Referer": "https://gu.qq.com/",
+                "Accept": "application/json,text/plain,*/*",
+            },
+            timeout=10.0,
+        )
+        response.raise_for_status()
+        text = response.text
+    except requests.HTTPError as exc:
+        raise click.ClickException(f"日K接口请求失败: HTTP {exc.response.status_code}") from exc
+    except requests.RequestException as exc:
+        raise click.ClickException(f"日K接口不可用: {exc}") from exc
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:

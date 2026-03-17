@@ -9,6 +9,8 @@ def test_help_lists_planned_commands():
     result = runner.invoke(cli, ["--help"])
     assert result.exit_code == 0
     assert "quote" in result.output
+    assert "plate" in result.output
+    assert "news" in result.output
     assert "kline" in result.output
     assert "search" in result.output
     assert "market" in result.output
@@ -18,6 +20,18 @@ def test_help_lists_planned_commands():
 
 def test_quote_help_supports_symbol_argument():
     result = runner.invoke(cli, ["quote", "--help"])
+    assert result.exit_code == 0
+    assert "SYMBOL" in result.output
+
+
+def test_plate_help_supports_symbol_argument():
+    result = runner.invoke(cli, ["plate", "--help"])
+    assert result.exit_code == 0
+    assert "SYMBOL" in result.output
+
+
+def test_news_help_supports_symbol_argument():
+    result = runner.invoke(cli, ["news", "--help"])
     assert result.exit_code == 0
     assert "SYMBOL" in result.output
 
