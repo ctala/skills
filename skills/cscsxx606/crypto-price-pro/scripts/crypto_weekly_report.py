@@ -28,7 +28,17 @@ COIN_MAP = {
 # 默认配置
 DEFAULT_COINS = ["BTC", "ETH", "BNB", "SOL", "DOGE"]
 DAYS = 7
-RECIPIENT = "gct2023@126.com"
+
+# 邮箱配置（从环境变量读取，避免硬编码敏感信息）
+# 使用方法：
+# export EMAIL_SENDER="your_email@126.com"
+# export EMAIL_SENDER_NAME="Your Name"
+# export EMAIL_PASSWORD="your_smtp_password"
+# export EMAIL_RECIPIENT="recipient@example.com"
+RECIPIENT = os.getenv('EMAIL_RECIPIENT')
+SENDER_EMAIL = os.getenv('EMAIL_SENDER')
+SENDER_NAME = os.getenv('EMAIL_SENDER_NAME', 'Crypto Report')
+SMTP_PASSWORD = os.getenv('EMAIL_PASSWORD')  # 必须设置环境变量
 
 def get_crypto_history(symbol, days=7):
     """获取历史价格数据"""
@@ -254,19 +264,20 @@ def generate_email_content(coins_data):
 
 def send_email(recipient, subject, html_content, attachment_path=None):
     """发送邮件"""
-    # 从环境变量读取邮箱配置
-    sender = os.getenv('EMAIL_126_SENDER', 'gct2023@126.com')
-    password = os.getenv('EMAIL_126_PASSWORD')
+    # 邮箱配置（从环境变量读取）
+    sender = SENDER_EMAIL
+    sender_name = SENDER_NAME
+    password = SMTP_PASSWORD
     smtp_server = 'smtp.126.com'
     smtp_port = 465
     
     if not password:
-        return {"error": "未设置邮箱密码，请设置环境变量 EMAIL_126_PASSWORD"}
+        return {"error": "未设置邮箱密码，请设置环境变量：export EMAIL_PASSWORD='your_password'"}
     
     try:
         # 创建邮件
         msg = MIMEMultipart()
-        msg['From'] = sender
+        msg['From'] = f"{sender_name} <{sender}>"
         msg['To'] = recipient
         msg['Subject'] = subject
         
@@ -297,6 +308,16 @@ def send_email(recipient, subject, html_content, attachment_path=None):
 def main():
     print("🚀 开始生成虚拟币周报...")
     print(f"{'='*50}")
+    
+    # 检查环境变量
+    if not SENDER_EMAIL or not SMTP_PASSWORD or not RECIPIENT:
+        print("❌ 错误：缺少必要的环境变量")
+        print("\n请设置以下环境变量：")
+        print("  export EMAIL_SENDER=\"your_email@126.com\"")
+        print("  export EMAIL_PASSWORD=\"your_smtp_password\"")
+        print("  export EMAIL_RECIPIENT=\"recipient@example.com\"")
+        print("\n或复制 .env.example 为 .env 并填写配置")
+        sys.exit(1)
     
     # 1. 获取所有币种数据
     print("📊 获取价格数据...")

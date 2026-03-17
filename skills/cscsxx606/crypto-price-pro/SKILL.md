@@ -69,14 +69,29 @@ python3 skills/crypto-price/scripts/crypto_price.py BTC --compare BTC,ETH,BNB,SO
 ### 5. 生成周报并发送邮件
 
 ```bash
+# 配置环境变量（首次使用）
+export EMAIL_SENDER="your_email@126.com"
+export EMAIL_SENDER_NAME="Your Name"
+export EMAIL_PASSWORD="your_smtp_password"
+export EMAIL_RECIPIENT="recipient@example.com"
+
+# 生成并发送周报
 python3 skills/crypto-price/scripts/crypto_weekly_report.py
 ```
 
-**环境变量配置：**
+**永久配置（添加到 ~/.zshrc）：**
 ```bash
-export EMAIL_126_SENDER="your_email@126.com"
-export EMAIL_126_PASSWORD="your_password"
+echo 'export EMAIL_SENDER="your_email@126.com"' >> ~/.zshrc
+echo 'export EMAIL_SENDER_NAME="Your Name"' >> ~/.zshrc
+echo 'export EMAIL_PASSWORD="your_smtp_password"' >> ~/.zshrc
+echo 'export EMAIL_RECIPIENT="recipient@example.com"' >> ~/.zshrc
+source ~/.zshrc
 ```
+
+**⚠️ 安全提示：**
+- 不要将邮箱密码提交到 Git
+- 使用 `.env` 文件或环境变量存储敏感信息
+- 定期更换 SMTP 授权码
 
 ## 支持的币种
 
