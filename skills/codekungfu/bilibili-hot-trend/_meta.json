@@ -1,0 +1,11 @@
+{
+  "owner": "codekungfu",
+  "slug": "bilibili-hot-trend",
+  "displayName": "Bilibili",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773643834959,
+    "commit": null
+  },
+  "history": []
+}
