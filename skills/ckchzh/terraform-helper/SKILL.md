@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: terraform-helper
 description: "Unknown: help. Use when you need terraform helper capabilities. Triggers on: terraform helper, provider, resource, name, region, no-vars."
+author: BytesAgain
 ---
 
 # terraform-helper
