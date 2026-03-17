@@ -100,12 +100,12 @@ def refresh_runtime_settings() -> None:
 
     ASR_URL = os.environ.get("MYSTERY_ASR_URL", "https://api.senseaudio.cn/v1/audio/transcriptions")
     ASR_MODEL = os.environ.get("MYSTERY_ASR_MODEL", "sense-asr-pro")
-    ASR_API_KEY = os.environ.get("MYSTERY_ASR_API_KEY", os.environ.get("SENSEAUDIO_API_KEY", ""))
+    ASR_API_KEY = os.environ.get("SENSEAUDIO_API_KEY", "")
     ASR_TIMEOUT = float(os.environ.get("MYSTERY_ASR_TIMEOUT", "300"))
 
     TTS_URL = os.environ.get("MYSTERY_TTS_URL", "https://api.senseaudio.cn/v1/t2a_v2")
     TTS_MODEL = os.environ.get("MYSTERY_TTS_MODEL", "SenseAudio-TTS-1.0")
-    TTS_API_KEY = os.environ.get("MYSTERY_TTS_API_KEY", os.environ.get("SENSEAUDIO_API_KEY", ""))
+    TTS_API_KEY = os.environ.get("SENSEAUDIO_API_KEY", "")
     TTS_TIMEOUT = float(os.environ.get("MYSTERY_TTS_TIMEOUT", "60"))
 
 
@@ -166,7 +166,7 @@ def synthesize_tts(text: str, voice_cfg: dict[str, Any], tag: str) -> bytes | No
     """Synthesize TTS and return raw MP3 bytes."""
     if not text:
         return None
-    api_key = require_env("MYSTERY_TTS_API_KEY / SENSEAUDIO_API_KEY", TTS_API_KEY)
+    api_key = require_env("SENSEAUDIO_API_KEY", TTS_API_KEY)
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     voice_setting: dict[str, Any] = {"voice_id": voice_cfg["voice_id"]}
@@ -212,7 +212,7 @@ def play_tts(text: str, role: str, tag: str, no_tts: bool) -> str | None:
 
 def transcribe_audio(audio_path: Path) -> str:
     """Transcribe audio via ASR and return text."""
-    api_key = require_env("MYSTERY_ASR_API_KEY / SENSEAUDIO_API_KEY", ASR_API_KEY)
+    api_key = require_env("SENSEAUDIO_API_KEY", ASR_API_KEY)
     headers = {"Authorization": f"Bearer {api_key}"}
     data = {"model": ASR_MODEL, "response_format": "verbose_json"}
     with audio_path.open("rb") as handle:
