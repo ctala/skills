@@ -1,0 +1,11 @@
+{
+  "owner": "nodermachine",
+  "slug": "fliggy-travel-planner",
+  "displayName": "旅游攻略规划技能",
+  "latest": {
+    "version": "1.0.4",
+    "publishedAt": 1773660020414,
+    "commit": null
+  },
+  "history": []
+}
