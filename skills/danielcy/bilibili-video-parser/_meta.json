@@ -1,0 +1,11 @@
+{
+  "owner": "danielcy",
+  "slug": "bilibili-video-parser",
+  "displayName": "B站视频下载与解析",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773567810368,
+    "commit": null
+  },
+  "history": []
+}
