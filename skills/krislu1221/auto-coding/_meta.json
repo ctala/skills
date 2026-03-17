@@ -3,9 +3,15 @@
   "slug": "auto-coding",
   "displayName": "Auto-Coding",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773429483412,
-    "commit": "https://github.com/openclaw/skills/commit/aac28e5fac6c56da78974c6541123adde4d765be"
+    "version": "3.1.1",
+    "publishedAt": 1773603103679,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773429483412,
+      "commit": "https://github.com/openclaw/skills/commit/aac28e5fac6c56da78974c6541123adde4d765be"
+    }
+  ]
 }

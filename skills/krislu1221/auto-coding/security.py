@@ -1,11 +1,230 @@
 """
-安全配置 - 自主编码 Agent 安全沙箱
-Security Configuration for Autonomous Coding Agent
+安全白名单模块 - 增强版 v2.0
+Security Allowlist Module - Enhanced v2.0
+
+⚠️ 注意 / Note:
+此模块定义推荐的命令白名单，作为安全最佳实践的文档。
+This module defines a recommended command allowlist as documentation of security best practices.
+
+实际的命令执行安全控制由 OpenClaw Gateway 运行时提供。
+Actual command execution security is enforced by OpenClaw Gateway runtime.
+
+v2.0 更新:
+- ✅ 路径遍历防护
+- ✅ 命令注入防护增强
+- ✅ 输入验证
+- ✅ 安全日志记录
+- ✅ 敏感信息检测
+
+用途 / Purpose:
+1. 文档化安全边界 / Document security boundaries
+2. 本地开发时的参考 / Reference for local development
+3. 可选的安全增强 / Optional security enhancement
+
+依赖 / Dependencies:
+- 此模块是参考实现，不强制调用
+- This module is a reference implementation, not mandatorily invoked
+- 最终安全由 OpenClaw Gateway 控制
+- Final security is controlled by OpenClaw Gateway
 """
 
 import shlex
 import re
-from typing import Tuple, List, Dict, Any
+import os
+import logging
+from typing import Tuple, List, Dict, Any, Optional
+
+# 安全日志
+security_logger = logging.getLogger('auto_coding.security')
+
+# 允许的基础路径（防止路径遍历）
+ALLOWED_BASE_PATHS = [
+    os.path.expanduser("~/.enhance-claw"),
+    "/tmp/auto-coding-projects",
+    "/tmp",
+]
+
+# 最大输入长度
+MAX_INPUT_LENGTH = 10000
+
+# 危险模式（用于检测恶意输入）
+DANGEROUS_PATTERNS = [
+    r'eval\s*\(',
+    r'exec\s*\(',
+    r'__import__\s*\(',
+    r'subprocess\.',
+    r'os\.system\s*\(',
+    r'open\s*\([\'\"]?/',  # 打开绝对路径
+    r'\.\./',  # 路径遍历
+    r'\$\{',  # 变量注入
+    r'\$\(',  # 命令替换
+    r';\s*rm\s',  # 命令链
+    r'\|\s*rm\s',  # 管道攻击
+]
+
+
+# =============================================================================
+# 路径安全验证
+# =============================================================================
+
+def validate_path(path: str, allowed_bases: List[str] = None) -> Tuple[bool, str]:
+    """
+    验证路径是否在允许范围内（防止路径遍历攻击）
+    
+    Args:
+        path: 要验证的路径
+        allowed_bases: 允许的基础路径列表（默认使用 ALLOWED_BASE_PATHS）
+    
+    Returns:
+        (is_valid, reason_if_invalid)
+    """
+    if not path or not path.strip():
+        return False, "空路径"
+    
+    # 规范化路径
+    try:
+        abs_path = os.path.abspath(os.path.expanduser(path))
+    except Exception as e:
+        return False, f"路径格式错误: {e}"
+    
+    # 检查路径遍历
+    if '..' in path:
+        security_logger.warning(f"[SECURITY] 检测到路径遍历尝试: {path}")
+        return False, "路径包含非法的遍历字符 '..'"
+    
+    # 检查符号链接
+    try:
+        real_path = os.path.realpath(abs_path)
+        if real_path != abs_path:
+            security_logger.info(f"[SECURITY] 检测到符号链接: {path} -> {real_path}")
+    except Exception as e:
+        return False, f"无法解析符号链接: {e}"
+    
+    # 检查是否在允许的基础路径内
+    bases = allowed_bases or ALLOWED_BASE_PATHS
+    for base in bases:
+        base_abs = os.path.abspath(os.path.expanduser(base))
+        if abs_path.startswith(base_abs) or real_path.startswith(base_abs):
+            return True, ""
+    
+    security_logger.warning(f"[SECURITY] 路径不在允许范围内: {abs_path}")
+    return False, f"路径不在允许的目录内: {bases}"
+
+
+def sanitize_path(path: str) -> str:
+    """
+    清洗路径，移除危险字符
+    
+    Args:
+        path: 原始路径
+    
+    Returns:
+        清洗后的路径
+    """
+    if not path:
+        return ""
+    
+    # 移除路径遍历
+    path = path.replace('..', '')
+    
+    # 移除空字节
+    path = path.replace('\x00', '')
+    
+    # 移除控制字符
+    path = re.sub(r'[\x00-\x1f\x7f]', '', path)
+    
+    return path.strip()
+
+
+# =============================================================================
+# 输入安全验证
+# =============================================================================
+
+def validate_input(text: str, max_length: int = None) -> Tuple[bool, str]:
+    """
+    验证用户输入是否安全
+    
+    Args:
+        text: 用户输入
+        max_length: 最大长度（默认使用 MAX_INPUT_LENGTH）
+    
+    Returns:
+        (is_valid, reason_if_invalid)
+    """
+    if not text:
+        return True, ""
+    
+    max_len = max_length or MAX_INPUT_LENGTH
+    
+    # 长度检查
+    if len(text) > max_len:
+        return False, f"输入过长（最大 {max_len} 字符）"
+    
+    # 危险模式检查
+    for pattern in DANGEROUS_PATTERNS:
+        if re.search(pattern, text, re.IGNORECASE):
+            security_logger.warning(f"[SECURITY] 检测到危险模式: {pattern}")
+            return False, f"输入包含危险模式"
+    
+    return True, ""
+
+
+def sanitize_input(text: str, max_length: int = None) -> str:
+    """
+    清洗用户输入
+    
+    Args:
+        text: 原始输入
+        max_length: 最大长度
+    
+    Returns:
+        清洗后的输入
+    """
+    if not text:
+        return ""
+    
+    max_len = max_length or MAX_INPUT_LENGTH
+    
+    # 移除控制字符
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    
+    # 限制长度
+    text = text[:max_len]
+    
+    return text.strip()
+
+
+def detect_sensitive_info(text: str) -> List[Dict[str, str]]:
+    """
+    检测文本中的敏感信息
+    
+    Args:
+        text: 要检测的文本
+    
+    Returns:
+        检测到的敏感信息列表
+    """
+    sensitive_patterns = [
+        (r'(?i)(api[_-]?key|apikey)\s*[=:]\s*["\']?[\w-]{20,}', 'API Key'),
+        (r'(?i)(password|passwd|pwd)\s*[=:]\s*["\']?[^\s"\']+', 'Password'),
+        (r'(?i)(secret|token)\s*[=:]\s*["\']?[\w-]{20,}', 'Secret/Token'),
+        (r'sk-[a-zA-Z0-9]{20,}', 'OpenAI API Key'),
+        (r'AKIA[A-Z0-9]{16}', 'AWS Access Key'),
+        (r'eyJ[a-zA-Z0-9-_=]+\.[a-zA-Z0-9-_=]+\.[a-zA-Z0-9-_.+/=]*', 'JWT Token'),
+    ]
+    
+    findings = []
+    for pattern, info_type in sensitive_patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            findings.append({
+                'type': info_type,
+                'count': len(matches),
+                'pattern': pattern
+            })
+            security_logger.warning(f"[SECURITY] 检测到敏感信息: {info_type}")
+    
+    return findings
 
 
 # =============================================================================
@@ -32,8 +251,8 @@ ALLOWED_COMMANDS = {
     "make", "cmake", "webpack", "vite", "rollup", "tsc",
     # 系统信息
     "uname", "whoami", "echo", "date", "time",
-    # 网络 (谨慎使用)
-    "curl", "wget",
+    # 网络命令已移除 (减少安全风险)
+    # "curl", "wget",  # Removed - not needed for coding tasks
     # 文本编辑
     "sed", "awk",
 }

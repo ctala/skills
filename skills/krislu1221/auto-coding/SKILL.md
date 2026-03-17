@@ -1,179 +1,166 @@
-# Auto-Coding Skill
+---
+name: auto-coding
+description: 自主完善的编程系统 - 多模型交叉验证、自动测试、能力补充，达到交付标准后进入 RoundTable 讨论
+user-invocable: true
+version: 3.2.0
+author: Claw Soft Team
+license: MIT
+---
 
-> **Version**: 1.0.0  
-> **Author**: Krislu + Claw Soft  
-> **Description**: Multi-Agent Autonomous Coding System
+# Auto-Coding Skill v3.2
+
+## 🎯 简介
+
+Auto-Coding 是一个基于 OpenClaw 平台的自主编程系统，通过多模型交叉验证和自动测试循环，实现高质量的代码生成和优化。
+
+### 核心特性
+
+- ✅ **多模型交叉验证** - 不同模型扮演不同角色，取长补短
+- ✅ **自动测试循环** - 测试→失败→修复→再测试
+- ✅ **能力缺口分析** - 自动识别所需工具和能力
+- ✅ **任务智能拆解** - 复杂任务拆分为可执行子任务
+- ✅ **安全防护** - 路径遍历、命令注入、敏感信息检测
 
 ---
 
-## 📖 Overview / 概述
+## 🚀 快速开始
 
-Auto-Coding is a multi-agent collaboration system built on OpenClaw that automatically transforms user requirements into runnable applications.
+### 触发方式
 
-Auto-Coding 是一个基于 OpenClaw 的多 Agent 协作系统，可以自动将用户需求转化为可运行的应用程序。
-
----
-
-## 🎯 Features / 功能特性
-
-- **Multi-Agent Collaboration** - Initializer + Coder dual-agent pattern
-  **多 Agent 协作** - 初始化器 + 编码器双代理模式
-
-- **Automatic Task Breakdown** - Split requirements into 20-50 features
-  **自动任务分解** - 将需求拆分为 20-50 个功能点
-
-- **Progress Tracking** - Real-time status updates with Git integration
-  **进度追踪** - 实时更新状态，集成 Git 版本控制
-
-- **Security Sandbox** - Command allowlist with 40+ safe commands
-  **安全沙箱** - 40+ 安全命令白名单机制
-
----
-
-## 🚀 Usage / 使用方法
-
-### Command Triggers / 命令触发
-
-```bash
-# English commands
-/auto-coding create a Todo app
-/auto-coding build a weather app
-
-# Chinese commands
+```
 /auto-coding 创建一个 Todo 应用
-/auto-coding 帮我开发一个天气应用
-
-# Natural language
-帮我创建一个 博客系统
-Help me create a blog system
+帮我开发一个 个人博客系统
 ```
 
-### Python API / Python 接口
+### 编程方式
 
 ```python
-from auto_coding import AutonomousCodingController
+from auto_coding_worker import AutoCodingWorker
 
-controller = AutonomousCodingController(
-    project_name="my-app",
-    requirements="Create a Todo application"
-)
-
-result = await controller.run_full_cycle(max_iterations=10)
-print(f"Completed: {result['completed']}/{result['total']} tasks")
+worker = AutoCodingWorker()
+result = await worker.run("创建一个计算器应用")
+print(result['summary'])
 ```
 
 ---
 
-## 📁 Project Structure / 项目结构
+## 🏗️ 架构
+
+```
+┌─────────────────────────────────────────────────────┐
+│              Auto-Coding v3.2                       │
+├─────────────────────────────────────────────────────┤
+│  核心模块：                                         │
+│  - auto_coding_worker.py (自主工作者)              │
+│  - cross_model_validator.py (多模型验证)           │
+│  - task_decomposer.py (任务拆解)                   │
+│  - security.py (安全防护)                          │
+├─────────────────────────────────────────────────────┤
+│  工作流程：                                         │
+│  用户→分析→实现→测试→反思→修复→交付             │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔧 配置
+
+### 环境变量
+
+```bash
+# 允许的基础路径（逗号分隔）
+export AUTO_CODING_ALLOWED_PATHS="~/.my-workspace,/tmp/projects"
+
+# 最大输入长度
+export AUTO_CODING_MAX_INPUT_LENGTH=10000
+
+# 项目目录
+export AUTO_CODING_PROJECTS_DIR="/path/to/projects"
+
+# 最大迭代次数
+export MAX_ITERATIONS=50
+
+# 模型配置（根据你的模型提供商设置）
+export AUTO_CODING_MODEL_IMPLEMENTER="your-implementer-model"
+export AUTO_CODING_MODEL_REVIEWER="your-reviewer-model"
+export AUTO_CODING_MODEL_TESTER="your-tester-model"
+export AUTO_CODING_MODEL_FIXER="your-fixer-model"
+
+# 或指定模型配置文件路径
+export AUTO_CODING_MODELS_CONFIG="/path/to/models_config.json"
+```
+
+### 模型角色说明
+
+| 角色 | 职责 | 建议特点 |
+|------|------|---------|
+| IMPLEMENTER | 代码实现 | 代码生成能力强 |
+| REVIEWER | 代码审查 | 分析能力强，能发现问题 |
+| TESTER | 测试设计 | 长文本理解好，细节关注 |
+| FIXER | 问题修复 | 调试能力强，错误理解好 |
+
+---
+
+## 🛡️ 安全特性
+
+- 🔒 **路径遍历防护** - 验证所有文件路径
+- 🛡️ **命令注入防护** - 检测危险模式
+- ✅ **输入验证** - 长度和内容双重验证
+- 🔐 **敏感信息检测** - 自动检测 API Key、密码等
+
+---
+
+## 📁 文件结构
 
 ```
 auto-coding/
-├── skill.py                    # OpenClaw Skill implementation
-├── agent_controller.py         # Main controller
-├── task_manager.py             # Task management
-├── security.py                 # Security configuration
-├── test_auto_coding.py         # Test scripts
-├── prompts/
-│   ├── initializer.md          # Initializer agent prompt
-│   └── coder.md                # Coder agent prompt
-└── README.md                   # Documentation
+├── SKILL.md                    # Skill 定义
+├── README.md                   # 使用说明
+├── clawhub.json               # ClawHub 配置
+├── LICENSE                    # MIT 许可证
+├── requirements.txt           # 依赖
+├── __init__.py               # 包入口
+├── skill.py                  # Skill 入口
+├── auto_coding_worker.py     # 核心工作者
+├── cross_model_validator.py  # 多模型验证
+├── task_decomposer.py        # 任务拆解
+├── security.py               # 安全模块
+├── task_manager.py           # 任务管理
+├── agent_controller.py       # Agent 控制
+├── self_reflection.py        # 自我反思
+├── prompts/                  # 提示词
+│   ├── initializer.md
+│   └── coder.md
+└── tests/                    # 测试
+    └── test_core_components.py
 ```
 
 ---
 
-## 🛡️ Security / 安全性
+## ⚠️ 注意事项
 
-### Allowed Commands / 允许的命令 (40+)
+### 适用场景
+- ✅ 需要高质量代码的项目
+- ✅ 需要多模型交叉验证
+- ✅ 从零创建或优化现有代码
 
-| Category / 类别 | Commands / 命令 |
-|----------------|-----------------|
-| **File Inspection / 文件检查** | `ls`, `cat`, `head`, `tail`, `grep`, `find` |
-| **File Operations / 文件操作** | `cp`, `mkdir`, `chmod`, `touch`, `mv` |
-| **Node.js** | `npm`, `npx`, `node`, `yarn`, `pnpm` |
-| **Python** | `pip`, `python`, `pytest`, `unittest` |
-| **Version Control / 版本控制** | `git` |
-| **Process Management / 进程管理** | `ps`, `sleep`, `pkill` (dev processes only) |
-
-### Blocked Commands / 禁止的命令
-
-- ❌ `sudo` - Privilege escalation
-- ❌ `rm -rf` - Forced recursive deletion
-- ❌ `dd`, `mkfs` - Disk operations
-- ❌ `systemctl`, `service` - System services
+### 不适用场景
+- ❌ 快速原型验证
+- ❌ 一次性脚本
+- ❌ 时间紧迫的项目
 
 ---
 
-## 🧪 Testing / 测试
+## 📝 更新日志
 
-```bash
-cd auto-coding/
-
-# Run all tests
-python3 test_auto_coding.py 1  # Minimal test
-python3 test_auto_coding.py 2  # Real project test
-python3 test_auto_coding.py 3  # All tests
-```
-
-### Expected Output / 预期输出
-
-```
-🧪 Auto-Coding Test
-==================================================
-✅ TaskManager tests passed
-✅ Security tests passed
-✅ Controller tests passed
-🎉 All tests passed!
-```
+### v3.2.0
+- ✅ 安全加固优化
+- ✅ 配置弹性化
+- ✅ 敏感信息检测
+- ✅ 错误信息脱敏
 
 ---
 
-## 📋 Configuration / 配置
+## 📄 许可证
 
-### Environment Variables / 环境变量
-
-```bash
-# Project root directory (optional)
-export AUTO_CODING_PROJECTS_DIR="/path/to/projects"
-
-# Max iterations (optional)
-export MAX_ITERATIONS="50"
-```
-
----
-
-## ⚠️ Known Limitations / 已知限制
-
-1. **OpenClaw Integration** - Requires `sessions_spawn` support from OpenClaw Gateway
-   **OpenClaw 集成** - 需要 OpenClaw Gateway 的 `sessions_spawn` 支持
-
-2. **Mock Mode** - Currently runs in mock mode without real Gateway configuration
-   **模拟模式** - 当前在没有真实 Gateway 配置的情况下运行在模拟模式
-
-3. **Language Support** - Best results with Chinese and English prompts
-   **语言支持** - 中文和英文提示效果最佳
-
----
-
-## 📚 Documentation / 文档
-
-- **README.md** - Full user guide with examples
-- **prompts/initializer.md** - Initializer agent instructions
-- **prompts/coder.md** - Coder agent instructions
-- **Security-Compliance-Report.md** - Security audit report
-
----
-
-## 📄 License / 许可证
-
-**Internal Use Only** - Lobster Team
-
----
-
-## 👥 Authors / 作者
-
-- **Krislu** - Project Initiator
-- **Claw Soft** - Lead Developer
-
----
-
-*Last Updated: 2026-03-14*
+MIT License

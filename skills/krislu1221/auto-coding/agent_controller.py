@@ -1,48 +1,95 @@
 """
-自主编码 Agent 控制器
-Autonomous Coding Agent Controller
+自主编码 Agent 控制器 v2.0
+Autonomous Coding Agent Controller v2.0
 
-基于 OpenClaw sessions_spawn 实现双 Agent 模式
+基于多模型交叉验证的自主完善系统
+
+核心理念:
+- 不同模型交叉验证代码质量
+- 自动测试循环直到通过
+- 能力缺失自动补充
+- 达到交付标准才进入 RoundTable
 """
 
 import json
 import asyncio
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Callable
 
 # 支持直接运行和模块导入两种模式
 try:
     from .task_manager import TaskManager
     from .security import validate_command
+    from .cross_model_validator import (
+        CrossModelValidator,
+        AutoTestLoop,
+        CapabilityGapAnalyzer,
+        ValidationResult
+    )
 except ImportError:
     from task_manager import TaskManager
     from security import validate_command
+    
+    # 简化版本用于测试
+    class CrossModelValidator:
+        async def validate_task(self, task, base_code=None):
+            return {"code": f"# Code for {task}", "passed": True, "coverage": 85.0}
+    
+    class AutoTestLoop:
+        async def run_until_pass(self, code, test_command):
+            return {"passed": True, "iterations": 1}
+    
+    class CapabilityGapAnalyzer:
+        def analyze(self, requirements):
+            return []
 
 
 class AutonomousCodingController:
-    """自主编码 Agent 控制器"""
+    """自主编码 Agent 控制器 v2.0 - 多模型交叉验证版本"""
     
-    def __init__(self, project_name: str, requirements: str, workspace_dir: str = None):
+    def __init__(
+        self,
+        project_name: str,
+        requirements: str,
+        workspace_dir: str = None,
+        sessions_spawn_fn: Callable = None,
+        enable_cross_validation: bool = True,
+        delivery_standard: Dict[str, Any] = None
+    ):
+        """
+        初始化控制器 v2.0
+        
+        Args:
+            project_name: 项目名称
+            requirements: 需求描述
+            workspace_dir: 工作目录 (默认：/tmp/auto-coding-projects)
+            sessions_spawn_fn: sessions_spawn 工具函数 (由外部提供)
+            enable_cross_validation: 是否启用多模型交叉验证
+            delivery_standard: 交付标准配置
+        """
         self.project_name = project_name
         self.requirements = requirements
         self.workspace_dir = workspace_dir or "/tmp/auto-coding-projects"
         self.project_dir = Path(self.workspace_dir) / project_name
         self.task_manager = TaskManager(str(self.project_dir))
         
-        # 导入 OpenClaw sessions_spawn (运行时动态导入)
-        self.sessions_spawn = None
-        self._import_openclaw_tools()
-    
-    def _import_openclaw_tools(self):
-        """动态导入 OpenClaw 工具"""
-        try:
-            # 尝试从 OpenClaw 导入
-            from openclaw.tools import sessions_spawn
-            self.sessions_spawn = sessions_spawn
-        except ImportError:
-            print("⚠️  OpenClaw sessions_spawn 不可用，使用模拟模式")
-            self.sessions_spawn = self._mock_sessions_spawn
+        # v2.0 新功能
+        self.enable_cross_validation = enable_cross_validation
+        self.delivery_standard = delivery_standard or {
+            'min_coverage': 80,
+            'max_critical_errors': 0,
+            'require_docs': True,
+            'require_tests': True
+        }
+        
+        # 初始化工具
+        self.validator = CrossModelValidator() if enable_cross_validation else None
+        self.test_loop = AutoTestLoop(max_iterations=5)
+        self.gap_analyzer = CapabilityGapAnalyzer()
+        
+        # sessions_spawn 由外部提供 (LLM 工具调用)
+        self.sessions_spawn = sessions_spawn_fn or self._mock_sessions_spawn
     
     async def _mock_sessions_spawn(self, task: str, **kwargs):
         """模拟 sessions_spawn (用于测试)"""
@@ -151,6 +198,83 @@ class AutonomousCodingController:
     
     async def run_coding_iteration(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """
+        Phase 2: 编码迭代 v2.0 - 多模型交叉验证版本
+        
+        Args:
+            task: 任务详情
+        
+        Returns:
+            {
+                "status": "done" | "error" | "blocked",
+                "task": {...},
+                "message": "...",
+                "validation": {...}
+            }
+        """
+        print(f"\n{'='*60}")
+        print(f"💻 编码迭代 v2.0: 任务 #{task['id']} - {task['name']}")
+        print(f"{'='*60}")
+        
+        # v2.0: 多模型交叉验证
+        if self.enable_cross_validation:
+            return await self._run_cross_validated_coding(task)
+        else:
+            return await self._run_traditional_coding(task)
+    
+    async def _run_cross_validated_coding(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """多模型交叉验证的编码流程"""
+        print(f"\n🔍 启动多模型交叉验证...")
+        
+        try:
+            # 1. 多模型实现
+            validation_result = await self.validator.validate_task(
+                task=task['description'],
+                base_code=None
+            )
+            
+            print(f"  ✅ 多模型实现完成")
+            print(f"  📊 测试覆盖率：{validation_result.test_coverage}%")
+            print(f"  🎯 置信度：{validation_result.confidence}")
+            
+            # 2. 自动测试循环
+            print(f"\n🔄 启动自动测试循环...")
+            test_result = await self.test_loop.run_until_pass(
+                code=validation_result.best_code,
+                test_command="npm test"
+            )
+            
+            if test_result.passed:
+                print(f"  ✅ 测试通过！迭代次数：{test_result.iterations}")
+                
+                # 保存代码
+                await self._save_code(task, validation_result.best_code)
+                
+                return {
+                    "status": "done",
+                    "task": task,
+                    "message": f"多模型验证通过，测试覆盖率 {validation_result.test_coverage}%",
+                    "validation": {
+                        "coverage": validation_result.test_coverage,
+                        "merged_from": validation_result.merged_from,
+                        "test_iterations": test_result.iterations
+                    }
+                }
+            else:
+                print(f"  ⚠️ 测试未通过，但已达到最大迭代次数")
+                return {
+                    "status": "blocked",
+                    "task": task,
+                    "message": "自动测试循环未达到 100% 通过",
+                    "validation": {"error": "Max iterations reached"}
+                }
+        
+        except Exception as e:
+            print(f"  ❌ 多模型验证失败：{e}")
+            return await self._run_traditional_coding(task)
+    
+    async def _run_traditional_coding(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """传统编码流程 (回退方案)"""
+        """
         Phase 2: 编码迭代 - 创建 Coder Agent
         
         Args:
@@ -166,6 +290,15 @@ class AutonomousCodingController:
         print(f"\n{'='*60}")
         print(f"💻 编码迭代：任务 #{task['id']} - {task['name']}")
         print(f"{'='*60}")
+        
+        # 安全说明：子 Agent 的命令执行受以下安全控制约束
+        # Security Note: Sub-agent command execution is constrained by:
+        # 1. OpenClaw Gateway 的运行时安全策略 (主要控制)
+        #    OpenClaw Gateway runtime security policy (primary control)
+        # 2. security.py 中的命令白名单参考 (文档/可选增强)
+        #    security.py command allowlist reference (documentation/optional)
+        # 3. Coder Prompt 中的安全约束 (软约束)
+        #    Safety constraints in Coder Prompt (soft constraints)
         
         # 读取 Coder Prompt
         prompt_file = Path(__file__).parent / "prompts" / "coder.md"

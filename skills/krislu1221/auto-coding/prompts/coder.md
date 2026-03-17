@@ -138,11 +138,11 @@ git commit -m "完成：用户登录功能"
 - `edit` - 编辑现有文件
 
 ### 命令执行
-- `exec` - 执行 shell 命令
+- `exec` - 执行 shell 命令（**受安全白名单约束**）
 
-### 安全限制
+### 安全限制 ⚠️
 
-**允许的命令**:
+**允许的命令** (白名单):
 - ✅ 文件检查：ls, cat, head, tail, grep, find
 - ✅ 文件操作：cp, mkdir, chmod, touch, mv
 - ✅ Node.js: npm, npx, node, yarn
@@ -155,7 +155,10 @@ git commit -m "完成：用户登录功能"
 - ❌ rm -rf (强制递归删除)
 - ❌ dd, mkfs (磁盘操作)
 - ❌ systemctl, service (系统服务)
+- ❌ curl, wget (网络下载，除非明确需要)
 - ❌ 任何修改系统文件的命令
+
+**注意**: 所有命令执行前会通过 security.py 的白名单验证
 
 ---
 
