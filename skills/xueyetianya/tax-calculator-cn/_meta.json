@@ -3,11 +3,16 @@
   "slug": "tax-calculator-cn",
   "displayName": "Tax Calculator Cn",
   "latest": {
-    "version": "2.3.0",
-    "publishedAt": 1773448641528,
-    "commit": "https://github.com/openclaw/skills/commit/414754c00de0bf3e2748a672dacb96becdd73bd9"
+    "version": "2.3.5",
+    "publishedAt": 1773673996603,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.0",
+      "publishedAt": 1773448641528,
+      "commit": "https://github.com/openclaw/skills/commit/414754c00de0bf3e2748a672dacb96becdd73bd9"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773307119997,
