@@ -1,0 +1,11 @@
+{
+  "owner": "diagnostikon",
+  "slug": "polymarket-central-bank-trader",
+  "displayName": "Central Bank & Monetary Policy Trader",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773653239361,
+    "commit": null
+  },
+  "history": []
+}
