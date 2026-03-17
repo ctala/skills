@@ -1,12 +1,13 @@
 ---
+version: "2.0.0"
 name: whois-checker
 description: "Error: --domain required. Use when you need whois checker capabilities. Triggers on: whois checker, domain, format, output, help."
+author: BytesAgain
 ---
 
 # whois-checker
 
 WHOIS domain lookup tool that retrieves and parses domain registration information including registrar, registration date, expiry date, nameservers, domain status, and registrant contact details. Supports expiry monitoring with configurable warning thresholds, batch lookups for domain portfolios, and multiple output formats. Parses the system whois CLI output using Python3 — no external dependencies. Great for domain portfolio management, expiry tracking, and competitive research.
-
 
 ## Commands
 
