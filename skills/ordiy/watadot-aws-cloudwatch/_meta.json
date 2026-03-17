@@ -1,0 +1,11 @@
+{
+  "owner": "ordiy",
+  "slug": "watadot-aws-cloudwatch",
+  "displayName": "Watadot Aws Cloudwatch",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773664209093,
+    "commit": null
+  },
+  "history": []
+}
