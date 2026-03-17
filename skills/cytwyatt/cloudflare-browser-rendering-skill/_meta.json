@@ -1,0 +1,11 @@
+{
+  "owner": "cytwyatt",
+  "slug": "cloudflare-browser-rendering-skill",
+  "displayName": "Cloudflare Browser Rendering",
+  "latest": {
+    "version": "0.1.1",
+    "publishedAt": 1773330262030,
+    "commit": null
+  },
+  "history": []
+}
