@@ -1,64 +1,91 @@
 ---
 name: nlp
-version: "2.0.0"
+description: "Tokenize text, analyze sentiment, extract entities, summarize documents, and measure text similarity."
+version: "3.2.0"
 author: BytesAgain
-license: MIT-0
-tags: [nlp, tool, utility]
-description: "Nlp - command-line tool for everyday use"
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
+tags:
+  - nlp
+  - text-processing
+  - sentiment
+  - entities
+  - summarization
+  - classification
 ---
 
-# NLP
+# nlp
 
-Natural language processing toolkit — text analysis, sentiment detection, keyword extraction, language detection, summarization, and entity recognition.
+Natural language processing toolbox. Tokenize text, analyze sentiment, extract entities, summarize documents, compute similarity, and classify text — all from the command line.
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `nlp sentiment` | <text> |
-| `nlp keywords` | <text> |
-| `nlp language` | <text> |
-| `nlp entities` | <text> |
-| `nlp summarize` | <file> |
-| `nlp tokenize` | <text> |
+### tokenize
 
-## Usage
+Split text into words and sentences with frequency counts.
 
 ```bash
-# Show help
-nlp help
-
-# Quick start
-nlp sentiment <text>
+bash scripts/script.sh tokenize --input "The quick brown fox jumps over the lazy dog."
+bash scripts/script.sh tokenize --file document.txt --json
 ```
 
-## Examples
+### sentiment
+
+Analyze text sentiment and return polarity (positive/negative/neutral) with confidence.
 
 ```bash
-# Example 1
-nlp sentiment <text>
-
-# Example 2
-nlp keywords <text>
+bash scripts/script.sh sentiment --input "I absolutely love this product!"
+bash scripts/script.sh sentiment --file reviews.txt
 ```
 
-- Run `nlp help` for all available commands
+### extract
 
-## When to Use
+Extract named entities (people, places, organizations, dates, numbers) from text.
 
-- to automate nlp tasks in your workflow
-- for batch processing nlp operations
+```bash
+bash scripts/script.sh extract --input "John Smith works at Google in Mountain View since 2020"
+bash scripts/script.sh extract --file article.txt --json
+```
+
+### summarize
+
+Generate a shorter summary of input text by extracting key sentences.
+
+```bash
+bash scripts/script.sh summarize --file long_article.txt --sentences 3
+bash scripts/script.sh summarize --input "Long text here..." --ratio 0.3
+```
+
+### similarity
+
+Compute similarity score between two texts using word overlap metrics.
+
+```bash
+bash scripts/script.sh similarity --text1 "The cat sat on the mat" --text2 "A cat was sitting on a mat"
+bash scripts/script.sh similarity --file1 doc1.txt --file2 doc2.txt
+```
+
+### classify
+
+Classify text into provided categories based on keyword matching.
+
+```bash
+bash scripts/script.sh classify --input "The stock market rallied today" --categories "finance,sports,tech,politics"
+bash scripts/script.sh classify --file article.txt --categories "positive,negative,neutral"
+```
 
 ## Output
 
-Returns formatted output to stdout. Redirect to a file with `nlp run > output.txt`.
+Plain text by default. Use `--json` flag for JSON output. Sentiment returns polarity and score. Extract returns entity lists with types. Similarity returns a 0.0-1.0 score.
 
-## Configuration
 
-Set `NLP_DIR` environment variable to change the data directory. Default: `~/.local/share/nlp/`
+## Requirements
+- bash 4+
+
+## Feedback
+
+Report issues or suggestions: https://bytesagain.com/feedback/
 
 ---
-*Powered by BytesAgain | bytesagain.com*
-*Feedback & Feature Requests: https://bytesagain.com/feedback*
 
-- Run `nlp help` for all commands
+Powered by BytesAgain | bytesagain.com
