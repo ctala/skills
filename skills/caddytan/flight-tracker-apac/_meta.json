@@ -1,0 +1,11 @@
+{
+  "owner": "caddytan",
+  "slug": "flight-tracker-apac",
+  "displayName": "Flight Tracker for Airports in Asia Pacific",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773664070989,
+    "commit": null
+  },
+  "history": []
+}
