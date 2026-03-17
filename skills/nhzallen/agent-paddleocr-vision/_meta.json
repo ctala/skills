@@ -1,0 +1,11 @@
+{
+  "owner": "nhzallen",
+  "slug": "agent-paddleocr-vision",
+  "displayName": "Agent Paddleocr Vision",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1773590846148,
+    "commit": null
+  },
+  "history": []
+}
