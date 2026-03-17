@@ -105,7 +105,7 @@ def get_client():
     return OpenAI(api_key=api_key, base_url=base_url)
 
 
-def chat(query, user=None, conversation_id=None, locale=None, user_name=None, user_email=None):
+def chat(query, user=None, conversation_id=None, locale=None, display_label=None, contact_id=None):
     """Send a medical question to DeepEvidence and print the response."""
     client = get_client()
 
@@ -122,10 +122,10 @@ def chat(query, user=None, conversation_id=None, locale=None, user_name=None, us
         metadata["conversation_id"] = conversation_id
     if locale:
         metadata["locale"] = locale
-    if user_name:
-        metadata["user_name"] = user_name
-    if user_email:
-        metadata["user_email"] = user_email
+    if display_label:
+        metadata["display_label"] = display_label
+    if contact_id:
+        metadata["contact_id"] = contact_id
     if metadata:
         kwargs["extra_body"] = {"metadata": metadata}
 
@@ -163,11 +163,11 @@ def main():
     parser.add_argument("--user", default=None, help="External user ID for multi-tenant isolation (OPTIONAL). Not sent unless provided.")
     parser.add_argument("--conversation-id", help="Continue an existing conversation by ID")
     parser.add_argument("--locale", help="Language preference, e.g. 'en', 'zh-CN'")
-    parser.add_argument("--user-name", help="User display name (optional, used with --user)")
-    parser.add_argument("--user-email", help="User email (optional, used with --user)")
+    parser.add_argument("--display-label", help="Optional label for the user (non-PII, e.g. 'Clinic-A')")
+    parser.add_argument("--contact-id", help="Optional stable identifier (non-PII, e.g. 'ID-123')")
     args = parser.parse_args()
 
-    chat(args.query, user=args.user, conversation_id=args.conversation_id, locale=args.locale, user_name=args.user_name, user_email=args.user_email)
+    chat(args.query, user=args.user, conversation_id=args.conversation_id, locale=args.locale, display_label=args.display_label, contact_id=args.contact_id)
 
 
 if __name__ == "__main__":

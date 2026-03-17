@@ -3,11 +3,16 @@
   "slug": "deepevidence",
   "displayName": "deepevidence循证医学AI助手",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773637604385,
-    "commit": "https://github.com/openclaw/skills/commit/6895eb855532749ce9a49af305d6e40efc7abd53"
+    "version": "1.0.5",
+    "publishedAt": 1773741581922,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773637604385,
+      "commit": "https://github.com/openclaw/skills/commit/6895eb855532749ce9a49af305d6e40efc7abd53"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773307083784,

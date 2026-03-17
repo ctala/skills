@@ -7,7 +7,16 @@ description: >
   Triggers: DeepEvidence, evidence-based medicine, guideline interpretation, drug safety evidence, clinical trial evidence.
 metadata:
   author: deepevidence
-  version: "1.0"
+  version: "1.2.0"
+  runtime: "python3"
+  requirements:
+    - openai >= 1.0.0
+  env_vars:
+    - DEEPEVIDENCE_API_KEY # Enterprise users apply here: <https://app.medsci.cn/platform>
+  privacy:
+    - No automatic telemetry or PII extraction
+    - Identifiers are opaque labels (non-sensitive)
+    - Source metadata is traceable and verifiable
 ---
 
 # DeepEvidence API Skill (Evidence-Based Medicine)
@@ -15,6 +24,13 @@ metadata:
 This skill calls DeepEvidence's OpenAI-compatible API to produce **traceable**, **source-grounded** evidence summaries for clinical use cases (drug safety, guideline interpretation, trial evidence synthesis). **All outputs should be clinically verified before use.**
 
 > Bundled repository files required: the default workflow references local `scripts/` and `references/` files. If your hosting/distribution does not ship them, use the direct HTTP API method below.
+---
+### 🛠️ Repository Structure
+
+*   `scripts/`: Contains the interaction logic for medical Q&A and user-facing CLI tools.
+*   `references/`: Contains the API interface specifications and technical constraints mapping.
+*   `SKILL.md`: Root configuration and normative guidelines for the medical assistant.
+---
 
 ## Normative language
 
@@ -34,7 +50,7 @@ To avoid ambiguity, treat requirement levels as:
 
 Ask the user to set an API key via environment variable:
 
-- **Env var**: `DEEPEVIDENCE_API_KEY`
+- **Env var**: `DEEPEVIDENCE_API_KEY` (企业用户请在此申请: <https://app.medsci.cn/platform>)
 - **MUST NOT** commit keys to source control
 - **MUST NOT** print API keys, full request bodies, or full response bodies in logs/errors (may contain sensitive clinical information)
 
@@ -146,10 +162,7 @@ For integration and operations, RECOMMENDED minimum handling:
 
 ## Advanced features (multi-tenant & conversations)
 
-- **API spec**: see `references/api_reference.md` (user mapping via `user` and `X-User-ID`, plus conversation extension APIs)
-- **Conversation manager**: run `python scripts/manage_conversations.py --help` to list/view/delete sessions
-  - **Deletion guard (MUST)**: never delete history unless the user explicitly requests deletion for a specific conversation/session (e.g. by `conversation_id`)
-  - **Double confirmation (MUST)**: repeat and confirm the target (id/title/time window) before deleting
+- **API spec**: see `references/api_reference.md` (user mapping via `user` and `X-User-ID`, using opaque/masked labels)
 
 ## Versioning & updates
 
