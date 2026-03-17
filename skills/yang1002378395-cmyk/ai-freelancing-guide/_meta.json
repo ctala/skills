@@ -3,11 +3,16 @@
   "slug": "ai-freelancing-guide",
   "displayName": "Ai Freelancing Guide",
   "latest": {
-    "version": "1.0.50",
-    "publishedAt": 1773632632035,
-    "commit": "https://github.com/openclaw/skills/commit/4093c84750f00f69a5f9845341b0abe9b6b3b799"
+    "version": "1.0.52",
+    "publishedAt": 1773632978884,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.50",
+      "publishedAt": 1773632632035,
+      "commit": "https://github.com/openclaw/skills/commit/4093c84750f00f69a5f9845341b0abe9b6b3b799"
+    },
     {
       "version": "1.0.47",
       "publishedAt": 1773632310986,
