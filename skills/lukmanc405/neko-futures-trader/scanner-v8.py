@@ -33,7 +33,7 @@ TELEGRAM_CHANNEL = os.environ.get('TELEGRAM_CHANNEL', '')
 BRAVE_API_KEY = os.environ.get('BRAVE_API_KEY', '')
 
 LEVERAGE = 10
-MAX_POSITIONS = 8
+MAX_POSITIONS = 5
 ENTRY_PERCENT = 5
 MIN_GAIN = 0.5
 
@@ -97,6 +97,85 @@ def get_positions():
 
 def get_24h_tickers():
     return binance_get('https://fapi.binance.com/fapi/v1/ticker/24hr')
+
+def get_open_interest(symbol):
+    """Get current Open Interest for a symbol"""
+    try:
+        url = f'https://fapi.binance.com/fapi/v1/openInterest?symbol={symbol}'
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        return float(data.get('openInterest', 0))
+    except:
+        return 0
+
+def get_oi_change(symbol, limit=5):
+    """Get OI change over recent candles - returns percentage change"""
+    try:
+        url = f'https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval=1h&limit={limit+1}'
+        r = requests.get(url, timeout=10)
+        candles = r.json()
+        
+        # Get OI for each hour
+        oi_values = []
+        for i in range(1, len(candles)):
+            # Use volume as proxy for OI (not exact but related)
+            vol = float(candles[i][5])  # volume
+            oi_values.append(vol)
+        
+        if len(oi_values) < 2:
+            return 0
+        
+        # Calculate change
+        current = oi_values[-1]
+        previous = sum(oi_values[:-1]) / len(oi_values[:-1])
+        
+        if previous == 0:
+            return 0
+        
+        return ((current - previous) / previous) * 100
+    except:
+        return 0
+
+def get_oi_history(symbol, period='1h', limit=24):
+    """Get OI history - more accurate than volume proxy"""
+    try:
+        url = f'https://futures.binance.com/futures/data/openInterestHist?symbol={symbol.replace("USDT","")}&period={period}&limit={limit}'
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        if data and len(data) > 1:
+            # Calculate OI change trend
+            oi_values = [float(d['openInterest']) for d in data]
+            current = oi_values[-1]
+            previous = sum(oi_values[:-1]) / len(oi_values[:-1])
+            if previous > 0:
+                return {
+                    'current': current,
+                    'change_pct': ((current - previous) / previous) * 100,
+                    'trend': 'up' if current > previous else 'down'
+                }
+        return {'current': 0, 'change_pct': 0, 'trend': 'neutral'}
+    except:
+        return {'current': 0, 'change_pct': 0, 'trend': 'neutral'}
+
+def get_mark_price(symbol):
+    """Get mark price for more accurate SL/TP"""
+    try:
+        url = f'https://fapi.binance.com/fapi/v1/markPrice?symbol={symbol}'
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        return float(data.get('markPrice', 0))
+    except:
+        return 0
+
+def get_price_v2(symbol):
+    """Get price using v2 endpoint - lower latency"""
+    try:
+        url = f'https://fapi.binance.com/fapi/v2/ticker/price?symbol={symbol}'
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        return float(data.get('price', 0))
+    except:
+        return 0
 
 def get_klines(symbol, interval='1h', limit=100):
     url = f'https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit={limit}'
@@ -215,10 +294,19 @@ def analyze_symbol(symbol, stats):
     # 2. 1H Momentum (continuation)
     change_1h = ((closes[-1] - closes[-6]) / closes[-6]) * 100 if len(closes) >= 6 else 0
     
-    # 3. Breakout (breaking recent high)
+    # 3. Breakout/Breakdown (breaking recent high/low)
     recent_high = max(highs[-10:])
     prev_high = max(highs[-20:-10]) if len(highs) >= 20 else max(highs[:-10])
-    breakout = recent_high > prev_high * 1.02  # 2% above
+    recent_low = min(lows[-10:])
+    prev_low = min(lows[-20:-10]) if len(lows) >= 20 else min(lows[:-10])
+    breakout = recent_high > prev_high * 1.02  # 2% above for LONG
+    breakdown = recent_low < prev_low * 0.98  # 2% below for SHORT
+    
+    # 4. Open Interest - use enhanced OI history
+    oi_data = get_oi_history(symbol)
+    oi = oi_data.get('current', 0)
+    oi_change = oi_data.get('change_pct', 0)
+    oi_trend = oi_data.get('trend', 'neutral')
     
     # Runner score
     runner_score = 0
@@ -228,13 +316,19 @@ def analyze_symbol(symbol, stats):
     elif price_change > 5: runner_score += 1
     if abs(change_1h) > 3: runner_score += 1
     if breakout: runner_score += 2
+    if breakdown: runner_score += 2
+    # OI spike bonus
+    if oi_change > 20: runner_score += 2
+    elif oi_change > 10: runner_score += 1
+    if oi_trend == 'up' and price_change > 0: runner_score += 1  # OI + price up = bullish
+    if oi_trend == 'down' and price_change < 0: runner_score += 1  # OI + price down = bearish
     
     # Must have at least score 3 for signal
     if runner_score < 3:
         return None
     
-    # Must have positive change for LONG
-    if price_change <= 0:
+    # Must have significant change for signal (either direction)
+    if abs(price_change) < 3:
         return None
     
     # EMAs
@@ -246,20 +340,34 @@ def analyze_symbol(symbol, stats):
     # ATR for SL/TP
     atr = calc_atr(candles, 14) or (current * 0.02)
     
-    # Direction - LONG only for runners
-    direction = "LONG"
-    sl = current - (atr * 1.5)
-    tp1 = current + (atr * 3.0)
-    tp2 = current + (atr * 4.5)
+    # Direction - Detect LONG or SHORT based on momentum
+    if price_change > 0:
+        direction = "LONG"
+    else:
+        direction = "SHORT"
+    
+    # Calculate SL/TP based on direction
+    if direction == "LONG":
+        sl = current - (atr * 1.5)
+        tp1 = current + (atr * 3.0)
+        tp2 = current + (atr * 4.5)
+    else:  # SHORT
+        sl = current + (atr * 1.5)
+        tp1 = current - (atr * 3.0)
+        tp2 = current - (atr * 4.5)
     
     # Trend
     trend = "BULLISH" if current > ema_50 else "BEARISH"
     
     # Structure
-    if breakout:
+    if breakout and direction == "LONG":
         structure = "BREAKOUT"
+    elif breakout and direction == "SHORT":
+        structure = "BREAKDOWN"
     elif price_change > 10:
         structure = "STRONG_MOMENTUM"
+    elif price_change < -10:
+        structure = "STRONG_DOWNSIDE"
     else:
         structure = "MOMENTUM"
     
@@ -282,6 +390,7 @@ def analyze_symbol(symbol, stats):
     except:
         rsi = 50
     
+    # Get Open Interest data
     return {
         'symbol': symbol,
         'direction': direction,
@@ -302,7 +411,10 @@ def analyze_symbol(symbol, stats):
         'vol_spike': vol_ratio > 2,
         'vol_ratio': vol_ratio,
         'breakout': breakout,
-        'runner_score': runner_score
+        'runner_score': runner_score,
+        'oi': oi,
+        'oi_change': oi_change,
+        'oi_trend': oi_trend
     }
 
 def fetch_brave_news(query, count=2):
@@ -409,6 +521,14 @@ def format_signal(analysis, stats):
     # Get token context
     news = get_token_news(s['symbol'], stats)
     
+    # Format OI
+    oi = s.get('oi', 0)
+    oi_change = s.get('oi_change', 0)
+    oi_trend = s.get('oi_trend', 'neutral')
+    oi_str = f"{oi:,.0f}" if oi else "N/A"
+    oi_emoji = "📈" if oi_change > 10 else "📉" if oi_change < -10 else "➡️"
+    trend_emoji = "⬆️" if oi_trend == 'up' else "⬇️" if oi_trend == 'down' else "➡️"
+    
     msg = f"""{emoji} {s['direction']} SIGNAL {emoji}
 
 📈 {sym}USDT TECHNICAL ANALYSIS 📊
@@ -424,6 +544,11 @@ def format_signal(analysis, stats):
 • EMA 21: {s['ema_21']:.6f}
 • EMA 50: {s['ema_50']:.6f}
 • ATR: {s['atr']:.6f}
+
+📊 OPEN INTEREST:
+• OI: {oi_str}
+• OI Change: {oi_emoji} {oi_change:+.1f}%
+• OI Trend: {trend_emoji} {oi_trend.upper()}
 
 🔊 VOLUME: {'Volume Spike' if s['vol_spike'] else 'Normal'}
 
@@ -536,6 +661,26 @@ def main():
                         
                         send_telegram(msg)
                         print(f"  Order: {order_id} | Posted to Telegram")
+                        
+                        # Save SL/TP for price monitor
+                        try:
+                            positions_file = os.path.join(script_dir, '.positions_sl_tp.json')
+                            positions_data = {}
+                            if os.path.exists(positions_file):
+                                with open(positions_file, 'r') as f:
+                                    positions_data = json.load(f)
+                            positions_data[symbol] = {
+                                'entry': entry_price,
+                                'sl': sl_price,
+                                'tp1': tp_price,
+                                'side': side,
+                                'opened_at': datetime.now().isoformat()
+                            }
+                            with open(positions_file, 'w') as f:
+                                json.dump(positions_data, f)
+                            print(f"  Saved SL/TP: SL={sl_price}, TP={tp_price}")
+                        except Exception as e:
+                            print(f"  Warning: Could not save SL/TP: {e}")
                         
                         posted.add(symbol)
                         with open('.posted_signals', 'w') as f:
