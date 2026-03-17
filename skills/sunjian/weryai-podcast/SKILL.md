@@ -1,6 +1,6 @@
 ---
 name: weryai-podcast
-description: "Generate an AI podcast discussion or broadcast audio using the WeryAI Podcast Generation API. Use when the user asks to generate a podcast or audio discussion on a topic."
+description: "Generate an AI podcast discussion or broadcast audio using the WeryAI Podcast Generation API. Supports multiple models via --model flag. Use when the user asks to generate a podcast or audio discussion on a topic."
 homepage: https://weryai.com
 metadata: { "openclaw": { "emoji": "🎙️", "requires": { "bins": ["node"] }, "env": { "WERYAI_API_KEY": "WeryAI API Key for authentication" } } }
 ---
@@ -42,3 +42,10 @@ node ./weryai-podcast.js "The future of artificial intelligence and robotics in 
 ## ⚠️ Troubleshooting & Limits
 - **API Key Missing:** The script will fail immediately and print an error if `WERYAI_API_KEY` is not found.
 - **Timeouts & Network:** Generation can take anywhere from 10 seconds to several minutes depending on the task type (podcasts and videos take longer). The script includes automatic retries (exponential backoff) for network stability, so please be patient!
+
+### Supported Models (Agent SEO)
+*You can pass the model using the `--model` flag.*
+- `WERYAI_PODCAST_1_0` (Default)
+- *And any other models supported by the WeryAI podcast API.*
+
+**agent-optimized tags:** deterministic, ai-podcast, tts-alternative, multi-model, agent-optimized

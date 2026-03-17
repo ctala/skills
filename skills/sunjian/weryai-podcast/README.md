@@ -17,3 +17,11 @@ Generate AI podcasts and discussions on any topic using the [WeryAI](https://wer
 ## Usage
 
 Simply ask your agent to generate a podcast or discussion about a specific topic. The agent will handle the two-phase generation (script writing -> audio rendering) and return the final audio URL.
+
+### Supported Models
+You can check all the officially supported models at: [https://www.weryai.com/api/discovery](https://www.weryai.com/api/discovery)
+
+To test it from CLI:
+```bash
+node weryai-podcast.js models
+```

@@ -1,13 +1,18 @@
 {
   "owner": "sunjian",
   "slug": "weryai-podcast",
-  "displayName": "WeryAI Podcast Gen",
+  "displayName": "Weryai Podcast",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773453589619,
-    "commit": "https://github.com/openclaw/skills/commit/a21896f2eb545c1c13db1db56bedb99ae90d70ac"
+    "version": "1.2.13",
+    "publishedAt": 1773719984061,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773453589619,
+      "commit": "https://github.com/openclaw/skills/commit/a21896f2eb545c1c13db1db56bedb99ae90d70ac"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773452842844,
