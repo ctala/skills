@@ -27,7 +27,7 @@ from time_window import (
 )
 
 
-BASE_DIR = Path(os.getenv('AI_NEWS_WORKSPACE', os.getcwd())).resolve()
+BASE_DIR = Path(os.getenv("AI_NEWS_WORKSPACE", os.getcwd())).resolve()
 DATA_DIR = BASE_DIR / "data"
 REPORT_DIR = BASE_DIR / "reports"
 STATE_DIR = BASE_DIR / "state"
@@ -113,6 +113,10 @@ def read_records(paths: list[Path]) -> list[dict[str, Any]]:
     return records
 
 
+def record_time_value(record: dict[str, Any]) -> str:
+    return str(record.get("published_at", "") or "")
+
+
 def records_to_rows(records: list[dict[str, Any]]) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     for record in records:
@@ -121,7 +125,7 @@ def records_to_rows(records: list[dict[str, Any]]) -> list[dict[str, str]]:
                 "资讯标题": str(record.get("title", "") or ""),
                 "资讯内容": str(record.get("content", "") or ""),
                 "资讯来源": str(record.get("source_name", "") or ""),
-                "资讯时间": str(record.get("published_at", "") or ""),
+                "资讯时间": record_time_value(record),
                 "资讯链接": str(record.get("link", "") or ""),
                 "AI标题": "",
                 "AI摘要": "",
@@ -139,7 +143,7 @@ def filter_records_by_time_window(
     return [
         record
         for record in records
-        if in_time_window(str(record.get("published_at", "") or ""), start, end)
+        if in_time_window(record_time_value(record), start, end)
     ]
 
 
@@ -167,7 +171,8 @@ def save_summary_cache(cache: dict[str, dict[str, str]]) -> None:
 
 def clear_summary_cache() -> None:
     try:
-        SUMMARY_CACHE_PATH.unlink(missing_ok=True)
+        if SUMMARY_CACHE_PATH.exists():
+            SUMMARY_CACHE_PATH.write_text("{}\n", encoding="utf-8")
     except OSError:
         pass
 

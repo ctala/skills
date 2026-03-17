@@ -4,7 +4,7 @@ import argparse
 import base64
 import hashlib
 import json
-import ssl
+import os
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -14,40 +14,74 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
-import os
 
 
-BASE_DIR = Path(os.getenv('AI_NEWS_WORKSPACE', os.getcwd())).resolve()
+BASE_DIR = Path(os.getenv("AI_NEWS_WORKSPACE", os.getcwd())).resolve()
 DEFAULT_CONFIG_PATH = BASE_DIR / "config" / "sources.json"
 DEFAULT_INTERNATIONAL_CONFIG_PATH = BASE_DIR / "config" / "international_sources.json"
 LEGACY_INTERNATIONAL_CONFIG_PATH = BASE_DIR / "international_sources.json"
 STATE_PATH = BASE_DIR / "state" / "feed_state.json"
 DATA_DIR = BASE_DIR / "data"
 LOG_DIR = BASE_DIR / "logs"
-USER_AGENT = "AINewsCollect/1.0 (+local-rss-collector)"
+USER_AGENT = "AINewsCollect/1.0 (+rss-collector)"
 MAX_SEEN_IDS_PER_SOURCE = 5000
 
 INTERNATIONAL_DATA_PREFIX = "international"
 INTERNATIONAL_TOPICS = [
     "llm",
     "foundation model",
+    "foundation models",
     "model",
+    "models",
     "agent",
+    "agents",
     "ai",
+    "artificial intelligence",
+    "generative ai",
+    "genai",
+    "multimodal",
+    "reasoning model",
+    "reasoning models",
 ]
 INTERNATIONAL_EVENTS = [
     "guideline",
+    "guidelines",
     "funding",
+    "fundraise",
+    "fundraising",
+    "raise",
+    "raises",
     "raised",
     "investment",
+    "invest",
+    "invests",
     "acquisition",
+    "acquire",
+    "acquires",
+    "acquired",
     "launch",
+    "launches",
+    "launched",
+    "release",
+    "releases",
     "released",
+    "approval",
     "approved",
     "policy",
     "regulation",
+    "regulatory",
+    "partnership",
+    "partner",
+    "partners",
+    "deal",
 ]
-
+AI_SCOPED_SOURCE_HINTS = [
+    "artificial-intelligence",
+    "artificialintelligence",
+    "/ai/",
+    "ai-techpark",
+    "venturebeat.com/category/ai",
+]
 
 ATOM_NS = {"atom": "http://www.w3.org/2005/Atom"}
 CONTENT_NAMESPACES = [
@@ -65,7 +99,6 @@ class SourceConfig:
     headers: dict[str, str] | None = None
     username: str | None = None
     password: str | None = None
-    verify_ssl: bool = True
 
 
 def parse_args() -> argparse.Namespace:
@@ -107,42 +140,41 @@ def ensure_directories() -> None:
 
 
 def load_sources(config_path: Path, *, required: bool) -> list[SourceConfig]:
-    if not config_path.exists():
-        if config_path == DEFAULT_INTERNATIONAL_CONFIG_PATH and LEGACY_INTERNATIONAL_CONFIG_PATH.exists():
-            config_path = LEGACY_INTERNATIONAL_CONFIG_PATH
+    path = config_path
+    if not path.exists():
+        if path == DEFAULT_INTERNATIONAL_CONFIG_PATH and LEGACY_INTERNATIONAL_CONFIG_PATH.exists():
+            path = LEGACY_INTERNATIONAL_CONFIG_PATH
         elif required:
-            raise FileNotFoundError(
-                f"未找到配置文件: {config_path}。请先复制并填写对应的 sources 配置。"
-            )
+            raise FileNotFoundError(f"Config file not found: {path}")
         else:
             return []
 
-    with config_path.open("r", encoding="utf-8") as file:
+    with path.open("r", encoding="utf-8") as file:
         data = json.load(file)
 
     if not isinstance(data, list):
-        raise ValueError(f"{config_path.name} 必须是数组，每一项对应一个 RSS/Atom 源。")
+        raise ValueError(f"{path.name} must be a JSON array of source objects.")
 
     sources: list[SourceConfig] = []
     for index, item in enumerate(data, start=1):
         if not isinstance(item, dict):
-            raise ValueError(f"{config_path.name} 第 {index} 个源配置不是对象。")
+            raise ValueError(f"Source #{index} in {path.name} must be an object.")
 
         name = str(item.get("name", "")).strip()
         url = str(item.get("url", "")).strip()
         if not name or not url:
-            raise ValueError(f"{config_path.name} 第 {index} 个源缺少 name 或 url。")
+            raise ValueError(f"Source #{index} in {path.name} is missing name or url.")
 
-        source = SourceConfig(
-            name=name,
-            url=url,
-            enabled=bool(item.get("enabled", True)),
-            headers=dict(item.get("headers") or {}),
-            username=item.get("username"),
-            password=item.get("password"),
-            verify_ssl=bool(item.get("verify_ssl", True)),
+        sources.append(
+            SourceConfig(
+                name=name,
+                url=url,
+                enabled=bool(item.get("enabled", True)),
+                headers=dict(item.get("headers") or {}),
+                username=item.get("username"),
+                password=item.get("password"),
+            )
         )
-        sources.append(source)
 
     return [source for source in sources if source.enabled]
 
@@ -187,9 +219,7 @@ def build_request(source: SourceConfig) -> Request:
         headers.update(source.headers)
 
     if source.username and source.password:
-        basic_token = base64.b64encode(
-            f"{source.username}:{source.password}".encode("utf-8")
-        ).decode("ascii")
+        basic_token = base64.b64encode(f"{source.username}:{source.password}".encode("utf-8")).decode("ascii")
         headers["Authorization"] = f"Basic {basic_token}"
 
     return Request(source.url, headers=headers)
@@ -197,11 +227,7 @@ def build_request(source: SourceConfig) -> Request:
 
 def fetch_feed(source: SourceConfig) -> bytes:
     request = build_request(source)
-    ssl_context = None
-    if not source.verify_ssl:
-        ssl_context = ssl._create_unverified_context()
-
-    with urlopen(request, context=ssl_context, timeout=30) as response:
+    with urlopen(request, timeout=30) as response:
         return response.read()
 
 
@@ -213,7 +239,6 @@ def extract_text(element: ET.Element | None, *tags: str) -> str:
         child = element.find(tag, ATOM_NS)
         if child is not None and child.text:
             return child.text.strip()
-
     return ""
 
 
@@ -228,7 +253,6 @@ def extract_content(element: ET.Element) -> str:
             text = "".join(child.itertext()).strip()
             if text:
                 return text
-
     return ""
 
 
@@ -237,12 +261,11 @@ def extract_link(element: ET.Element) -> str:
     if link_text:
         return link_text
 
-    link_element = element.find("atom:link", ATOM_NS)
-    if link_element is not None:
+    for link_element in element.findall("atom:link", ATOM_NS):
         href = link_element.attrib.get("href", "").strip()
-        if href:
+        rel = link_element.attrib.get("rel", "alternate").strip()
+        if href and rel in {"", "alternate"}:
             return href
-
     return ""
 
 
@@ -262,29 +285,9 @@ def normalize_datetime(value: str) -> str:
         return cleaned
 
 
-def build_item_id(
-    source_name: str,
-    guid: str,
-    link: str,
-    title: str,
-    published_at: str,
-    content: str,
-) -> str:
+def build_item_id(source_name: str, guid: str, link: str, title: str, published_at: str, content: str) -> str:
     raw = "||".join([source_name, guid, link, title, published_at, content])
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
-
-
-def parse_feed(content: bytes, source: SourceConfig) -> list[dict[str, str]]:
-    root = ET.fromstring(content)
-    items = root.findall("./channel/item")
-    if items:
-        return [parse_rss_item(item, source) for item in items]
-
-    entries = root.findall("./atom:entry", ATOM_NS)
-    if entries:
-        return [parse_atom_entry(entry, source) for entry in entries]
-
-    raise ValueError(f"{source.name} 不是可识别的 RSS/Atom 格式。")
 
 
 def parse_rss_item(item: ET.Element, source: SourceConfig) -> dict[str, str]:
@@ -293,7 +296,6 @@ def parse_rss_item(item: ET.Element, source: SourceConfig) -> dict[str, str]:
     link = extract_link(item)
     published_at = normalize_datetime(extract_text(item, "pubDate"))
     content = extract_content(item)
-
     return {
         "source_name": source.name,
         "source_url": source.url,
@@ -310,11 +312,8 @@ def parse_atom_entry(entry: ET.Element, source: SourceConfig) -> dict[str, str]:
     title = extract_text(entry, "atom:title")
     guid = extract_text(entry, "atom:id")
     link = extract_link(entry)
-    published_at = normalize_datetime(
-        extract_text(entry, "atom:published", "atom:updated")
-    )
+    published_at = normalize_datetime(extract_text(entry, "atom:published", "atom:updated"))
     content = extract_content(entry)
-
     return {
         "source_name": source.name,
         "source_url": source.url,
@@ -325,6 +324,22 @@ def parse_atom_entry(entry: ET.Element, source: SourceConfig) -> dict[str, str]:
         "guid": guid,
         "item_id": build_item_id(source.name, guid, link, title, published_at, content),
     }
+
+
+def parse_feed(content: bytes, source: SourceConfig) -> list[dict[str, str]]:
+    root = ET.fromstring(content)
+
+    items = root.findall("./channel/item")
+    if not items and root.tag.endswith("RDF"):
+        items = root.findall("./item")
+    if items:
+        return [parse_rss_item(item, source) for item in items]
+
+    entries = root.findall("./atom:entry", ATOM_NS)
+    if entries:
+        return [parse_atom_entry(entry, source) for entry in entries]
+
+    raise ValueError(f"Unrecognized RSS/Atom format for {source.name}")
 
 
 def append_records(records: list[dict[str, Any]], *, prefix: str | None = None) -> Path | None:
@@ -338,17 +353,10 @@ def append_records(records: list[dict[str, Any]], *, prefix: str | None = None) 
     with output_path.open("a", encoding="utf-8") as file:
         for record in records:
             file.write(json.dumps(record, ensure_ascii=False) + "\n")
-
     return output_path
 
 
-def deduplicate_new_items(
-    state: dict[str, Any],
-    source: SourceConfig,
-    items: list[dict[str, str]],
-    *,
-    state_key: str,
-) -> list[dict[str, Any]]:
+def deduplicate_new_items(state: dict[str, Any], source: SourceConfig, items: list[dict[str, str]], *, state_key: str) -> list[dict[str, Any]]:
     source_state = state[state_key].setdefault(source.name, {"seen_ids": []})
     seen_ids = set(source_state.get("seen_ids", []))
     new_records: list[dict[str, Any]] = []
@@ -380,14 +388,28 @@ def normalize_match_text(*values: str) -> str:
     return " ".join(value.lower() for value in values if value).strip()
 
 
-def is_relevant_international_item(item: dict[str, str]) -> bool:
-    match_text = normalize_match_text(item.get("title", ""), item.get("content", ""))
+def count_keyword_hits(match_text: str, keywords: list[str]) -> int:
+    return sum(1 for keyword in keywords if keyword in match_text)
+
+
+def is_ai_scoped_source(source: SourceConfig) -> bool:
+    scope_text = normalize_match_text(source.name, source.url)
+    return any(hint in scope_text for hint in AI_SCOPED_SOURCE_HINTS)
+
+
+def is_relevant_international_item(item: dict[str, str], source: SourceConfig) -> bool:
+    match_text = normalize_match_text(item.get("title", ""), item.get("content", ""), item.get("link", ""))
     if not match_text:
         return False
 
-    has_topic = any(keyword in match_text for keyword in INTERNATIONAL_TOPICS)
-    has_event = any(keyword in match_text for keyword in INTERNATIONAL_EVENTS)
-    return has_topic and has_event
+    topic_hits = count_keyword_hits(match_text, INTERNATIONAL_TOPICS)
+    event_hits = count_keyword_hits(match_text, INTERNATIONAL_EVENTS)
+    if event_hits == 0:
+        return False
+
+    if is_ai_scoped_source(source):
+        return True
+    return topic_hits > 0
 
 
 def collect_source_group(
@@ -409,25 +431,14 @@ def collect_source_group(
         try:
             raw_feed = fetch_feed(source)
             items = parse_feed(raw_feed, source)
-            filtered_items = (
-                [item for item in items if is_relevant_international_item(item)]
-                if filter_relevant
-                else items
-            )
-            new_records = deduplicate_new_items(
-                state,
-                source,
-                filtered_items,
-                state_key=state_key,
-            )
+            filtered_items = [item for item in items if is_relevant_international_item(item, source)] if filter_relevant else items
+            new_records = deduplicate_new_items(state, source, filtered_items, state_key=state_key)
             all_new_records.extend(new_records)
+
             if filter_relevant:
-                print(
-                    f"[OK] {label} {source.name}: 抓取 {len(items)} 条，"
-                    f"命中 {len(filtered_items)} 条，新增 {len(new_records)} 条"
-                )
+                print(f"[OK] {label} {source.name}: fetched {len(items)}, matched {len(filtered_items)}, new {len(new_records)}")
             else:
-                print(f"[OK] {label} {source.name}: 抓取 {len(items)} 条，新增 {len(new_records)} 条")
+                print(f"[OK] {label} {source.name}: fetched {len(items)}, new {len(new_records)}")
         except FileNotFoundError:
             raise
         except HTTPError as error:
@@ -452,15 +463,14 @@ def collect_source_group(
             append_failure_log(message, source_name=source.name)
 
     output_path = append_records(all_new_records, prefix=output_prefix)
-
     if output_path:
-        print(f"已写入 {len(all_new_records)} 条{label}新增资讯到 {output_path}")
+        print(f"Wrote {len(all_new_records)} new {label} records to {output_path}")
     else:
-        print(f"{label}本次没有新增资讯。")
+        print(f"No new {label} records this run")
 
     if error_count:
         append_failure_log(
-            f"{label}本次运行完成：新增 {len(all_new_records)} 条，失败源 {error_count} 个。下一个调度时点会继续执行。"
+            f"{label} run completed with {len(all_new_records)} new records and {error_count} failing sources."
         )
 
     return len(all_new_records), error_count, output_path
@@ -473,14 +483,14 @@ def collect_once(config_path: Path, international_config_path: Path) -> int:
     state = load_state()
 
     if not domestic_sources and not international_sources:
-        print("没有启用的 RSS 源，请先填写 config/sources.json 或 config/international_sources.json。")
+        print("No enabled RSS sources found. Fill config/sources.json or config/international_sources.json first.")
         return 0
 
     domestic_count, _, _ = collect_source_group(
         domestic_sources,
         state,
         state_key="sources",
-        label="国内",
+        label="domestic",
         output_prefix=None,
         filter_relevant=False,
     )
@@ -488,14 +498,14 @@ def collect_once(config_path: Path, international_config_path: Path) -> int:
         international_sources,
         state,
         state_key="international_sources",
-        label="国际",
+        label="international",
         output_prefix=INTERNATIONAL_DATA_PREFIX,
         filter_relevant=True,
     )
 
     save_state(state)
     total_new_records = domestic_count + international_count
-    print(f"本次共新增 {total_new_records} 条资讯。")
+    print(f"Total new records this run: {total_new_records}")
     return total_new_records
 
 
@@ -506,8 +516,8 @@ def main() -> int:
         collect_once(args.config.resolve(), args.international_config.resolve())
         return 0
     except Exception as error:
-        print(f"运行失败: {error}", file=sys.stderr)
-        append_failure_log(f"运行失败: {error}")
+        print(f"Run failed: {error}", file=sys.stderr)
+        append_failure_log(f"Run failed: {error}")
         return 1
 
 

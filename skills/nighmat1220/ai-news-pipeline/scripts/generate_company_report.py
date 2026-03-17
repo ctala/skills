@@ -26,7 +26,7 @@ from time_window import (
 from openpyxl import load_workbook
 
 
-BASE_DIR = Path(os.getenv('AI_NEWS_WORKSPACE', os.getcwd())).resolve()
+BASE_DIR = Path(os.getenv("AI_NEWS_WORKSPACE", os.getcwd())).resolve()
 DATA_DIR = BASE_DIR / "data"
 REPORT_DIR = BASE_DIR / "reports"
 COMPANIES_PATH = BASE_DIR / "companies.txt"
@@ -82,23 +82,45 @@ def ensure_directories() -> None:
     COMPANIES_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
-def load_companies(path: Path) -> list[str]:
-    if not path.exists():
-        raise FileNotFoundError(f"未找到企业名单文件: {path}")
+def dedupe_preserve_order(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value not in seen:
+            result.append(value)
+            seen.add(value)
+    return result
 
-    companies: list[str] = []
+
+def load_companies(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        raise FileNotFoundError(f"Company list file not found: {path}")
+
+    companies: list[dict[str, Any]] = []
     seen: set[str] = set()
 
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
-        if line not in seen:
-            companies.append(line)
-            seen.add(line)
+
+        parts = [part.strip() for part in line.split("|") if part.strip()]
+        if not parts:
+            continue
+
+        canonical_name = parts[0]
+        if canonical_name in seen:
+            continue
+
+        companies.append(
+            {
+                "name": canonical_name,
+                "aliases": dedupe_preserve_order(parts),
+            }
+        )
+        seen.add(canonical_name)
 
     return companies
-
 
 def target_data_files(days: int) -> list[Path]:
     today = datetime.now().date()
@@ -136,34 +158,46 @@ def read_records(paths: list[Path]) -> list[dict[str, Any]]:
     return records
 
 
-def match_records(records: list[dict[str, Any]], companies: list[str]) -> list[dict[str, str]]:
+def record_time_value(record: dict[str, Any]) -> str:
+    return str(record.get("published_at", "") or "")
+
+
+def match_records(records: list[dict[str, Any]], companies: list[dict[str, Any]]) -> list[dict[str, str]]:
     matched_rows: list[dict[str, str]] = []
     for record in records:
         title = str(record.get("title", "") or "")
-        if not title:
+        content = str(record.get("content", "") or "")
+        if not title and not content:
             continue
 
-        matched_names = [company for company in companies if company in title]
+        combined_text = "\n".join(part for part in [title, content] if part)
+        matched_names = [
+            str(company["name"])
+            for company in companies
+            if any(alias in combined_text for alias in company.get("aliases", []))
+        ]
         if not matched_names:
             continue
 
-        for company in matched_names:
+        for company_name in dedupe_preserve_order(matched_names):
             matched_rows.append(
                 {
-                    "企业名": company,
+                    "企业名": company_name,
                     "资讯标题": title,
-                    "资讯内容": str(record.get("content", "") or ""),
+                    "资讯内容": content,
                     "资讯来源": str(record.get("source_name", "") or ""),
-                    "资讯时间": str(record.get("published_at", "") or ""),
+                    "资讯时间": record_time_value(record),
                     "资讯链接": str(record.get("link", "") or ""),
                     "AI标题": "",
                     "AI摘要": "",
                 }
             )
 
-    matched_rows.sort(key=lambda row: (row["企业名"], row["资讯时间"], row["资讯标题"]), reverse=True)
+    matched_rows.sort(
+        key=lambda row: (row["企业名"], row["资讯时间"], row["资讯标题"]),
+        reverse=True,
+    )
     return matched_rows
-
 
 def filter_records_by_time_window(
     records: list[dict[str, Any]],
@@ -173,7 +207,7 @@ def filter_records_by_time_window(
     return [
         record
         for record in records
-        if in_time_window(str(record.get("published_at", "") or ""), start, end)
+        if in_time_window(record_time_value(record), start, end)
     ]
 
 
@@ -201,7 +235,8 @@ def save_summary_cache(cache: dict[str, dict[str, str]]) -> None:
 
 def clear_summary_cache() -> None:
     try:
-        SUMMARY_CACHE_PATH.unlink(missing_ok=True)
+        if SUMMARY_CACHE_PATH.exists():
+            SUMMARY_CACHE_PATH.write_text("{}\n", encoding="utf-8")
     except OSError:
         pass
 
@@ -222,13 +257,16 @@ def make_cache_key(row: dict[str, str]) -> str:
 
 def build_ai_payload(row: dict[str, str]) -> dict[str, Any]:
     prompt = (
-        "你是一名中文商业资讯编辑。请基于下面这条资讯生成 JSON，"
-        '必须只返回 JSON 对象，格式为 {"short_title":"...","summary":"..."}。'
+        "你是一名中文商业资讯编辑。请基于下面这条资讯生成 JSON。"
+        "必须只返回 JSON 对象，格式为 {\"short_title\":\"...\",\"summary\":\"...\"}。"
         "要求："
-        "1. short_title 为15字左右，最多20个汉字，不要使用书名号。"
-        "2. summary 为100字左右，最多120个汉字，信息准确、客观、完整。"
-        "3. 不要编造原文没有的信息。"
-        "4. 如果原文信息很少，也要尽量在限制内提炼要点。"
+        "1. short_title 目标为15个中文字符左右，通常不超过20个中文字符。英文字符、英文单词、缩写和数字不计入字数限制。"
+        "2. short_title 必须把一句话说完整，不能为了压缩字数截断半句。"
+        "3. short_title 可以保留必要的英文企业名、产品名或模型名。"
+        "4. summary 目标为100个中文字符左右，通常不超过120个中文字符，信息准确、客观、完整。"
+        "5. summary 必须完整表达，不能截断半句，并且必须以中文句号结尾。"
+        "6. 不要编造原文没有的信息。"
+        "7. 如果原文信息较少，也要尽量概括重点。"
         "\n\n"
         f"企业名：{row['企业名']}\n"
         f"原标题：{row['资讯标题']}\n"
@@ -242,7 +280,6 @@ def build_ai_payload(row: dict[str, str]) -> dict[str, Any]:
         "model": ARK_MODEL,
         "input": prompt,
     }
-
 
 def extract_text_from_response(payload: dict[str, Any]) -> str:
     output_text = payload.get("output_text")
@@ -287,6 +324,15 @@ def extract_text_from_response(payload: dict[str, Any]) -> str:
     return ""
 
 
+def ensure_cn_sentence_end(text: str) -> str:
+    cleaned = " ".join(text.split()).strip()
+    if not cleaned:
+        return ""
+    if cleaned[-1] not in "。！？":
+        cleaned += "。"
+    return cleaned
+
+
 def call_ark_api(row: dict[str, str]) -> dict[str, str]:
     if not ARK_API_KEY:
         raise RuntimeError("未设置 ARK_API_KEY")
@@ -320,8 +366,9 @@ def call_ark_api(row: dict[str, str]) -> dict[str, str]:
     if not short_title or not summary:
         raise RuntimeError("模型返回缺少 short_title 或 summary")
 
-    return {"AI标题": short_title[:20], "AI摘要": summary[:120]}
+    summary = ensure_cn_sentence_end(summary)
 
+    return {"AI标题": short_title, "AI摘要": summary}
 
 def enrich_rows_with_ai(rows: list[dict[str, str]], disable_ai: bool) -> tuple[list[dict[str, str]], int]:
     if disable_ai:
