@@ -30,11 +30,7 @@ Set your API key (get one at https://coralbricks.ai):
 export CORAL_API_KEY="ak_..."
 ```
 
-Optionally override the API URL (defaults to `https://search-api.coralbricks.ai`):
-
-```bash
-export CORAL_API_URL="https://search-api.coralbricks.ai"
-```
+Requests are sent to the Coral Bricks Memory API at `https://search-api.coralbricks.ai`.
 
 ## Tools
 
@@ -43,7 +39,7 @@ export CORAL_API_URL="https://search-api.coralbricks.ai"
 Store text with optional metadata for later retrieval by meaning.
 
 ```bash
-scripts/coral_store "text to store" [metadata_json]
+scripts/coral_store.sh "text to store" [metadata_json]
 ```
 
 - `text` (required): Content to remember
@@ -54,8 +50,8 @@ Output: JSON with `status` (e.g. `{"status": "success"}`).
 Example:
 
 ```bash
-scripts/coral_store "User prefers over-ear headphones with noise cancellation"
-scripts/coral_store "Q3 revenue was $2.1M" '{"source":"report"}'
+scripts/coral_store.sh "User prefers over-ear headphones with noise cancellation"
+scripts/coral_store.sh "Q3 revenue was $2.1M" '{"source":"report"}'
 ```
 
 ### coral_retrieve — Retrieve memories by meaning
@@ -63,7 +59,7 @@ scripts/coral_store "Q3 revenue was $2.1M" '{"source":"report"}'
 Retrieve stored memories by semantic similarity. Returns matching content ranked by relevance.
 
 ```bash
-scripts/coral_retrieve "query" [k]
+scripts/coral_retrieve.sh "query" [k]
 ```
 
 - `query` (required): Natural language query describing what to recall
@@ -74,8 +70,8 @@ Output: JSON with `results` array, each containing `text` and `score`.
 Example:
 
 ```bash
-scripts/coral_retrieve "wireless headphones preference" 5
-scripts/coral_retrieve "quarterly revenue" 10
+scripts/coral_retrieve.sh "wireless headphones preference" 5
+scripts/coral_retrieve.sh "quarterly revenue" 10
 ```
 
 ### coral_delete_matching — Forget memories by query
@@ -83,7 +79,7 @@ scripts/coral_retrieve "quarterly revenue" 10
 Remove memories that match a semantic query. Specify what to forget by meaning.
 
 ```bash
-scripts/coral_delete_matching "query"
+scripts/coral_delete_matching.sh "query"
 ```
 
 - `query` (required): Natural language query describing memories to remove
@@ -93,8 +89,8 @@ Output: JSON confirming the operation completed.
 Example:
 
 ```bash
-scripts/coral_delete_matching "dark mode preference"
-scripts/coral_delete_matching "forget my workout notes"
+scripts/coral_delete_matching.sh "dark mode preference"
+scripts/coral_delete_matching.sh "forget my workout notes"
 ```
 
 ## Privacy
@@ -104,7 +100,7 @@ scripts/coral_delete_matching "forget my workout notes"
 ## Notes
 
 - All memories are stored in the default collection; collections are not exposed to the agent
-- All text is embedded into 768-dimensional vectors for semantic matching
+- All text is embedded into 1024-dimensional vectors for semantic matching
 - Results are ranked by cosine similarity (higher score = more relevant)
 - Stored memories persist across sessions
 - The `metadata` field is free-form JSON; use it to tag memories for easier filtering
