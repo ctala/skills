@@ -3,9 +3,15 @@
   "slug": "slogan-maker",
   "displayName": "Slogan Maker",
   "latest": {
-    "version": "2.3.0",
-    "publishedAt": 1773447267156,
-    "commit": "https://github.com/openclaw/skills/commit/9a5e353358fc34f308a827c4f0923260b0029c58"
+    "version": "1.0.5",
+    "publishedAt": 1773667030617,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.3.0",
+      "publishedAt": 1773447267156,
+      "commit": "https://github.com/openclaw/skills/commit/9a5e353358fc34f308a827c4f0923260b0029c58"
+    }
+  ]
 }

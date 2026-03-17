@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: slogan-maker
 description: "广告语生成器。品牌标语创作、行业广告语、押韵口号、中英翻译、效果测试、经典语库。Slogan maker with brand taglines, industry slogans, rhyming, translation, testing, and classic collection. Use when you need slogan maker capabilities. Triggers on: slogan maker."
+author: BytesAgain
 ---
 # slogan-maker
 
@@ -25,7 +27,6 @@ description: "广告语生成器。品牌标语创作、行业广告语、押韵
   cn2en           cn2en
 ```
 
-
 ## 专业建议
 
 - 简短有力** — 最好不超过10个字
@@ -39,3 +40,9 @@ description: "广告语生成器。品牌标语创作、行业广告语、押韵
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+- Run `slogan-maker help` for all commands
+
+## Commands
+
+Run `slogan-maker help` to see all available commands.
