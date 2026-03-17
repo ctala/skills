@@ -1,0 +1,11 @@
+{
+  "owner": "sonopower",
+  "slug": "worq",
+  "displayName": "WORQ",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1773692186263,
+    "commit": null
+  },
+  "history": []
+}
