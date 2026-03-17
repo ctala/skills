@@ -3,9 +3,15 @@
   "slug": "easycode-skill",
   "displayName": "Easycode Skill",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773581240170,
-    "commit": "https://github.com/openclaw/skills/commit/d6a9ec0117efd9458f7eae351ffb37c4bf493303"
+    "version": "1.0.3",
+    "publishedAt": 1773585298199,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773581240170,
+      "commit": "https://github.com/openclaw/skills/commit/d6a9ec0117efd9458f7eae351ffb37c4bf493303"
+    }
+  ]
 }
