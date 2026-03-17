@@ -25,6 +25,8 @@ except ImportError:
     sys.exit(1)
 
 DEFAULT_BASE_URL = "https://api.miaoda.cn"
+VERSION = "1.0.10"
+CLIENT = "clawhub"
 
 
 # ---------------------------------------------------------------------------
@@ -32,10 +34,11 @@ DEFAULT_BASE_URL = "https://api.miaoda.cn"
 # ---------------------------------------------------------------------------
 
 def auth_headers(api_key: str) -> dict:
-    """Return HTTP headers with Bearer token authentication and JSON content type."""
+    """Return HTTP headers with Bearer token authentication, JSON content type, and custom User-Agent."""
     return {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
+        "User-Agent": f"miaoda-app-builder/{CLIENT}-{VERSION}",
     }
 
 
@@ -246,6 +249,16 @@ def chat_stream(
     If prompt_generate=True and the trajectory returns immediately generated text,
     prompts the user interactively whether to submit the app (generate-app confirmation).
     """
+    # Guard: --app-id without --context-id silently creates a NEW app every time.
+    # To modify an existing app both must be provided together.
+    if app_id and not context_id:
+        raise RuntimeError(
+            f"--app-id ({app_id}) was provided but --context-id is empty.\n"
+            "The platform will NOT modify the existing app — it will create a brand-new one.\n"
+            "To continue/modify an existing app:  --app-id <appId> --context-id <conversationId>\n"
+            "To create a new app from scratch:    omit both --app-id and --context-id"
+        )
+
     # Step 1: submit chat
     chat_url = f"{base_url.rstrip('/')}/api/v1/conversation/chat"
     payload = _build_chat_payload(text, context_id, app_id, query_mode, input_field_type)
@@ -320,6 +333,13 @@ def generate_app_confirmation(
     generations prefer leaving ``watch=False`` and checking status separately
     with ``fetch_trajectory_once`` (or the ``fetch-trajectory`` CLI command).
     """
+    if app_id and not context_id:
+        raise RuntimeError(
+            f"--app-id ({app_id}) was provided but --context-id is empty.\n"
+            "The platform will NOT modify the existing app — it will create a brand-new one.\n"
+            "Provide --context-id <conversationId> to confirm generation for the correct app."
+        )
+
     chat_url = f"{base_url.rstrip('/')}/api/v1/conversation/chat"
     payload = _build_chat_payload(
         text="生成应用",

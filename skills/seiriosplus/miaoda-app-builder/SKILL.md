@@ -323,14 +323,24 @@ python scripts/miaoda_api.py chat --text "description" [options]
 - `--text TEXT`: The message/instruction to send
 
 **Optional Parameters:**
-- `--context-id CONTEXT_ID`: Conversation ID (for continuing an existing conversation)
-- `--app-id APP_ID`: Application ID (for modifying an existing app)
+- `--context-id CONTEXT_ID`: Conversation ID of an existing app.
+- `--app-id APP_ID`: Application ID of an existing app.
 - `--query-mode QUERY_MODE`: Query mode (default: deep_mode)
 - `--input-field-type INPUT_FIELD_TYPE`: Input field type (default: web)
 - `--poll-interval SECONDS`: Seconds between trajectory polls (default: 2.0)
 - `--fetch-timeout SECONDS`: Per-request timeout for each trajectory fetch (default: 10)
 - `--no-stream`: Return raw chat POST response without trajectory polling
 - `--prompt-generate`: After polling, interactively ask whether to submit app generation if text was returned
+
+> **⚠️ IMPORTANT — `--app-id` and `--context-id` must always be used together.**
+>
+> | Intent | `--app-id` | `--context-id` |
+> |--------|-----------|----------------|
+> | Create a brand-new app | omit | omit |
+> | Continue / modify an existing app | required | required (conversationId) |
+>
+> Passing `--app-id` **without** `--context-id` will **NOT** modify the existing app.
+> The platform will silently create a **new** app every time. The CLI will now raise an error in this case to prevent accidental app proliferation.
 
 **Examples:**
 
