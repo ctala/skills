@@ -1,0 +1,60 @@
+# Skill 元数据
+name: apifox-exporter
+version: 1.0.0
+description: 从 Apifox 导出接口数据并整理成标准格式的文档
+author: 果果 @ 婉秋
+license: MIT
+
+# 分类
+category: developer-tools
+tags:
+  - apifox
+  - api
+  - export
+  - openapi
+  - documentation
+
+# 入口文件
+main: script/export.js
+
+# 依赖
+dependencies: []
+
+# 口令/命令
+commands:
+  - trigger: "更新接口文档"
+    description: "导出默认项目的接口文档"
+    action: "node script/export.js"
+  
+  - trigger: "导出接口"
+    description: "导出默认项目的接口文档"
+    action: "node script/export.js"
+  
+  - trigger: "刷新 Apifox 接口"
+    description: "重新导出接口文档"
+    action: "node script/export.js"
+  
+  - trigger: "更新接口文档，用 (.+)"
+    description: "导出指定项目的接口文档"
+    action: "node script/export.js $1"
+    params:
+      - name: project
+        type: string
+        description: "项目名称"
+
+# 文件结构
+files:
+  - SKILL.md
+  - README.md
+  - package.json
+  - script/export.js
+
+# 系统要求
+requirements:
+  - nodejs: ">=14.0.0"
+  - openclaw: ">=2026.3.0"
+
+# 输出位置
+output:
+  - path: "~/Desktop/Apifox 接口导出.txt"
+    description: "导出的接口文档"
