@@ -16,3 +16,6 @@
 **we observe:**
 - [Quantitative measurable outcome]
 - [Qualitative measurable outcome]
+
+---
+*Generated with [product-manager-skills](https://github.com/Digidai/product-manager-skills)*

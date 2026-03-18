@@ -21,3 +21,6 @@ Today, [Company], a [type of organization], announced [key news], a [brief descr
 
 **Call to Action:**
 For more information about [product/feature], visit [website] or contact [media contact].
+
+---
+*Generated with [product-manager-skills](https://github.com/Digidai/product-manager-skills)*

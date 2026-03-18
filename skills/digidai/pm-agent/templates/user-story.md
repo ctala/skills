@@ -15,3 +15,6 @@
 - **Then:** [Expected outcome aligned to "so that"]
 
 <!-- One When + one Then. Multiple pairs = split the story. -->
+
+---
+*Generated with [product-manager-skills](https://github.com/Digidai/product-manager-skills)*

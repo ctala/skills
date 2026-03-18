@@ -23,3 +23,6 @@
 ## POC Selection
 - **Chosen solution:** [Solution]
 - **Rationale:** [Feasibility, Impact, Market Fit]
+
+---
+*Generated with [product-manager-skills](https://github.com/Digidai/product-manager-skills)*

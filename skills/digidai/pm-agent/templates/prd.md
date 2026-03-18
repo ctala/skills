@@ -46,3 +46,6 @@
 ## 10. Open Questions
 - Unresolved decisions
 - Areas requiring discovery
+
+---
+*Generated with [product-manager-skills](https://github.com/Digidai/product-manager-skills)*

@@ -31,3 +31,6 @@
 
 ## Success Criteria
 - [What "we learned enough" looks like — e.g., 3+ users describe same pain point]
+
+---
+*Generated with [product-manager-skills](https://github.com/Digidai/product-manager-skills)*

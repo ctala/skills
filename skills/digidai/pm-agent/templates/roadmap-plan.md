@@ -21,3 +21,6 @@
 ## Risks & Dependencies
 - [Risk 1]
 - [Dependency 1]
+
+---
+*Generated with [product-manager-skills](https://github.com/Digidai/product-manager-skills)*

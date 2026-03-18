@@ -40,3 +40,6 @@
 1. [Highest-urgency fix + expected impact]
 2. [Second priority]
 3. [Third priority]
+
+---
+*Generated with [product-manager-skills](https://github.com/Digidai/product-manager-skills)*

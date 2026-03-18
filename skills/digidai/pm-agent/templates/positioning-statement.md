@@ -13,3 +13,6 @@
 - **Unlike** [primary competitor or alternative]
 - [product or service name]
 - **provides** [unique differentiation focused on outcomes]
+
+---
+*Generated with [product-manager-skills](https://github.com/Digidai/product-manager-skills)*
