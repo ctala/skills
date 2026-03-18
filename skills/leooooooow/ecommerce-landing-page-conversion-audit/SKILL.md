@@ -7,6 +7,15 @@ description: Audit an ecommerce landing page to identify the biggest conversion 
 
 A structured audit for ecommerce landing pages that need clearer messaging, stronger proof, lower friction, and better conversion flow.
 
+## Browser-first guidance
+
+If a live page URL is available, prefer **OpenClaw managed browser** before generating the audit.
+
+Recommended order:
+1. If the user already has page copy pasted, use it as a starting point.
+2. If the live page is accessible, inspect it with **OpenClaw managed browser**.
+3. Use Browser Relay only when the user explicitly wants to inspect their currently attached Chrome tab.
+
 ## Solves
 
 Many landing pages underperform because:
@@ -36,11 +45,16 @@ Goal:
 
 ## Workflow
 
-1. Review headline, subhead, and above-the-fold clarity.
-2. Check page structure, proof placement, and CTA flow.
-3. Identify friction points, confusion points, and weak sections.
-4. Prioritize fixes based on likely conversion impact.
-5. Suggest improved wording or structural changes where useful.
+1. Clarify the conversion goal.
+   - purchase?
+   - lead?
+   - quiz start?
+   - add to cart?
+2. Review headline, subhead, and above-the-fold clarity.
+3. Check page structure, proof placement, and CTA flow.
+4. Identify friction points, confusion points, and weak sections.
+5. Prioritize fixes based on likely conversion impact.
+6. Suggest improved wording or structural changes where useful.
 
 ## Output
 
@@ -56,6 +70,7 @@ Goal:
 - Recommendations should be specific enough to implement.
 - Separate major blockers from minor polish issues.
 - Keep the audit grounded in ecommerce conversion logic.
+- If the observed page surface is partial, label that clearly.
 
 ## Resource
 
