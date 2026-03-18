@@ -3,9 +3,15 @@
   "slug": "art-of-war",
   "displayName": "Art of War",
   "latest": {
-    "version": "4.0.0",
-    "publishedAt": 1773834574233,
-    "commit": "https://github.com/openclaw/skills/commit/d2d8357483f2f62c249037a5e3f26a8138980fef"
+    "version": "1.0.2",
+    "publishedAt": 1773836896384,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "4.0.0",
+      "publishedAt": 1773834574233,
+      "commit": "https://github.com/openclaw/skills/commit/d2d8357483f2f62c249037a5e3f26a8138980fef"
+    }
+  ]
 }
