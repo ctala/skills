@@ -18,6 +18,7 @@ This demo intentionally uses:
 - separated config and support classes
 - a migration-friendly engineering skeleton
 - DTO-style wrappers for post/comment/result data
+- service layer between command and client
 
 ## Structure
 
@@ -48,11 +49,12 @@ Keep shared support code in classes:
 - media inspector interface + placeholder
 - DTO classes
 - result builder and formatter
+- post/comment moderation services
 - app context
 
 ### `php_xai_client_example.php`
 
-Keep moderation responsibilities in one class:
+Keep moderation transport responsibilities in one class:
 - post moderation request
 - comment moderation request
 - callback request
@@ -66,4 +68,4 @@ Keep moderation responsibilities in one class:
 - if full-auto strict mode is enabled, fail closed on model/network/media errors
 - if callback fails, retry with backoff instead of dropping the result silently
 - replace placeholder media inspection with real image/video preprocessing
-- if moving into Yaf, split current support file into constants, dto, contracts, client, formatter, and provider directories
+- if moving into Yaf, split current support file into constants, dto, contracts, client, formatter, provider, and service directories

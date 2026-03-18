@@ -22,6 +22,7 @@ This version follows these conventions:
 - keep config and support logic separate
 - add small infrastructure-style utility classes for maintainability
 - add DTO-style wrappers for migration friendliness
+- add service layer so command files stop owning business orchestration
 
 ## Main classes
 
@@ -63,6 +64,11 @@ This version follows these conventions:
 - `ModerationCommentDto`
 - `ModerationAuditResultDto`
 
+### Services
+
+- `PostModerationService`
+- `CommentModerationService`
+
 ### Business client
 
 - `PostContentModerationClient`
@@ -77,11 +83,9 @@ This version follows these conventions:
 ## What became more engineered
 
 Compared with the previous round, this version adds:
-- logger interface
-- media inspector interface
-- DTO-style wrappers for post/comment/result
-- command flow using DTOs before calling the client
-- clearer migration path toward service-oriented project code
+- service layer between commands and the moderation client
+- command files that focus on IO instead of moderation orchestration
+- a clearer split between transport/client logic and moderation workflow logic
 
 ## Suggested next migration path
 
@@ -90,6 +94,7 @@ When moving into a real Yaf project, map these parts like this:
 - DTOs -> library/dto
 - interfaces -> library/contracts
 - `PostContentModerationClient` -> library/client
+- services -> library/service
 - `ModerationRuleProviderInterface` + implementation -> library/service or model-backed provider
 - `AuditPostsCommand` -> cron/task entry
 - `AuditCommentCommand` -> controller/service action
