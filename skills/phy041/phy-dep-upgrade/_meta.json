@@ -1,0 +1,11 @@
+{
+  "owner": "phy041",
+  "slug": "phy-dep-upgrade",
+  "displayName": "Phy Dep Upgrade",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773779547722,
+    "commit": null
+  },
+  "history": []
+}
