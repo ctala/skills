@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain3",
+  "slug": "load-balancer",
+  "displayName": "Load Balancer",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1773840723708,
+    "commit": null
+  },
+  "history": []
+}
