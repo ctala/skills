@@ -1,0 +1,8 @@
+{
+  "name": "ocas-praxis",
+  "version": "1.1.0",
+  "description": "Bounded behavioral refinement loop. Use when the system needs to record outcomes, extract micro-lessons from repeated patterns, consolidate them into active behavior shifts, apply shifts at runtime, and generate plain-language debriefs. Trigger phrases: 'what did we learn from that', 'show my active behavior shifts', 'generate a debrief', 'record this outcome'. Do not use for general memory, personality rewriting, or knowledge storage.",
+  "author": "Indigo Karasu",
+  "email": "mx.indigo.karasu@gmail.com",
+  "skill_type": "system"
+}
