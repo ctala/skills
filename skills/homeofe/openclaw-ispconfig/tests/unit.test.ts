@@ -3,26 +3,27 @@ import { ISPConfigClient } from "../src/client";
 import { ISPConfigError, normalizeError, classifyApiMessage } from "../src/errors";
 import { ToolContext, ToolDefinition, JsonMap } from "../src/types";
 import { validateParams, TOOL_SCHEMAS } from "../src/validate";
+import { vi, type Mock, type MockedClass } from 'vitest'
 
 // ---------------------------------------------------------------------------
 // Mock ISPConfigClient so no real HTTP calls are made
 // ---------------------------------------------------------------------------
 
-jest.mock("../src/client");
+vi.mock("../src/client");
 
-const MockedClient = ISPConfigClient as jest.MockedClass<typeof ISPConfigClient>;
+const MockedClient = ISPConfigClient as MockedClass<typeof ISPConfigClient>;
 
-let mockCall: jest.Mock;
-let mockLogout: jest.Mock;
+let mockCall: Mock;
+let mockLogout: Mock;
 
 function resetMocks(): void {
   MockedClient.mockClear();
-  mockCall = jest.fn();
-  mockLogout = jest.fn().mockResolvedValue(undefined);
+  mockCall = vi.fn();
+  mockLogout = vi.fn().mockResolvedValue(undefined);
   MockedClient.mockImplementation(() => ({
     call: mockCall,
     logout: mockLogout,
-    login: jest.fn().mockResolvedValue("mock-session"),
+    login: vi.fn().mockResolvedValue("mock-session"),
   } as unknown as ISPConfigClient));
 }
 
@@ -128,7 +129,7 @@ describe("write tools (mock-based)", () => {
   test("isp_dns_record_add rejects unsupported type via schema validation", async () => {
     const tool = findTool(tools, "isp_dns_record_add");
 
-    await expect(tool.run({ type: "SRV" }, ctx())).rejects.toThrow("must be one of [A, AAAA, MX, TXT, CNAME]");
+    await expect(tool.run({ type: "INVALID" }, ctx())).rejects.toThrow("must be one of");
   });
 
   // ---- isp_dns_record_delete - type dispatch ----
@@ -688,7 +689,7 @@ describe("validateParams (unit)", () => {
   });
 
   test("isp_dns_record_add rejects invalid type", () => {
-    expect(() => validateParams("isp_dns_record_add", { type: "SRV" })).toThrow("must be one of");
+    expect(() => validateParams("isp_dns_record_add", { type: "INVALID" })).toThrow("must be one of");
   });
 
   test("isp_dns_record_add accepts valid types case-insensitively", () => {

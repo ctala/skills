@@ -9,11 +9,14 @@ const hasEnv = Boolean(apiUrl && username && password);
 const describeLive = hasEnv ? describe : describe.skip;
 
 describeLive("ISPConfig live integration", () => {
-  const client = new ISPConfigClient({
-    apiUrl: apiUrl as string,
-    username: username as string,
-    password: password as string,
-    verifySsl: true,
+  let client: ISPConfigClient;
+  beforeAll(() => {
+    client = new ISPConfigClient({
+      apiUrl: apiUrl as string,
+      username: username as string,
+      password: password as string,
+      verifySsl: true,
+    });
   });
 
   afterAll(async () => {
