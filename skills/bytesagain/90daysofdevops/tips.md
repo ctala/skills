@@ -6,4 +6,4 @@
 
 ## Source
 Based on [MichaelCade/90DaysOfDevOps](https://github.com/MichaelCade/90DaysOfDevOps)
-- 29,378+ GitHub stars, Language: Shell, License: NOASSERTION
+- 29,380+ GitHub stars, Language: Shell, License: NOASSERTION

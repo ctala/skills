@@ -19,7 +19,7 @@ case "$CMD" in
     info)
         echo "90Daysofdevops v1.0.0"
         echo "Based on: https://github.com/MichaelCade/90DaysOfDevOps"
-        echo "Stars: 29,378+"
+        echo "Stars: 29,380+"
         ;;
     run)
         echo "TODO: Implement main functionality"
