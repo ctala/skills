@@ -1,0 +1,11 @@
+{
+  "owner": "okgptai",
+  "slug": "audio-translator",
+  "displayName": "多语种音频翻译助手",
+  "latest": {
+    "version": "2.1.0",
+    "publishedAt": 1773909110328,
+    "commit": null
+  },
+  "history": []
+}
