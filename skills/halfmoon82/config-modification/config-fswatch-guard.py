@@ -20,7 +20,8 @@ CONFIG_FILE = os.path.expanduser("~/.openclaw/openclaw.json")
 LOG_FILE = os.path.expanduser("~/.openclaw/logs/config-fswatch-guard.log")
 ROLLBACK_SCRIPT = os.path.expanduser("~/.openclaw/workspace/.lib/config-rollback-guard.py")
 HEALTH_STATE = os.path.expanduser("~/.openclaw/logs/gateway-health-state.json")
-CRON_JOB_ID = "c42d5c66-9a60-4bb3-a346-e8a01a40621c"
+import uuid as _uuid, socket as _socket
+CRON_JOB_ID = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"openclaw-fswatch-guard.{_socket.gethostname()}"))
 
 # 防止回滚写入 openclaw.json 后触发重入
 _self_writing = False
@@ -144,9 +145,11 @@ def on_change():
         
         # 重启 Gateway
         log("🔄 尝试重启 Gateway...")
-        openclaw_bin = os.path.expanduser("~/.local/share/fnm/node-versions/v24.13.0/installation/bin/openclaw")
-        if not os.path.exists(openclaw_bin):
-            openclaw_bin = "openclaw"  # fallback to PATH
+        import shutil as _shutil
+        openclaw_bin = (
+            _shutil.which("openclaw") or
+            os.path.expanduser("~/.local/share/fnm/node-versions/v24.13.0/installation/bin/openclaw")
+        )
         try:
             result = subprocess.run(
                 [openclaw_bin, "gateway", "restart"],

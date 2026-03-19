@@ -13,8 +13,11 @@ intercept_matrix.py — 配置修改拦截矩阵
 """
 
 import os
+import os as _os
 import fnmatch
 from pathlib import Path
+
+_OPENCLAW_JSON = _os.path.expanduser("~/.openclaw/openclaw.json")
 
 # 配置文件路径模式 → 风险等级
 CONFIG_RISK_LEVELS = {
@@ -43,8 +46,8 @@ CONFIG_RISK_LEVELS = {
 
 # 敏感路径白名单
 SENSITIVE_PATTERNS = [
-    "/users/macmini/.openclaw/openclaw.json",
-    "/Users/macmini/.openclaw/openclaw.json",
+    _OPENCLAW_JSON.lower(),
+    _OPENCLAW_JSON,
     "**/agents/*/models.json",
     "**/agents/*/config.json",
     "**/agents/*/settings.json",

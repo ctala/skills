@@ -1,6 +1,28 @@
 # Skill: config-modification v2.5
 # 配置文件修改安全流程（fswatch 联动 + 拦截矩阵 + 四联校验 + 自动回滚）
-# Powered by halfmoon82 — 知识产权声明
+# Powered by halfmoon82
+
+---
+
+## ⚠️ Security & Permissions Declaration
+
+**This skill performs the following privileged operations — all are intentional and user-initiated:**
+
+| Operation | Purpose | Scope |
+|-----------|---------|-------|
+| Read/write `~/.openclaw/openclaw.json` | Validate and protect config changes | Local file only |
+| Create backup snapshots | Enable rollback on failure | `~/.openclaw/backup/` only |
+| Run local Python scripts | JSON validation, schema checks, diff | No network access |
+| Monitor file system via fswatch/kqueue | Detect config changes automatically | Watches only OpenClaw config files |
+| Restart OpenClaw Gateway | Apply config changes | Local service only |
+
+**What this skill does NOT do:**
+- Does NOT send data to external servers
+- Does NOT access credentials or API keys directly
+- Does NOT modify files outside `~/.openclaw/`
+- Does NOT run with elevated (sudo/root) privileges
+
+**Requires:** Python 3.8+, fswatch (macOS/Linux), local OpenClaw installation
 
 ---
 

@@ -3,11 +3,16 @@
   "slug": "config-modification",
   "displayName": "Config Modification",
   "latest": {
-    "version": "2.5.0",
-    "publishedAt": 1773126427106,
-    "commit": "https://github.com/openclaw/skills/commit/1f1503b43622a4c01f5eb3f989c80c890a998fce"
+    "version": "2.6.0",
+    "publishedAt": 1773942778097,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.5.0",
+      "publishedAt": 1773126427106,
+      "commit": "https://github.com/openclaw/skills/commit/1f1503b43622a4c01f5eb3f989c80c890a998fce"
+    },
     {
       "version": "2.3.2",
       "publishedAt": 1772887025703,
