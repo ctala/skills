@@ -1,17 +1,34 @@
 {
   "name": "IMA Studio Video Generation",
   "tagline": "Text-to-video, image-to-video — Wan, Kling, Veo, Sora, Pixverse, Hailuo, SeeDance. One-stop AI video generation.",
-  "description": "Premier AI video generation. One-stop access to Wan 2.6, Kling O1, Kling 2.6, Google Veo 3.1, Sora 2 Pro, Pixverse V5.5, Hailuo 2.0/2.3, SeeDance 1.5 Pro, Vidu Q2. Supports text-to-video, image-to-video, first-last-frame, reference-image modes and character consistency. Use for: video generation, text-to-video, image-to-video, character animation, product demos, social media clips, storytelling, explainer videos, multi-shot production. Optional: install ima-knowledge-ai for workflow and visual-consistency guidance. Requires IMA_API_KEY.",
+  "description": "Premier AI video generation using IMA Open API with runtime model discovery. Supports text-to-video, image-to-video, first-last-frame, and reference-image modes. Use for video generation, character animation, product demos, social media clips, storytelling, and explainer videos. Requires IMA_API_KEY. Works standalone; when ima-knowledge-ai is installed, optional reference reads may be used for workflow and consistency guidance.",
   "category": "file-generation",
   "requiredEnvVars": ["IMA_API_KEY"],
-  "credentialNotice": "The IMA API key is required at runtime (--api-key or IMA_API_KEY). It is sent to api.imastudio.com (main API) and imapi.liveme.com (image uploads). Obtain keys at https://imastudio.com. Use a scoped or test key if concerned about credential exposure.",
-  "optionalDependencyNote": "When ima-knowledge-ai is installed, this skill may instruct the agent to read that skill's reference files (~/.openclaw/skills/ima-knowledge-ai/references/*) for workflow and visual-consistency guidance. The skill works standalone without it; those reads are optional. You can skip them if you do not have or trust that skill.",
+  "credentialNotice": "The IMA API key is required at runtime (--api-key or IMA_API_KEY). It is always sent to api.imastudio.com for product/task APIs. It is sent to imapi.liveme.com only when image-based tasks need local/non-HTTPS image uploads. Obtain keys at https://imastudio.com. Use a scoped or test key if concerned about credential exposure.",
+  "optionalDependencyNote": "When ima-knowledge-ai is installed, this skill may optionally read ~/.openclaw/skills/ima-knowledge-ai/references/* for video-mode selection and visual-consistency guidance. The skill works standalone without those reads.",
+  "requires": {
+    "env": ["IMA_API_KEY"],
+    "primaryCredential": "IMA_API_KEY",
+    "credentialNote": "IMA_API_KEY is required at runtime. It is sent to api.imastudio.com and, for local/non-HTTPS image uploads, to imapi.liveme.com."
+  },
   "localPaths": {
     "readWrite": [
       "~/.openclaw/memory/ima_prefs.json",
       "~/.openclaw/logs/ima_skills/"
     ],
     "purpose": "Preferences (model defaults) and generation logs; logs auto-deleted after 7 days. User can delete anytime."
+  },
+  "persistence": {
+    "readWrite": [
+      "~/.openclaw/memory/ima_prefs.json",
+      "~/.openclaw/logs/ima_skills/"
+    ],
+    "retention": "Logs are auto-cleaned after 7 days; preferences remain until user deletes them."
+  },
+  "instructionScope": {
+    "crossSkillReadOptional": [
+      "~/.openclaw/skills/ima-knowledge-ai/references/*"
+    ]
   },
   "supported_models": [
     "Veo",
@@ -59,12 +76,12 @@
     "storytelling",
     "explainer-video"
   ],
-  "version": "1.0.8",
+  "version": "1.1.0",
   "license": "MIT",
   "pricing": "free",
   "author": {
     "name": "IMA Studio",
-    "url": "https://www.imaclaw.ai/"
+    "url": "https://imastudio.com/"
   },
   "keywords": [
     "video generation",
@@ -109,8 +126,7 @@
   "related_skills": [
     "ima-knowledge-ai",
     "ima-image-ai",
-    "ima-all-ai",
-    "ima-resource-skill"
+    "ima-all-ai"
   ],
   "use_cases": [
     "Video creation, text-to-video, image-to-video",
@@ -122,6 +138,6 @@
     "Wan, Kling, Veo, Sora, Pixverse and more",
     "Text-to-video, image-to-video, first-last-frame, reference-image modes",
     "Character consistency support",
-    "With ima-knowledge-ai for workflow and visual consistency"
+    "Self-contained skill with transparent API usage"
   ]
 }
