@@ -1,17 +1,34 @@
 {
   "name": "IMA Studio — All-in-One AI Creation",
   "tagline": "Image, video, music, TTS in one — SeeDream, Midjourney, Nano Banana, Veo, Sora, Kling, Wan, Pixverse, Suno, DouBao, seed-tts. All-in-one AI creation.",
-  "description": "All-in-One AI creation: images (SeeDream 4.5, Midjourney, Nano Banana 2), videos (Wan 2.6, Kling, Veo 3.1, Sora, Pixverse, Hailuo, SeeDance, Vidu), music (Suno sonic, DouBao), TTS (seed-tts-2.0). Unified access with intelligent model selection and cross-media workflow orchestration. Use for: any AI content creation including images, videos, music, text-to-speech, multi-media projects. Requires IMA_API_KEY.",
+  "description": "All-in-One AI creation via IMA Open API: image, video, music, and TTS generation with runtime model discovery. Supports text_to_image, image_to_image, text_to_video, image_to_video, first_last_frame_to_video, reference_image_to_video, text_to_music, and text_to_speech. Requires IMA_API_KEY. Works standalone; when ima-knowledge-ai is installed, optional reference reads may be used for workflow and consistency guidance.",
   "category": "file-generation",
   "requiredEnvVars": ["IMA_API_KEY"],
-  "credentialNotice": "The IMA API key is required at runtime (--api-key or IMA_API_KEY). It is sent only to api.imastudio.com and imapi.liveme.com (IMA Studio domains). Obtain keys at https://www.imaclaw.ai/. Use a scoped or test key if concerned about credential exposure.",
-  "optionalDependencyNote": "When ima-knowledge-ai is installed, this skill may instruct the agent to read that skill's reference files (~/.openclaw/skills/ima-knowledge-ai/references/*) for workflow and model-selection guidance. The skill works standalone without it; those reads are optional and only for complex or multi-step workflows.",
+  "credentialNotice": "The IMA API key is required at runtime (--api-key or IMA_API_KEY). It is always sent to api.imastudio.com for product/task APIs. It is sent to imapi.liveme.com only for local image uploads in image/video tasks. Obtain keys at https://imastudio.com. Use a scoped or test key if concerned about credential exposure.",
+  "optionalDependencyNote": "When ima-knowledge-ai is installed, this skill may optionally read ~/.openclaw/skills/ima-knowledge-ai/references/* for workflow decomposition, visual-consistency, and mode-selection guidance. The skill works standalone without those reads.",
+  "requires": {
+    "env": ["IMA_API_KEY"],
+    "primaryCredential": "IMA_API_KEY",
+    "credentialNote": "IMA_API_KEY is required at runtime. It is sent to api.imastudio.com and, for local image uploads, to imapi.liveme.com."
+  },
   "localPaths": {
     "readWrite": [
       "~/.openclaw/memory/ima_prefs.json",
       "~/.openclaw/logs/ima_skills/"
     ],
     "purpose": "Preferences (model defaults) and generation logs; logs auto-deleted after 7 days. User can delete anytime."
+  },
+  "persistence": {
+    "readWrite": [
+      "~/.openclaw/memory/ima_prefs.json",
+      "~/.openclaw/logs/ima_skills/"
+    ],
+    "retention": "Logs are auto-cleaned after 7 days; preferences remain until user deletes them."
+  },
+  "instructionScope": {
+    "crossSkillReadOptional": [
+      "~/.openclaw/skills/ima-knowledge-ai/references/*"
+    ]
   },
   "supported_models": [
     "SeeDream",
@@ -75,12 +92,12 @@
     "doubao",
     "seed-tts"
   ],
-  "version": "1.2.3",
+  "version": "1.3.0",
   "license": "MIT",
   "pricing": "free",
   "author": {
     "name": "IMA Studio",
-    "url": "https://www.imaclaw.ai/"
+    "url": "https://imastudio.com/"
   },
   "keywords": [
     "multimodal",
@@ -127,8 +144,7 @@
     "ima-image-ai",
     "ima-video-ai",
     "ima-voice-ai",
-    "ima-tts-ai",
-    "ima-resource-skill"
+    "ima-tts-ai"
   ],
   "use_cases": [
     "Image, video, music, TTS in one entry",
@@ -139,7 +155,7 @@
   "key_features": [
     "Image, video, music, TTS one-stop",
     "SeeDream, Midjourney, Nano Banana, Wan, Kling, Veo, Sora, Suno, DouBao",
-    "Intelligent model selection and knowledge-base support",
+    "Runtime model discovery and smart defaults",
     "Alternative to multiple skills (ai-image + ai-video + suno + tts)"
   ]
 }
