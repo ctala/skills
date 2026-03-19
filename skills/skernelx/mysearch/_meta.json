@@ -3,9 +3,15 @@
   "slug": "mysearch",
   "displayName": "MySearch",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1773720018384,
-    "commit": "https://github.com/openclaw/skills/commit/8317163f7696725942181a71155530c4ab87d80b"
+    "version": "0.1.9",
+    "publishedAt": 1773932330096,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1773720018384,
+      "commit": "https://github.com/openclaw/skills/commit/8317163f7696725942181a71155530c4ab87d80b"
+    }
+  ]
 }
