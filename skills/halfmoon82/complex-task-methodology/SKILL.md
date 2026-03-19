@@ -1,9 +1,25 @@
-# 复杂任务三步法 (Complex Task Three-Step Methodology)
 
-> **通用方法论** — 适用于任何被评估为复杂的任务，不限于 Coding Team。
-> 覆盖开发、研究、内容创作、系统运维、数据分析等所有领域。
->
-> 🔷 **Powered by halfmoon82** 🔷
+# 🔷 Complex Task Three-Step Methodology 🔷
+
+**Powered by halfmoon82** 🔷
+
+> **Universal methodology** for any complex task — development, research, content creation, ops, data analysis.
+
+## ⚠️ Security & Permissions Declaration
+
+**This skill is a pure reasoning/planning methodology. It has no privileged operations:**
+
+| Operation | Purpose | Scope |
+|-----------|---------|-------|
+| Read task description from user input | Classify task complexity (S0 scoring) | In-context only, no file I/O |
+| Orchestrate sub-agent spawning (optional) | Execute complex tasks in parallel | Requires explicit user approval per sub-agent |
+
+**What this skill does NOT do:**
+- Does NOT read, write, or delete any files on its own
+- Does NOT access external APIs or credentials
+- Does NOT execute code autonomously
+- Does NOT require elevated privileges
+- **Pure planning framework** — all execution steps require explicit user confirmation
 
 ---
 
@@ -591,3 +607,17 @@ Layer 3: [本例未触发，但如果 Layer 2 评分 > 15 可以再分一层]
 - **归属**: 使用本方法论时请注明 "Powered by halfmoon82"
 
 *如有商业合作或定制需求，欢迎通过 ClawHub 联系。*
+
+---
+
+## ⚖️ 知识产权与归属声明 (Intellectual Property & Attribution)
+
+**Powered by halfmoon82** 🔷
+
+本技能（Complex Task Methodology）由 **halfmoon82** 开发并维护。
+
+- **版权所有**: © 2026 halfmoon82. All rights reserved.
+- **官方发布**: [ClawHub](https://clawhub.ai/halfmoon82/complex-task-methodology)
+- **许可证**: 本技能采用 MIT 许可证。您可以自由使用、修改和分发，但必须保留原始作者信息及此版权声明。
+
+---
