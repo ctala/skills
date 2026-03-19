@@ -35,6 +35,10 @@ NOW_ISO=$(now_iso)
 MAX_STALE_MIN=$(jq -r '.watchdog.max_stale_minutes // 15' "$MS_CONFIG" 2>/dev/null || echo 15)
 # Max seconds a mindstate process can run before it's considered hung
 MAX_PROC_AGE_SEC=$(jq -r '.watchdog.max_process_age_seconds // 300' "$MS_CONFIG" 2>/dev/null || echo 300)
+# Process management: kill hung processes (default: false — detect + log only)
+ALLOW_KILL=$(jq -r 'if .watchdog.allow_kill == true then "true" else "false" end' "$MS_CONFIG" 2>/dev/null || echo "false")
+# Orphan cleanup: delete stale .tmp files (default: false — detect + log only)
+ALLOW_CLEANUP=$(jq -r 'if .watchdog.allow_cleanup == true then "true" else "false" end' "$MS_CONFIG" 2>/dev/null || echo "false")
 
 log() {
     local msg="[$NOW_ISO] $1"
@@ -85,22 +89,26 @@ while IFS= read -r line; do
         hung_pids+=("$pid")
         log "WARN: Hung process PID=$pid age=${elapsed_sec}s cmd=$cmd"
     fi
-done < <(ps -eo pid,etime,args 2>/dev/null | grep -E 'mindstate-(daemon|freeze|boot)\.sh' | grep -v grep | grep -v watchdog || true)
+# Pattern anchored to SCRIPT_DIR to avoid matching unrelated processes with similar names
+done < <(ps -eo pid,etime,args 2>/dev/null | grep -F "$SCRIPT_DIR/mindstate-" | grep -E '\.(daemon|freeze|boot)\.sh' | grep -v grep | grep -v watchdog || true)
 
-# ─── 3. Kill hung processes ───
+# ─── 3. Handle hung processes ───
+# By default: detect + log only. Set watchdog.allow_kill=true to enable termination.
+# When enabled, kills ONLY processes matching this skill's own $SCRIPT_DIR/mindstate-*.sh path.
 if (( ${#hung_pids[@]} > 0 )); then
     for pid in "${hung_pids[@]}"; do
         if $DRY_RUN; then
-            log "DRY-RUN: Would kill PID=$pid"
-        else
+            log "DRY-RUN: Would kill PID=$pid (allow_kill=$ALLOW_KILL)"
+        elif [[ "$ALLOW_KILL" == "true" ]]; then
             log "ACTION: Killing hung PID=$pid"
             kill -TERM "$pid" 2>/dev/null || true
-            # Wait briefly, then force-kill if still alive
             sleep 2
             if kill -0 "$pid" 2>/dev/null; then
                 log "ACTION: Force-killing PID=$pid (SIGKILL)"
                 kill -9 "$pid" 2>/dev/null || true
             fi
+        else
+            log "DETECT: Hung process PID=$pid (allow_kill=false, not terminated — set watchdog.allow_kill=true to enable)"
         fi
     done
 fi
@@ -110,25 +118,67 @@ if [[ -f "$LOCK_FILE" ]]; then
     # Try to acquire lock non-blocking — if we can, no one holds it
     if ( exec 202>"$LOCK_FILE"; flock -n 202 ) 2>/dev/null; then
         # Lock is free — check if there are stale processes
-        if ! pgrep -f 'mindstate-(daemon|freeze)\.sh' >/dev/null 2>&1; then
+        if ! pgrep -f "$SCRIPT_DIR/mindstate-(daemon|freeze)\.sh" >/dev/null 2>&1; then
             # No mindstate process running, lock file is orphaned (safe)
             : # flock files are fine to leave, they're just empty files
         fi
     fi
 fi
 
-# ─── 5. Clean up orphaned tmp files ───
+# ─── 5. Handle orphaned tmp files ───
+# By default: detect + log only. Set watchdog.allow_cleanup=true to enable deletion.
+# Only targets *.tmp.* files in $ASSETS_DIR and $WORKSPACE (maxdepth 1), older than 10 min.
 orphan_count=$(find "$ASSETS_DIR" "$WORKSPACE" -maxdepth 1 -name "*.tmp.*" -mmin +10 2>/dev/null | wc -l)
 if (( orphan_count > 0 )); then
     if $DRY_RUN; then
-        log "DRY-RUN: Would clean $orphan_count orphaned .tmp files"
-    else
+        log "DRY-RUN: Would clean $orphan_count orphaned .tmp files (allow_cleanup=$ALLOW_CLEANUP)"
+    elif [[ "$ALLOW_CLEANUP" == "true" ]]; then
         find "$ASSETS_DIR" "$WORKSPACE" -maxdepth 1 -name "*.tmp.*" -mmin +10 -delete 2>/dev/null || true
         log "ACTION: Cleaned $orphan_count orphaned .tmp files"
+    else
+        log "DETECT: $orphan_count orphaned .tmp files found (allow_cleanup=false — set watchdog.allow_cleanup=true to enable)"
     fi
 fi
 
-# ─── 6. Restart daemon if stale ───
+# ─── 6. Auto-freeze stale cognition ───
+AUTO_FREEZE=$(jq -r 'if .watchdog.auto_freeze == false then "false" else "true" end' "$MS_CONFIG" 2>/dev/null || echo "true")
+AUTO_FREEZE_HOURS=$(jq -r '.watchdog.auto_freeze_stale_hours // 6' "$MS_CONFIG" 2>/dev/null || echo 6)
+cognition_frozen=false
+
+if [[ "$AUTO_FREEZE" == "true" && -f "$MINDSTATE_FILE" ]]; then
+    frozen_at=$(grep "^frozen_at:" "$MINDSTATE_FILE" 2>/dev/null | head -1 | sed 's/^frozen_at: *//')
+    if [[ -n "$frozen_at" && "$frozen_at" != "never" ]]; then
+        frozen_epoch=$(date -d "$frozen_at" +%s 2>/dev/null || echo 0)
+        hours_since_freeze=$(echo "scale=1; ($NOW_EPOCH - $frozen_epoch) / 3600" | bc -l)
+        
+        if (( $(echo "$hours_since_freeze > $AUTO_FREEZE_HOURS" | bc -l) )); then
+            # Use frozen_at as session_start — freeze will capture all activity since last snapshot
+            if $DRY_RUN; then
+                log "DRY-RUN: Would auto-freeze cognition (stale ${hours_since_freeze}h, threshold ${AUTO_FREEZE_HOURS}h)"
+            else
+                log "ACTION: Auto-freezing cognition (stale ${hours_since_freeze}h)"
+                WORKSPACE="$WORKSPACE" bash "$SCRIPT_DIR/mindstate-freeze.sh" "$frozen_epoch" 2>&1 | while read -r line; do
+                    log "  freeze: $line"
+                done
+                cognition_frozen=true
+            fi
+        fi
+    elif [[ "$frozen_at" == "never" ]]; then
+        # Never frozen — use 24h ago as session start to capture initial activity
+        fallback_epoch=$((NOW_EPOCH - 86400))
+        if $DRY_RUN; then
+            log "DRY-RUN: Would auto-freeze (never frozen before)"
+        else
+            log "ACTION: Auto-freezing cognition (first freeze)"
+            WORKSPACE="$WORKSPACE" bash "$SCRIPT_DIR/mindstate-freeze.sh" "$fallback_epoch" 2>&1 | while read -r line; do
+                log "  freeze: $line"
+            done
+            cognition_frozen=true
+        fi
+    fi
+fi
+
+# ─── 7. Restart daemon if stale ───
 if ! $daemon_alive; then
     if $DRY_RUN; then
         log "DRY-RUN: Would trigger daemon restart"
@@ -143,10 +193,10 @@ if ! $daemon_alive; then
     fi
 fi
 
-# ─── 7. Summary ───
-if $daemon_alive && (( ${#hung_pids[@]} == 0 )) && (( orphan_count == 0 )); then
+# ─── 8. Summary ───
+if $daemon_alive && (( ${#hung_pids[@]} == 0 )) && (( orphan_count == 0 )) && ! $cognition_frozen; then
     # All healthy — no log spam
     exit 0
 fi
 
-log "SUMMARY: daemon_alive=$daemon_alive hung=${#hung_pids[@]} orphans=$orphan_count"
+log "SUMMARY: daemon_alive=$daemon_alive hung=${#hung_pids[@]} orphans=$orphan_count auto_freeze=$cognition_frozen"

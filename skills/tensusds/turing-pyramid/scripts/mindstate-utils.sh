@@ -30,9 +30,9 @@ mindstate_file() { echo "$WORKSPACE/MINDSTATE.md"; }
 _ms_assets() { echo "${MINDSTATE_ASSETS_DIR:-$_MINDSTATE_SKILL_DIR/assets}"; }
 
 mindstate_state_file() { echo "$(_ms_assets)/needs-state.json"; }
-mindstate_config_file() { echo "$_MINDSTATE_SKILL_DIR/assets/needs-config.json"; }
-mindstate_decay_config() { echo "$_MINDSTATE_SKILL_DIR/assets/decay-config.json"; }
-mindstate_ms_config() { echo "$_MINDSTATE_SKILL_DIR/assets/mindstate-config.json"; }
+mindstate_config_file() { local d="$(_ms_assets)"; [[ -f "$d/needs-config.json" ]] && echo "$d/needs-config.json" || echo "$_MINDSTATE_SKILL_DIR/assets/needs-config.json"; }
+mindstate_decay_config() { local d="$(_ms_assets)"; [[ -f "$d/decay-config.json" ]] && echo "$d/decay-config.json" || echo "$_MINDSTATE_SKILL_DIR/assets/decay-config.json"; }
+mindstate_ms_config() { local d="$(_ms_assets)"; [[ -f "$d/mindstate-config.json" ]] && echo "$d/mindstate-config.json" || echo "$_MINDSTATE_SKILL_DIR/assets/mindstate-config.json"; }
 mindstate_audit_log() { echo "$(_ms_assets)/audit.log"; }
 mindstate_lock_file() { echo "$(_ms_assets)/mindstate.lock"; }
 mindstate_prev_snapshot() { echo "$(_ms_assets)/mindstate-prev-snapshot.json"; }

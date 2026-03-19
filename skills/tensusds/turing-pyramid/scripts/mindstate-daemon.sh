@@ -36,7 +36,8 @@ _daemon_cleanup() {
 trap _daemon_cleanup EXIT SIGTERM SIGINT SIGHUP
 
 # ─── Orphaned .tmp cleanup (older than 10 min) ───
-find "$ASSETS_DIR" "$WORKSPACE" -maxdepth 1 -name "*.tmp.*" -mmin +10 -delete 2>/dev/null || true
+# Daemon only cleans its own process's tmp files via trap.
+# Broader orphan cleanup is handled by watchdog when allow_cleanup=true.
 
 # ─── Self-throttle: skip if last update too recent ───
 MIN_INTERVAL=$(jq -r '.daemon.min_interval_seconds // 240' "$MS_CONFIG" 2>/dev/null || echo 240)

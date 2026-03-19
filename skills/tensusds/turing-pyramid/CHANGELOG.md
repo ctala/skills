@@ -1,5 +1,44 @@
 # Changelog
 
+## v1.28.7 (2026-03-19) — Safe defaults: kill/cleanup opt-in
+- **BREAKING (safe direction)**: Watchdog `allow_kill` and `allow_cleanup` now default to `false`
+  - Default behavior: detect hung processes and orphan files → **log only, no action**
+  - Set `allow_kill: true` to enable process termination (after reviewing scripts)
+  - Set `allow_cleanup: true` to enable orphan .tmp deletion
+  - Auto-freeze remains enabled by default (safe — only writes MINDSTATE.md)
+- **Daemon no longer cleans orphans** — moved to watchdog (gated by `allow_cleanup`)
+- **Deployment tiers**: 5-level progressive installation (Interactive → Heartbeat → Continuity → Watchdog detect → Full self-healing)
+- Tests updated for new defaults (detect-only + opt-in cleanup), 25/25 green
+
+## v1.28.5 (2026-03-19) — Security hardening (round 2)
+- **External actions enumerated**: all 8 external suggestions listed explicitly in security docs
+- **PATH isolation documented**: workspace isolation, symlink protection, realpath validation, SCRIPT_DIR ownership note
+- Version bump only — no script changes, tests unchanged at 25/25
+
+## v1.28.4 (2026-03-19) — Security hardening, scope clarity, tests
+- **Watchdog pattern hardened**: process matching now uses `grep -F "$SCRIPT_DIR/mindstate-"` (full path-anchored) instead of generic regex, preventing false matches against unrelated processes
+- **Removed "not a system management tool"** language — replaced with accurate three-layer scope description
+- **Execution gate trust model documented**: warns that agents with workspace write access can fabricate file-based evidence; recommends `mark_satisfied` for high-trust or steward review for sensitive needs
+- **External action documentation**: added jq command to list/disable external suggestions for strict offline behavior
+- Previous v1.28.2 changes included below
+
+### v1.28.2 changes (rolled into v1.28.3):
+- **Documentation overhaul**: Replaced "suggestion engine, not executor" with explicit three-layer scope table (Motivation / Continuity / Resilience) showing exact system effects per layer
+- **Security model expanded**: Added watchdog process scope documentation, cron isolation guidelines, network-free verification command, ASCII architecture diagram showing daemon/watchdog scope
+- **Steward onboarding**: Added pre-cron checklist (dry-run, isolated workspace, non-root, source review)
+- **New: `test_watchdog.sh`** — 10 assertions: healthy silence, stale detection, orphan cleanup, auto-freeze (execute/dry-run/disable/read-only), log rotation
+- **Updated: `test_mindstate_daemon.sh`** — +3 tests: orphan cleanup, stale cognition flag, no false flag when fresh
+- **Bug fix**: `jq -r '.watchdog.auto_freeze // true'` returned `true` when value was `false` (jq `//` treats false as null). Fixed with explicit conditional.
+- **Config isolation**: `mindstate_ms_config`, `mindstate_config_file`, `mindstate_decay_config` now resolve via `MINDSTATE_ASSETS_DIR` when set (fixes test isolation, previously tests could bleed into production config)
+- Full suite: **25/25 tests green** (24 unit + 1 integration)
+
+## v1.28.1 (2026-03-19) — Auto-freeze
+- **Watchdog auto-freeze**: if cognition hasn't been frozen for `auto_freeze_stale_hours` (default: 6h), watchdog automatically triggers `mindstate-freeze.sh`
+  - Uses last `frozen_at` timestamp as session boundary → captures all pyramid activity since last snapshot
+  - Handles "never frozen" case with 24h lookback
+  - Configurable: `watchdog.auto_freeze` (bool) + `watchdog.auto_freeze_stale_hours`
+- SKILL.md updated: watchdog table, failure mode table, auto-freeze documentation
+
 ## v1.28.0 (2026-03-19) — Resilience & Crash Recovery
 - **New: `mindstate-watchdog.sh`** — process watchdog, cron every 15 min
   - Detects stale MINDSTATE.md (daemon dead for >15 min) → restarts daemon

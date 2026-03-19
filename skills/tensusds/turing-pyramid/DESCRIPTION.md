@@ -114,12 +114,18 @@ See `references/TUNING.md` for detailed tuning guide.
 
 ---
 
-## Architecture: Suggestion Engine, Not Executor
+## Architecture
 
-The skill outputs text suggestions. It does not execute actions, make network requests, or access credentials.
+The skill has three layers with increasing system scope:
+
+| Layer | What it does | System effects |
+|-------|-------------|----------------|
+| **Motivation** (run-cycle, mark-satisfied) | Reads workspace, outputs "★ do X" suggestions | None — pure text output |
+| **Continuity** (daemon, freeze, boot) | Maintains MINDSTATE.md via cron | Read-only: `pgrep` (gateway check), `df` (disk). Writes only MINDSTATE.md |
+| **Resilience** (watchdog) | Self-heals skill processes | `kill` on hung `mindstate-*.sh` only. Deletes orphan `.tmp` in workspace/assets |
 
 ```
-Turing Pyramid (local-only)      Your Agent (has capabilities)
+Motivation (local-only)          Your Agent (has capabilities)
 ───────────────────────────      ─────────────────────────────
 reads JSON config + state    →   receives "★ do X" text
 scans workspace files        →   decides: execute? skip? ask human?
@@ -127,8 +133,9 @@ outputs suggestion text      →   uses its own tools and permissions
 ```
 
 **Reads:** workspace files (MEMORY.md, SOUL.md, etc.) via grep/find for pattern detection.
-**Writes:** `assets/needs-state.json` only (timestamps and satisfaction levels).
-**Never accesses:** credentials, APIs, network, paths outside workspace.
+**Writes:** `assets/needs-state.json`, `MINDSTATE.md`, `assets/audit.log`, `assets/watchdog.log`.
+**System calls:** `pgrep` (read-only), `df` (read-only), `kill` (watchdog, own processes only).
+**Never accesses:** credentials, APIs, network, paths outside workspace, non-skill processes, elevated permissions.
 
 ---
 
@@ -143,6 +150,18 @@ outputs suggestion text      →   uses its own tools and permissions
 Stable agents (most needs satisfied) use fewer tokens. First few days are higher as the system stabilizes.
 
 ---
+
+## Deployment Tiers
+
+| Tier | What you get | System effects |
+|------|-------------|----------------|
+| **1. Interactive** | Motivation engine: run-cycle + mark-satisfied | Workspace files only, zero system calls |
+| **2. + Heartbeat** | Automatic cycles via agent runtime | Same as Tier 1 |
+| **3. + Continuity** | MINDSTATE persistence (cron daemon) | Read-only: pgrep, df |
+| **4. + Watchdog** | Detection + logging + auto-freeze (default) | Detect only, no destructive actions |
+| **5. Full** | Self-healing (opt-in: `allow_kill`, `allow_cleanup`) | kill on skill's own processes, .tmp cleanup |
+
+Start at Tier 1. The watchdog (Tier 4) is safe by default — it only detects and logs. Process kill and file cleanup require explicit opt-in after reviewing scripts.
 
 ## Resilience
 

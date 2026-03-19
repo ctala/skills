@@ -25,7 +25,17 @@ metadata:
 
 **What it does:** Gives your agent a motivation system. 10 needs (security, connection, expression...) build tension over time via decay. Each heartbeat, the pyramid evaluates tensions, selects actions, and tells the agent what to do — from "check system health" to "write something creative."
 
-**What it is NOT:** A chatbot framework. The pyramid handles motivation and action selection. Your agent handles execution. Core scripts make no network calls. Optional `external-model` scan method (disabled by default) can call an inference API if explicitly enabled by steward. The continuity daemon performs lightweight local system checks (process list, disk usage).
+**What it is NOT:** A chatbot framework, an executor, or a system management tool.
+
+**Three layers with different scopes:**
+
+| Layer | Scripts | Scope | System effects |
+|-------|---------|-------|----------------|
+| **Motivation** | `run-cycle.sh`, `mark-satisfied.sh`, `init.sh` | Read workspace files, write own state JSON | None — pure suggestion engine |
+| **Continuity** | `mindstate-daemon.sh`, `mindstate-freeze.sh`, `mindstate-boot.sh` | Read workspace + own state, write MINDSTATE.md | Read-only system checks: `pgrep` (gateway alive?), `df` (disk usage). No writes outside workspace. |
+| **Resilience** | `mindstate-watchdog.sh` | Monitor continuity scripts | **Default: detect + log only.** With `allow_kill: true`: terminates hung `mindstate-*.sh` processes (path-anchored, never other PIDs). With `allow_cleanup: true`: deletes orphan `.tmp` files in workspace + assets dir. Auto-freeze is always safe. |
+
+Core motivation scripts make **zero network calls**. Optional `external-model` scan method (disabled by default) can call an inference API if explicitly enabled by steward. The continuity daemon performs lightweight local system checks (read-only). The watchdog **detects and logs by default** — destructive actions (`kill`, `delete`) require explicit opt-in via config.
 
 **v1.27.0** — Execution Gate: structural enforcement that prevents agents from describing actions instead of doing them. Turing-exp tension formula: equal rotation at homeostasis, hierarchy only in crisis.
 
@@ -56,6 +66,20 @@ Add to `HEARTBEAT.md` for automatic operation:
 ```bash
 bash /path/to/skills/turing-pyramid/scripts/run-cycle.sh
 ```
+
+### Deployment Tiers
+
+Choose the level of integration that matches your trust and needs:
+
+| Tier | Components | System effects | Risk |
+|------|-----------|----------------|------|
+| **1. Interactive only** | `run-cycle.sh`, `mark-satisfied.sh`, `gate-*.sh` | Reads workspace, writes own state JSON | Minimal — no system interaction |
+| **2. + Heartbeat** | Tier 1 + `run-cycle.sh` in HEARTBEAT.md | Same as Tier 1, triggered by agent runtime | Low — no cron, no process management |
+| **3. + Continuity** | Tier 2 + `mindstate-daemon.sh` in cron (*/5) | Adds `pgrep` (read-only), `df` (read-only), writes MINDSTATE.md | Moderate — cron persistence, read-only system checks |
+| **4. + Watchdog (detect)** | Tier 3 + `mindstate-watchdog.sh` in cron (*/15) | Detects hung processes and orphan files, **logs only** (default). Auto-freezes stale cognition | Moderate — detection only, no destructive actions |
+| **5. Full self-healing** | Tier 4 + `allow_kill: true` + `allow_cleanup: true` | Kills hung skill processes, deletes orphan `.tmp` files | Higher — requires script review |
+
+**Start at Tier 1 or 2.** Upgrade after reviewing scripts and running the test suite in an isolated workspace. You get full motivation/action selection at Tier 1 — everything above is optional. Tier 4 (watchdog with defaults) is safe to enable without review since it only detects and logs.
 
 ---
 
@@ -106,6 +130,12 @@ The system is self-tuning. After a few cycles, you'll see patterns: which needs 
 - "Check `watchdog.log` — any recent restarts?"
 
 **Execution Gate** (enabled by default): The gate prevents your agent from logging "I did X" without actually doing X. Monitor execution rate via `gate-status.sh`. Healthy is >70%. If your agent repeatedly defers the same need, the actions may not fit your agent's capabilities — adjust them in `needs-config.json`.
+
+**Before enabling cron:**
+1. Run `bash scripts/mindstate-watchdog.sh --dry-run` to verify behavior
+2. Test in an isolated workspace: `WORKSPACE=/tmp/test MINDSTATE_ASSETS_DIR=/tmp/test-assets`
+3. Ensure cron runs under a non-root user account
+4. Review watchdog.sh and daemon.sh source — the kill scope is `mindstate-(daemon|freeze|boot)\.sh` only
 
 ---
 
@@ -247,6 +277,8 @@ bash scripts/gate-status.sh
 
 **Starvation guard actions are non-deferrable.** If the guard forces an action, it cannot be deferred.
 
+**Evidence trust model:** `file_created` and `file_modified` are high-trust because they require observable state changes. However, an agent with write access to `$WORKSPACE` can fabricate evidence by creating/modifying files. If this is a concern, restrict evidence types to `mark_satisfied` (requires explicit script call with audit trail) or add steward review for sensitive needs. `self_report` is explicitly low-trust and tracked separately in analytics.
+
 Configure: `execution_gate` in `assets/mindstate-config.json`
 
 ---
@@ -353,22 +385,37 @@ The continuity layer is designed to survive unexpected termination:
 
 **Stale cognition detection:** The daemon monitors when `mindstate-freeze.sh` last ran. If cognition hasn't been frozen for longer than `stale_cognition_hours` (default: 24h), a warning appears in MINDSTATE.md under `system.cognition`.
 
-**Watchdog** (`mindstate-watchdog.sh`): Runs on cron every 15 minutes. Strategy:
+**Watchdog** (`mindstate-watchdog.sh`): Runs on cron every 15 minutes. **Safe by default** — detect and log only. Destructive actions (kill, delete) require explicit opt-in.
 
-| Check | Threshold | Action |
-|-------|-----------|--------|
-| MINDSTATE.md freshness | > 15 min stale | Daemon considered dead → restart |
-| Process age | > 300s (5 min) | Process considered hung → SIGTERM, then SIGKILL |
-| Orphaned .tmp files | > 10 min old | Delete |
+| Check | Default behavior | With opt-in |
+|-------|-----------------|-------------|
+| MINDSTATE.md freshness | Log warning, restart daemon | Same (restart is safe — just runs daemon.sh) |
+| Hung processes (>5 min) | **Log only** | `allow_kill: true` → SIGTERM, then SIGKILL |
+| Orphaned .tmp files | **Log only** | `allow_cleanup: true` → delete files |
+| Stale cognition (>6h) | Auto-freeze (safe — runs freeze.sh) | Same |
+
+**What does kill target?** Only processes matching the **full path** `$SCRIPT_DIR/mindstate-(daemon|freeze|boot).sh`. The pattern is anchored to the skill's own script directory via `grep -F "$SCRIPT_DIR/mindstate-"`. It cannot match unrelated processes, system services, or scripts in other directories. Even with `allow_kill: true`, it will never terminate anything outside the skill's own continuity scripts.
+
+**Auto-freeze** is enabled by default because it's safe — it only runs `mindstate-freeze.sh` which writes to MINDSTATE.md in the workspace.
 
 The watchdog logs only problems (to `assets/watchdog.log`, auto-rotated at 200 lines). Silent when everything is healthy. Supports `--dry-run` for testing.
 
-Configure thresholds in `assets/mindstate-config.json` under `watchdog`:
+Configure in `assets/mindstate-config.json`:
 ```json
 "watchdog": {
   "max_stale_minutes": 15,
-  "max_process_age_seconds": 300
+  "max_process_age_seconds": 300,
+  "allow_kill": false,
+  "allow_cleanup": false,
+  "auto_freeze": true,
+  "auto_freeze_stale_hours": 6
 }
+```
+
+**To enable full self-healing** (after reviewing scripts):
+```json
+"allow_kill": true,
+"allow_cleanup": true
 ```
 
 **Failure modes and recovery:**
@@ -377,7 +424,7 @@ Configure thresholds in `assets/mindstate-config.json` under `watchdog`:
 |---------|--------|----------|
 | OpenClaw restart | Heartbeat pauses, cron continues | Watchdog ensures daemon stays alive |
 | Daemon crash mid-write | Orphan .tmp file | Next daemon run cleans it up |
-| Freeze never called | Stale cognition section | Daemon flags it in MINDSTATE.md |
+| Freeze never called | Stale cognition section | Watchdog auto-freezes after 6h (configurable) |
 | Hung process (infinite loop) | Blocks flock, daemon skips ticks | Watchdog kills after 5 min |
 | Machine reboot | All processes die | Cron restarts daemon + watchdog automatically |
 
@@ -408,7 +455,7 @@ Config: `assets/scan-config.json`. Fallback always to `line-level`.
 
 ## 🔒 Security Model
 
-**Decision framework, not executor.**
+**Three layers with different scopes and system effects (see table above).**
 
 ```
 ┌─────────────────────┐      ┌─────────────────────┐
@@ -419,17 +466,35 @@ Config: `assets/scan-config.json`. Fallback always to `line-level`.
 │ • Outputs: "★ do X" │      │ • DECIDES & ACTS    │
 │ • Zero network I/O  │      │                     │
 └─────────────────────┘      └─────────────────────┘
+         │
+         │ (continuity layer, cron)
+         ▼
+┌─────────────────────┐
+│   DAEMON/WATCHDOG   │
+├─────────────────────┤
+│ • Updates MINDSTATE │
+│ • pgrep, df (read)  │
+│ • Watchdog: kill    │
+│   mindstate-*.sh    │
+│   processes ONLY    │
+│ • .tmp cleanup in   │
+│   $WORKSPACE + own  │
+│   assets dir only   │
+└─────────────────────┘
 ```
 
 ### What This Skill Does / Does Not Access
 
-| ✅ Reads | ❌ Never accesses |
-|---------|-------------------|
-| MEMORY.md, memory/*.md | Files outside $WORKSPACE |
-| SOUL.md, SELF.md | Credentials (unless `external-model` enabled) |
-| research/, scratchpad/ | sudo, docker, systemctl |
-| needs-state.json (own state) | |
-| System health: `pgrep`, `df` (daemon only) | |
+| ✅ Accesses | ❌ Never accesses |
+|------------|-------------------|
+| MEMORY.md, memory/*.md (read) | Files outside `$WORKSPACE` + own assets dir |
+| SOUL.md, SELF.md (read) | Credentials (unless `external-model` enabled) |
+| research/, scratchpad/ (read) | `sudo`, `docker`, `systemctl` |
+| needs-state.json, audit.log (read/write) | Network (curl, wget, ssh, etc.) |
+| MINDSTATE.md (write, daemon) | Processes other than `mindstate-*.sh` |
+| `pgrep`, `df` (read-only system checks, daemon) | Paths outside workspace/assets |
+| `kill` on `mindstate-*.sh` PIDs (watchdog only) | Root/elevated permissions |
+| `.tmp.*` files in workspace + assets (delete, watchdog) | |
 
 ### Security Warnings
 
@@ -442,6 +507,32 @@ Config: `assets/scan-config.json`. Fallback always to `line-level`.
 4. **Symlink protection** — All `find` commands use `-P` flag (physical mode, never follows symlinks). Path traversal blocked via `realpath` validation.
 
 5. **System health checks** (daemon only) — `mindstate-daemon.sh` runs `pgrep` (gateway alive?) and `df` (disk usage). These are read-only, local, and produce no side effects. No `sudo`, `systemctl`, or elevated operations.
+
+6. **Watchdog process management** — `mindstate-watchdog.sh` can `kill` processes, but **only those matching the full `$SCRIPT_DIR/mindstate-*.sh` path** (grep -F on the skill's own script directory + process name). This path-anchored pattern prevents false matches against unrelated processes with similar names. Verify by searching for `kill` and `grep` in the script — every kill is gated by the path-specific filter.
+
+7. **Cron isolation** — Both cron entries (daemon + watchdog) should run under the same non-root user that owns `$WORKSPACE`. Never add these as root cron jobs. Test with `--dry-run` (watchdog) and a temporary `$WORKSPACE` before deploying.
+
+8. **No network operations in scripts** — `grep -rn 'curl\|wget\|nc \|ssh\|scp\|git clone\|npm install' scripts/` returns zero matches (excluding optional `external-model` scan, disabled by default).
+
+9. **External action suggestions** — 8 actions in `needs-config.json` are flagged `"external": true`:
+   - web search on topic from INTERESTS.md
+   - help someone via available integrations
+   - web search on curious question
+   - share completed work publicly
+   - publish research or essay publicly
+   - present completed work to community for feedback
+   - post thought/update on social platform
+   - write social post
+   
+   These are **text suggestions only** — the scripts never execute them, make no network calls, and have no side effects. The agent's runtime decides whether to act on them. To disable all external suggestions:
+   ```bash
+   # List them:
+   jq '[.needs[].actions[] | select(.external == true) | .name]' assets/needs-config.json
+   # Disable by setting weight to 0 in each need's action list
+   ```
+   For strict offline behavior, disable all external actions and keep `semantic_predictions.enabled: false`.
+
+10. **PATH and workspace isolation** — All file operations use `$WORKSPACE` as root. `find` uses `-P` (no symlink follow). `realpath` validation in scanners prevents path traversal. Keep `$WORKSPACE` isolated from credentials and system config. The daemon's `pgrep`/`df` and watchdog's `kill` operate on the system process table, scoped by the skill's own `$SCRIPT_DIR` path — ensure the skill directory is not writable by untrusted users.
 
 ### Audit Trail (v1.12.0+)
 
@@ -563,6 +654,6 @@ Summary: 3 action(s), 0 noticed
 
 ---
 
-**Version:** 1.28.0 — Resilience: watchdog, trap handlers, orphan cleanup, stale cognition detection.
+**Version:** 1.28.7 — Safe defaults: watchdog detect-only, kill/cleanup opt-in. 5-tier deployment. 25/25 tests.
 
 Full changelog: `CHANGELOG.md` | Tuning guide: `references/TUNING.md`

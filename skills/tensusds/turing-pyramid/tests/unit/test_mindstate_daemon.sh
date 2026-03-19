@@ -177,6 +177,60 @@ header=$(head -1 "$TEST_WORKSPACE/MINDSTATE.md")
 section_count=$(grep -c "^## " "$TEST_WORKSPACE/MINDSTATE.md" || true)
 (( section_count == 3 )) && pass "3 sections" || fail "$section_count sections"
 
+# ─── Test 14: Daemon does NOT clean orphans (watchdog's job) ───
+echo "Test 14: Daemon leaves orphans for watchdog"
+touch -d "2026-01-01" "$TEST_ASSETS/stale.tmp.12345"
+touch -d "2026-01-01" "$TEST_WORKSPACE/stale.tmp.67890"
+touch -d "2026-01-01" "$TEST_WORKSPACE/MINDSTATE.md"
+rm -f "$TEST_ASSETS/mindstate.lock"
+bash "$DAEMON" 2>/dev/null
+# Daemon should NOT delete orphans — that's the watchdog's responsibility
+[[ -f "$TEST_ASSETS/stale.tmp.12345" ]] && pass "Assets orphan preserved (watchdog's job)" || fail "Daemon deleted orphan"
+[[ -f "$TEST_WORKSPACE/stale.tmp.67890" ]] && pass "Workspace orphan preserved (watchdog's job)" || fail "Daemon deleted orphan"
+# Clean up for remaining tests
+rm -f "$TEST_ASSETS/stale.tmp.12345" "$TEST_WORKSPACE/stale.tmp.67890"
+
+# ─── Test 15: Stale cognition detection ───
+echo "Test 15: Stale cognition detection"
+# Set frozen_at to 48 hours ago
+old_frozen=$(date -u -d "48 hours ago" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null)
+cat > "$TEST_WORKSPACE/MINDSTATE.md" << EOF
+# MINDSTATE
+## reality
+timestamp: old
+
+## cognition
+frozen_at: $old_frozen
+trajectory: test
+
+## forecast
+structural: []
+EOF
+touch -d "2026-01-01" "$TEST_WORKSPACE/MINDSTATE.md"
+rm -f "$TEST_ASSETS/mindstate.lock"
+bash "$DAEMON" 2>/dev/null
+grep -q "cognition:.*stale" "$TEST_WORKSPACE/MINDSTATE.md" && pass "Stale cognition flagged" || fail "Not flagged"
+
+# ─── Test 16: No stale flag when cognition fresh ───
+echo "Test 16: No stale flag when fresh"
+fresh_frozen=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+cat > "$TEST_WORKSPACE/MINDSTATE.md" << EOF
+# MINDSTATE
+## reality
+timestamp: old
+
+## cognition
+frozen_at: $fresh_frozen
+trajectory: test
+
+## forecast
+structural: []
+EOF
+touch -d "2026-01-01" "$TEST_WORKSPACE/MINDSTATE.md"
+rm -f "$TEST_ASSETS/mindstate.lock"
+bash "$DAEMON" 2>/dev/null
+grep -q "cognition:.*stale" "$TEST_WORKSPACE/MINDSTATE.md" && fail "False stale flag" || pass "No stale flag"
+
 echo ""
 if [[ $errors -eq 0 ]]; then echo "All daemon tests PASSED"; exit 0
 else echo "Daemon tests: $errors FAILED"; exit 1; fi
