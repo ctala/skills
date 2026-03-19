@@ -1,117 +1,104 @@
 ---
-name: humanizer-pro
-description: Transform AI-generated text into authentic human writing. Detects and removes 24 AI patterns, replaces 500+ AI vocabulary terms, analyzes statistical signals (burstiness, vocabulary diversity), and injects personality through strategic misspellings, parenthetical asides, tangents, and random thoughts. Use when humanizing content, checking for AI tells, removing robotic patterns, adding natural voice, making text sound less polished, or when asked to write like a specific person. Works with social posts, articles, emails, marketing copy, documentation—any text that needs to sound genuinely human.
+name: operator-humanizer
+description: Transform AI-generated text into authentic human writing. Detects and eliminates AI tells across 24 content/language/style/communication patterns, 500+ AI vocabulary terms, and structural clichés (binary contrasts, negative listings, false agency, dramatic fragmentation, narrator-from-a-distance). Analyzes statistical signals (burstiness, vocabulary diversity, sentence uniformity). Injects personality through parenthetical asides, tangents, rhythm variation, and strategic specificity. Use when humanizing content, checking for AI tells, removing robotic patterns, making text sound less polished, or writing like a specific person. Works on social posts, articles, emails, marketing copy, newsletters, scripts, or any text that needs to sound like a real human wrote it.
 ---
 
-# Humanizer Pro
+# Operator Humanizer
 
-Transform AI-generated text into authentic human writing by removing robotic patterns and injecting natural personality.
+Eliminate AI tells. Inject authentic voice. Make it sound like a person wrote it.
 
 ## What This Skill Does
 
-**Core Capabilities:**
-- Detects 24 AI writing patterns (significance inflation, promotional language, filler phrases, etc.)
-- Identifies 500+ AI vocabulary terms across 3 severity tiers
-- Analyzes statistical signals (burstiness, type-token ratio, sentence uniformity)
-- Removes chatbot artifacts and sycophantic tone
-- **NEW:** Injects personality through parenthetical asides, strategic typos, tangents, and random thoughts
+Two systems, combined:
 
-**Based on:** Wikipedia's "Signs of AI writing", Copyleaks research, and real-world pattern analysis.
+1. **Pattern Detection** — 24 AI patterns, 500+ vocabulary terms, statistical signals
+2. **Stop-Slop Rules** — structural clichés, phrase bans, sentence-level mechanics
+
+Together they catch what the other misses. Pattern detection handles vocabulary and content signals. Stop-slop handles structure and rhythm.
+
+**Reference files:**
+- `references/patterns.md` — The 24 AI patterns with before/after examples
+- `references/phrases.md` — Banned phrases and structural clichés
+- `references/structures.md` — Structural patterns to avoid
+- `references/vocabulary.md` — 500+ AI vocabulary terms by severity tier
+- `references/statistical-signals.md` — Burstiness, TTR, sentence variance formulas
+- `references/personality-injection.md` — How to add human touches
+- `references/examples.md` — Before/after transformations
 
 ## Quick Start
 
-### Basic Humanization
+1. **Scan content patterns** → Check patterns 1-6 in `references/patterns.md` (inflation, jargon, promotional language, vague attributions)
+2. **Flag vocabulary** → Tier 1 = ban completely, Tier 2 = use sparingly, Tier 3 = watch density (`references/vocabulary.md`)
+3. **Check phrases** → Remove all throat-clearing openers, emphasis crutches, adverbs (`references/phrases.md`)
+4. **Break structures** → Destroy binary contrasts, negative listings, false agency (`references/structures.md`)
+5. **Check style patterns** → Em dashes, bold overuse, emoji, passive voice (patterns 13-18)
+6. **Remove communication artifacts** → Chatbot openers, sycophancy, cutoff disclaimers (patterns 19-21)
+7. **Fix filler and hedging** → Stacked qualifiers, generic conclusions (patterns 22-24)
+8. **Add personality** → Parentheticals, tangents, rhythm variation (`references/personality-injection.md`)
+9. **Verify** → Read aloud. Does it sound like a human?
 
-When asked to humanize text:
+## Core Rules (Always On)
 
-1. **Scan for patterns** → Check all 24 patterns in `references/patterns.md`
-2. **Check vocabulary** → Flag Tier 1/2/3 terms from `references/vocabulary.md`
-3. **Analyze statistics** → Compute burstiness, TTR, sentence variance
-4. **Rewrite** → Remove AI-isms, add personality
-5. **Verify** → Read aloud, check if it sounds natural
+### Cut These Immediately
 
-### Adding Personality
+**Throat-clearing openers** — "Here's the thing:", "It turns out", "The uncomfortable truth is", "Let me be clear"
 
-Use the new personality injection features from `references/personality-injection.md`:
+**Emphasis crutches** — "Full stop.", "Let that sink in.", "Make no mistake", "This matters because"
 
-- **Parenthetical asides** → (honestly, this part gets me every time)
-- **Strategic misspellings** → Natural typos that don't hurt credibility
-- **Tangents** → "wait, that reminds me..." moments
-- **Random thoughts** → Going off script with authentic reactions
+**Chatbot artifacts** — "Great question!", "I hope this helps!", "Let me know if...", "Certainly!", "Of course!"
 
-## When to Use Each Component
+**Binary contrasts** — "Not X, but Y", "It's not X, it's Y", "The answer isn't X, it's Y" → Just say Y.
 
-### Always Check (Core Patterns)
+**Negative listings** — "Not a X... Not a Y... A Z." → Just say Z.
 
-- **Tier 1 vocabulary** → DEAD GIVEAWAYS, ban completely (delve, tapestry, vibrant, seamless, etc.)
-- **Filler phrases** → "in order to" → "to", "due to the fact that" → "because"
-- **Chatbot artifacts** → "Great question!", "I hope this helps!", "Let me know if..."
-- **Generic conclusions** → "The future looks bright", "Exciting times lie ahead"
+**Generic conclusions** — "The future looks bright", "Exciting times lie ahead", "This represents a major step"
 
-### Check When Relevant
+### Vocabulary Bans
 
-- **Promotional language** → If writing about places, products, services
-- **Significance inflation** → If discussing history, events, milestones
-- **Vague attributions** → If making claims without sources
-- **Em dash overuse** → If text has many — dashes — everywhere
+**Tier 1 (dead giveaways — never use):**
+delve, tapestry, vibrant, crucial, comprehensive, meticulous, embark, robust, seamless, groundbreaking, leverage, synergy, transformative, paramount, multifaceted, myriad, cornerstone, reimagine, empower, catalyst, invaluable, bustling, nestled, realm, showcasing, underscores, testament, pivotal, enduring, landscape (abstract), journey (metaphorical)
 
-### Advanced Analysis
+**Tier 2 (suspicious — use sparingly):**
+furthermore, moreover, paradigm, holistic, utilize, facilitate, nuanced, illuminate, encompasses, proactive, ubiquitous, quintessential
 
-For comprehensive humanization or when scoring text:
+**Tier 3 (watch density):**
+ecosystem, framework, roadmap, touchpoint, pain point, streamline, optimize, scalable
 
-1. Read `references/patterns.md` → All 24 patterns with examples
-2. Read `references/vocabulary.md` → Complete AI term database
-3. Read `references/statistical-signals.md` → Burstiness, TTR, readability formulas
-4. Read `references/personality-injection.md` → How to add human touches
+Full list: `references/vocabulary.md`
 
-## Core Principles
+### Mechanics
 
-### Write Like a Human, Not a Press Release
-
-- Use "is" and "has" freely — "serves as" is pretentious
-- One qualifier per claim — don't stack hedges
-- Name your sources or drop the claim
-- End with something specific, not vague optimism
-
-### Add Actual Personality
-
-- **Have opinions** → React to facts, don't just report them
-- **Vary rhythm** → Short. Then longer ones that meander a bit.
-- **Acknowledge complexity** → "I genuinely don't know how to feel about this"
-- **Let mess in** → Perfect structure feels algorithmic
-- **Use contractions** → "don't", "won't", "it's" (natural speech)
-- **Sentence fragments** → When it makes sense. Like this.
-
-### Cut the Fat
-
-Remove these automatically:
-- "In order to" → "to"
-- "Due to the fact that" → "because"
-- "At this point in time" → "now"
-- "It is important to note that" → (just say it)
-- "In the event that" → "if"
+- **No em dashes** — ever. Use commas, periods, or restructure.
+- **No passive voice** — find the actor, make them the subject.
+- **No adverbs** — kill all -ly words (really, just, literally, genuinely, honestly, simply, actually, deeply, truly, fundamentally).
+- **No Wh- sentence starters** — "What makes this hard is..." → "The constraint is..."
+- **No inanimate subjects doing human things** — "The decision emerged" → "Sarah decided"
+- **No Rule of Three** — two items beat three. One beats two.
+- **Active voice** — always. Someone does something.
+- **Vary rhythm** — short sentences mix with longer ones. End paragraphs differently. No staccato fragmentation for fake drama.
+- **Use contractions** — don't, won't, it's, can't.
+- **Use "is" and "has"** — not "serves as", "boasts", "features", "represents".
+- **Be specific** — no vague declaratives ("The reasons are structural"). Name the specific thing.
 
 ## The 24 Patterns (Quick Reference)
 
-For full details with examples, see `references/patterns.md`.
-
-| # | Pattern | What to Watch For |
-|---|---------|-------------------|
+| # | Pattern | Signal |
+|---|---------|--------|
 | 1 | Significance inflation | "marking a pivotal moment in the evolution of..." |
-| 2 | Notability name-dropping | Listing media outlets without specific claims |
-| 3 | Superficial -ing analyses | "...showcasing... reflecting... highlighting..." |
+| 2 | Notability name-dropping | Media outlets listed without specific claims |
+| 3 | Superficial -ing analyses | "showcasing... reflecting... highlighting..." |
 | 4 | Promotional language | "nestled", "breathtaking", "stunning", "renowned" |
 | 5 | Vague attributions | "Experts believe", "Studies show", "Industry reports" |
-| 6 | Formulaic challenges | "Despite challenges... continues to thrive" |
-| 7 | AI vocabulary (500+ words) | "delve", "tapestry", "landscape", "showcase" |
+| 6 | Challenges/Future Prospects | "Despite challenges... continues to thrive" |
+| 7 | AI vocabulary | "delve", "tapestry", "landscape", "showcase" |
 | 8 | Copula avoidance | "serves as", "boasts" instead of "is", "has" |
 | 9 | Negative parallelisms | "It's not just X, it's Y" |
 | 10 | Rule of three | "innovation, inspiration, and insights" |
-| 11 | Synonym cycling | "protagonist... main character... central figure..." |
+| 11 | Synonym cycling | protagonist / main character / central figure |
 | 12 | False ranges | "from the Big Bang to dark matter" |
 | 13 | Em dash overuse | Too many — dashes — everywhere |
 | 14 | Boldface overuse | Mechanical emphasis everywhere |
-| 15 | Inline-header lists | "- Topic: Topic is discussed here" |
+| 15 | Inline-header lists | "- **Topic:** Topic is discussed here" |
 | 16 | Title Case headings | Every Main Word Capitalized |
 | 17 | Emoji overuse | 🚀💡✅ decorating professional text |
 | 18 | Curly quotes | "smart quotes" instead of "straight quotes" |
@@ -122,154 +109,100 @@ For full details with examples, see `references/patterns.md`.
 | 23 | Excessive hedging | "could potentially possibly", "might arguably" |
 | 24 | Generic conclusions | "The future looks bright", "Exciting times lie ahead" |
 
-## Vocabulary Tiers
+Full details with examples: `references/patterns.md`
 
-### Tier 1 (Dead Giveaways - NEVER USE)
-delve, tapestry, vibrant, crucial, comprehensive, meticulous, embark, robust, seamless, groundbreaking, leverage, synergy, transformative, paramount, multifaceted, myriad, cornerstone, reimagine, empower, catalyst, invaluable, bustling, nestled, realm
+## Structural Clichés (Stop-Slop Layer)
 
-### Tier 2 (Suspicious - Use Sparingly)
-furthermore, moreover, paradigm, holistic, utilize, facilitate, nuanced, illuminate, encompasses, catalyze, proactive, ubiquitous, quintessential
+These live in `references/structures.md`. Check them alongside the 24 patterns.
 
-### Tier 3 (Context-Dependent - Watch Density)
-landscape (abstract), journey (metaphorical), ecosystem, framework, roadmap, touchpoint, pain point, streamline, optimize, scalable
+**Binary contrasts** — Any "not X but Y" construction. Just say Y.
 
-**See `references/vocabulary.md` for the complete 500+ term database.**
+**Negative listings** — Building up through negation before revealing the point. Start with the point.
 
-## Statistical Signals
+**Dramatic fragmentation** — "Speed. Quality. Cost." stacked for manufactured profundity. Use real sentences.
 
-Check these when doing comprehensive analysis:
+**Rhetorical setups** — "What if I told you...", "Think about it:", "Here's what I mean:". Just make the point.
 
-| Signal | Human | AI | Why |
-|--------|-------|----|----|
-| Burstiness | 0.5-1.0 | 0.1-0.3 | Humans write in bursts; AI is metronomic |
-| Type-token ratio | 0.5-0.7 | 0.3-0.5 | AI reuses vocabulary |
-| Sentence length CoV | High | Low | AI makes same-length sentences |
-| Trigram repetition | <0.05 | >0.10 | AI reuses 3-word phrases |
+**False agency** — Inanimate things doing human actions. "The complaint becomes a fix" → "They fixed it that week."
 
-**See `references/statistical-signals.md` for formulas and implementation.**
+**Narrator-from-a-distance** — "Nobody designed this", "People tend to..." → Put the reader in the room. Use "you".
 
-## Personality Injection (NEW)
+**Passive voice** — Always find the actor. Put them at the front.
 
-When asked to add human touches or make text sound less perfect:
+## Scoring
 
-### 1. Parenthetical Asides
-Add authentic reactions in parentheses:
-- **(honestly, this part gets me every time)**
-- **(which, let's be real, is kind of absurd)**
-- **(I still don't fully understand why)**
+Rate 1-10 on each dimension:
 
-**Rule:** Use for genuine reactions, not filler. 1-3 per 500 words max.
+| Dimension | Question |
+|-----------|----------|
+| Directness | Statements or announcements? |
+| Rhythm | Varied or metronomic? |
+| Trust | Respects reader intelligence? |
+| Authenticity | Sounds human? |
+| Density | Anything cuttable? |
 
-### 2. Strategic Misspellings
-Natural typos that don't hurt credibility:
-- Acceptable: "teh" → "the", "recieve" → "receive", "definately" → "definitely"
-- Avoid: Professional contexts, names, technical terms, key claims
+Below 35/50: revise.
 
-**Rule:** 1-2 per 1000 words in casual contexts only.
+If 5+ of the 24 patterns are present: very likely AI-generated.
+If 10+ patterns: almost certainly AI-generated.
 
-### 3. Tangents and Going Off Script
-Let thoughts wander naturally:
-- "Speaking of which..."
-- "That reminds me..."
-- "Okay, slight tangent..."
-- "Wait, this connects to..."
+## Adding Personality
 
-**Rule:** Allow 1-2 per longer piece (1000+ words).
+Use `references/personality-injection.md` for the full guide. Quick version:
 
-### 4. Random Thoughts
-Inject authentic human processing:
-- "Honestly didn't think this would work but..."
-- "I keep coming back to..."
-- "There's something unsettling about..."
-- "I genuinely don't know how to feel about this"
+- **Parenthetical asides** — (honestly, this part gets me every time) — 1-3 per 500 words max
+- **Tangents** — "Speaking of which...", "That reminds me..." — 1-2 per 1000+ word piece
+- **Random thoughts** — "I keep coming back to this:", "Honestly didn't think this would work but..."
+- **Opinions** — React to facts. Don't just report them.
+- **Acknowledge complexity** — "I genuinely don't know how to feel about this"
+- **Let mess in** — Perfect structure feels algorithmic
 
-**Rule:** Use when genuine uncertainty or strong reaction fits.
+## Pre-Delivery Checklist
 
-**See `references/personality-injection.md` for comprehensive examples and context guidance.**
+Before handing over any draft:
 
-## Process
+- Any adverbs? Kill them.
+- Passive voice? Find the actor, make them the subject.
+- Inanimate thing doing a human verb? Name the person.
+- Sentence starts with Wh- word? Restructure.
+- "Here's what/this/that" construction? Cut to the point.
+- "Not X, it's Y" contrast? State Y directly.
+- Three consecutive sentences match in length? Break one.
+- Paragraph ends with punchy one-liner? Vary it.
+- Em dash anywhere? Remove it.
+- Vague declarative ("The implications are significant")? Name the specific implication.
+- Narrator-from-a-distance? Put the reader in the scene.
+- Meta-joiners ("The rest of this essay...")? Delete. Let it move.
+- Tier 1 vocabulary word? Remove.
+- Chatbot artifact? Remove.
+- Generic conclusion? Replace with one specific fact.
 
-1. **Read the input text carefully**
-2. **Identify all pattern instances** (use the 24-pattern checklist)
-3. **Flag vocabulary issues** (Tier 1 = remove, Tier 2 = reduce, Tier 3 = watch density)
-4. **Check statistics** (if comprehensive analysis requested)
-5. **Rewrite problematic sections**
-6. **Add personality** (if requested or if text is sterile)
-7. **Verify naturally** (read aloud, check rhythm)
-8. **Present humanized version** with brief change summary
+## Filler Replacements (Fast Reference)
 
-## Example Transformation
-
-### Before (AI-sounding)
-Great question! Here is an overview of sustainable energy. Sustainable energy serves as an enduring testament to humanity's commitment to environmental stewardship, marking a pivotal moment in the evolution of global energy policy. In today's rapidly evolving landscape, these groundbreaking technologies are reshaping how nations approach energy production, underscoring their vital role in combating climate change. The future looks bright. I hope this helps!
-
-### After (Humanized)
-Solar panel costs dropped 90% between 2010 and 2023 (according to IRENA data). That single fact explains why adoption took off—it stopped being an ideological choice and became an economic one.
-
-Germany gets 46% of its electricity from renewables now. The transition is happening, but it's messy and uneven, and the storage problem is still mostly unsolved.
-
-### Changes Made
-- Removed "Great question!" and "I hope this helps!" (chatbot artifacts)
-- Removed "serves as an enduring testament" (significance inflation)
-- Removed "marking a pivotal moment" (AI vocabulary)
-- Removed "rapidly evolving landscape" (AI vocabulary)
-- Removed "groundbreaking", "underscoring", "vital" (AI vocabulary)
-- Removed "The future looks bright" (generic conclusion)
-- Added specific data points and sources
-- Added personal observation (parenthetical)
-- Added acknowledgment of complexity
-- Varied sentence rhythm
-
-## Using the CLI Tool
-
-The `scripts/humanize.js` tool provides command-line access:
-
-```bash
-# Score text (0-100, higher = more AI-like)
-node scripts/humanize.js score "Your text here"
-
-# Full analysis report
-node scripts/humanize.js analyze -f draft.md
-
-# Humanization suggestions
-node scripts/humanize.js suggest article.txt
-
-# Auto-fix common patterns
-node scripts/humanize.js fix --autofix -f article.txt
-```
-
-## Always-On Mode
-
-To make this skill's rules your default writing style (not just when explicitly asked to humanize):
-
-1. Ban Tier 1 vocabulary completely from all writing
-2. Kill filler phrases automatically
-3. No sycophancy, chatbot artifacts, or generic conclusions
-4. Vary sentence length, have opinions, use concrete specifics
-5. If you wouldn't say it in conversation, don't write it
-
-These rules can be added to SOUL.md or agent personality config for permanent application.
-
-## Tips for Effective Humanization
-
-- **Start with Tier 1 vocabulary** → Easiest wins, most obvious AI tells
-- **Check for em dashes** → Quick scan for — overuse
-- **Read the last paragraph** → Generic conclusions are common
-- **Listen to rhythm** → Read aloud, hear if it sounds robotic
-- **Don't over-polish** → Some imperfection is human
-- **Match the context** → Formal documents need different treatment than social posts
-- **Preserve meaning** → Remove patterns without changing core message
+| Before | After |
+|--------|-------|
+| In order to achieve this | To achieve this |
+| Due to the fact that | Because |
+| At this point in time | Now |
+| In the event that | If |
+| Has the ability to | Can |
+| It is important to note that | (just say it) |
+| For the purpose of | To |
+| In spite of the fact that | Although |
+| Moving forward | Next / From now |
+| Navigate (challenges) | Handle, address |
+| Lean into | Accept, embrace |
+| Deep dive | Analysis, examination |
+| Take a step back | Reconsider |
+| Circle back | Return to |
+| Game-changer | Significant, important |
 
 ## Troubleshooting
 
-**Text still sounds robotic after fixing patterns?**
-→ You removed AI tells but didn't add personality. Review `references/personality-injection.md`.
+**Still sounds robotic after fixing patterns?** You removed AI tells but didn't add personality. Read `references/personality-injection.md`.
 
-**Humanization made text too casual?**
-→ Personality injection should match context. Use fewer asides/typos in formal writing.
+**Too casual after humanization?** Match personality injection to context. Fewer asides/tangents in formal writing.
 
-**Text is TOO perfect now?**
-→ Add strategic imperfection: vary sentence length, include a tangent, acknowledge uncertainty.
+**Too perfect?** Add imperfection: vary sentence length, include a tangent, acknowledge uncertainty, drop a specific detail that feels slightly off-script.
 
-**Not sure if a word is AI vocabulary?**
-→ Check `references/vocabulary.md`. When in doubt, ask "Would I say this in conversation?"
+**Word feels suspicious but not on the list?** Ask: "Would I say this in conversation?" If no, cut it or simplify.
