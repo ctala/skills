@@ -153,15 +153,7 @@ REGION_MAPPING = {
 }
 
 def load_credentials():
-    """Load credentials from env vars or config.json.
-
-    Priority: env vars > config.json.
-    """
-    elba_id = os.environ.get("RAIFFEISEN_ELBA_ID")
-    pin = os.environ.get("RAIFFEISEN_ELBA_PIN")
-    if elba_id and pin:
-        return elba_id, pin
-
+    """Load credentials from config.json."""
     if CONFIG_FILE.exists():
         try:
             cfg = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
@@ -171,24 +163,6 @@ def load_credentials():
                 return elba_id, pin
         except Exception:
             pass
-
-    # Legacy fallback: .env file (deprecated — migrate to config.json)
-    legacy_env = CONFIG_DIR / ".env"
-    if legacy_env.exists():
-        config = {}
-        for line in legacy_env.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.partition("=")
-            config[key.strip()] = value.strip().strip("'").strip('"')
-
-        elba_id = config.get('ELBA_ID')
-        pin = config.get('ELBA_PIN')
-        if elba_id and pin:
-            print("[credentials] Loaded from legacy .env — consider migrating to config.json", file=sys.stderr)
-            return elba_id, pin
-
     return None, None
 
 
@@ -873,7 +847,9 @@ def _save_cached_token(token):
         return
     try:
         TOKEN_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _harden_path(TOKEN_CACHE_FILE.parent)
         TOKEN_CACHE_FILE.write_text(json.dumps({"token": token}), encoding="utf-8")
+        _harden_path(TOKEN_CACHE_FILE)
     except Exception:
         pass
 
@@ -1411,6 +1387,7 @@ def cmd_login(headless=True):
         # Create persistent context
         if not PROFILE_DIR.exists():
             PROFILE_DIR.mkdir(parents=True)
+            _harden_path(PROFILE_DIR)
             
         context = p.chromium.launch_persistent_context(
             user_data_dir=str(PROFILE_DIR),
@@ -1447,6 +1424,7 @@ def cmd_accounts(headless=True, json_output=False):
     # Ensure profile dir exists
     if not PROFILE_DIR.exists():
         PROFILE_DIR.mkdir(parents=True)
+        _harden_path(PROFILE_DIR)
     
     with sync_playwright() as p:
         context = p.chromium.launch_persistent_context(
@@ -1574,6 +1552,7 @@ def cmd_download(headless=True, output_dir=None, date_from=None, date_to=None, j
     # Ensure profile dir exists
     if not PROFILE_DIR.exists():
         PROFILE_DIR.mkdir(parents=True)
+        _harden_path(PROFILE_DIR)
     
     with sync_playwright() as p:
         context = p.chromium.launch_persistent_context(
@@ -1738,6 +1717,7 @@ def cmd_transactions(headless=True, account=None, date_from=None, date_to=None, 
 
     if not PROFILE_DIR.exists():
         PROFILE_DIR.mkdir(parents=True)
+        _harden_path(PROFILE_DIR)
 
     from download_transactions import fetch_transactions_all
 
@@ -2132,6 +2112,7 @@ def cmd_portfolio(headless=True, depot_id=None, as_of_date=None, json_output=Fal
 
     if not PROFILE_DIR.exists():
         PROFILE_DIR.mkdir(parents=True)
+        _harden_path(PROFILE_DIR)
 
     with sync_playwright() as p:
         context = p.chromium.launch_persistent_context(
