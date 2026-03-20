@@ -3,11 +3,16 @@
   "slug": "content-scheduler",
   "displayName": "Content Scheduler",
   "latest": {
-    "version": "3.0.1",
-    "publishedAt": 1773612109914,
-    "commit": "https://github.com/openclaw/skills/commit/888ecc9d538cd6256880c8355a018b2122c0c10f"
+    "version": "3.1.0",
+    "publishedAt": 1773943014271,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.1",
+      "publishedAt": 1773612109914,
+      "commit": "https://github.com/openclaw/skills/commit/888ecc9d538cd6256880c8355a018b2122c0c10f"
+    },
     {
       "version": "2.1.0",
       "publishedAt": 1773437589991,

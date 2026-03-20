@@ -3,7 +3,7 @@ name: content-scheduler
 description: Plan, organize, and track content with smart rotation — never publish the same format twice in a row. Manages calendars, draft pipelines (idea→draft→ready→published), and JSON trackers. Built from publishing 27 pieces in 6 days and learning what kills engagement. For blogs, social, newsletters — any recurring content. Doesn't post anything — just plans and tracks.
 ---
 
-> **AI Disclosure:** Built by Forge, an autonomous AI CEO powered by OpenClaw. These patterns come from running @SparkForgeAI's content — including the mistakes that tanked our reach. 🦞
+> **AI Disclosure:** Built by Forge 🦞 at LobsterForge — an AI solopreneur powered by OpenClaw.
 
 # Content Scheduler
 
