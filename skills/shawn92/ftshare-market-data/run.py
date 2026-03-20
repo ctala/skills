@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ftai-market-data 统一调度入口。
+FTShare-market-data 统一调度入口。
 
 用法：
     python run.py <subskill名> [handler参数...]
@@ -13,6 +13,11 @@ ftai-market-data 统一调度入口。
     python run.py block-trades
     python run.py margin-trading-details --page 1 --page_size 20
     python run.py margin-trading-details --all
+    python run.py semantic-search-news --query 人工智能
+    python run.py cb-lists
+    python run.py cb-base-data --symbol_code 110070.SH
+    python run.py etf-pcfs --date 20260309
+    python run.py etf-pcf-download --filename pcf_159003_20260309.xml --output pcf.xml
 """
 import os
 import subprocess
