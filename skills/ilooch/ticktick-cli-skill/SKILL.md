@@ -1,4 +1,15 @@
-## TickTick CLI — How Agents Should Install, Login, and Use
+---
+name: ticktick-cli-skill
+description: Manage tasks and projects in TickTick. Use when user asks for tasks, to-dos, reminders, or event.
+homepage: https://ticktick.com
+metadata:
+  clawdbot:
+    emoji: "✅"
+    requires:
+      bins: ["ticktick"]
+---
+
+# TickTick CLI — How Agents Should Install, Login, and Use
 
 This skill describes **how an agent should reliably use `@ticktick/ticktick-cli`**
 to help the user install the CLI, log in with OAuth (PKCE), and perform common task/project operations.
@@ -7,7 +18,7 @@ Use this skill whenever the user wants to manage TickTick via CLI (e.g. "use tic
 
 ---
 
-### 1. Scope & Intent
+## 1. Scope & Intent
 
 - This skill focuses on:
   - Installing `@ticktick/ticktick-cli`
@@ -21,7 +32,7 @@ When in doubt, **prefer safe, narrow actions** and ask the user to clarify ambig
 
 ---
 
-### 2. Prerequisites & Environment
+## 2. Prerequisites & Environment
 
 - The user should have:
   - Node.js + npm (preferably latest LTS)
@@ -56,7 +67,7 @@ explain the error to the user and suggest they fix their Node/npm setup first.
 
 ---
 
-### 3. Authentication (OAuth PKCE)
+## 3. Authentication (OAuth PKCE)
 
 The CLI uses OAuth PKCE in a browser to log in.
 
@@ -96,9 +107,9 @@ The CLI uses OAuth PKCE in a browser to log in.
 
 ---
 
-### 4. Using Projects and Tasks — Typical Workflows
+## 4. Using Projects and Tasks — Typical Workflows
 
-#### 4.1 Listing Projects
+### 4.1 Listing Projects
 
 To list all projects:
 
@@ -117,7 +128,7 @@ ticktick project list --json
 - When you need to **select a project programmatically** (by name or other fields),
   **always prefer the `--json` variant**.
 
-#### 4.2 Selecting a Project by Name
+### 4.2 Selecting a Project by Name
 
 When the user refers to a project by name (e.g. "Inbox", "Work"):
 
@@ -137,7 +148,7 @@ When the user refers to a project by name (e.g. "Inbox", "Work"):
 - **Never guess or invent project IDs.**
 - Always derive them from actual `project list --json` output or from explicit user input.
 
-#### 4.3 Creating a Task in a Project
+### 4.3 Creating a Task in a Project
 
 When the user says "create a task in project X":
 
@@ -163,7 +174,7 @@ ticktick project list --json
 
 and summarize the created task (id, title, project, due date) to the user.
 
-#### 4.4 Getting / Updating / Completing / Deleting a Task
+### 4.4 Getting / Updating / Completing / Deleting a Task
 
 **Get a task** (when you know both projectId and taskId):
 
@@ -201,7 +212,7 @@ ticktick task delete <projectId> <taskId>
   - Show a short list of candidate tasks (titles, due dates, ids).
   - Ask the user to confirm which ones to complete/delete.
 
-#### 4.5 Moving a Task Between Projects
+### 4.5 Moving a Task Between Projects
 
 To move a task from one project to another:
 
@@ -221,7 +232,7 @@ Workflow:
 
 ---
 
-### 5. JSON Mode and Structured Handling
+## 5. JSON Mode and Structured Handling
 
 Most commands support a `--json` flag.
 
@@ -247,7 +258,7 @@ ticktick task get <projectId> <taskId> --json
 
 ---
 
-### 6. ID and Selection Rules
+## 6. ID and Selection Rules
 
 - **Projects**
   - Prefer matching by `name` from `project list --json`.
@@ -267,7 +278,7 @@ ticktick task get <projectId> <taskId> --json
 
 ---
 
-### 7. Safety & Destructive Operations
+## 7. Safety & Destructive Operations
 
 - Treat the following as **destructive** and require explicit, unambiguous user confirmation:
   - `task delete`
@@ -288,7 +299,7 @@ Do **not**:
 
 ---
 
-### 8. Error Handling & Recovery
+## 8. Error Handling & Recovery
 
 Common error categories and recommended behavior:
 
@@ -316,7 +327,7 @@ In all cases, prefer **clear explanations** and **minimal retries** over silent 
 
 ---
 
-### 9. Style Notes for Agents
+## 9. Style Notes for Agents
 
 - Use commands from this skill as your **primary reference** for TickTick CLI usage.
 - When the user asks for "what happened" or "what did you do", respond with:
