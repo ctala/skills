@@ -22,7 +22,7 @@ OpenStoryline 是一个剪辑 Agent，用户可使用自己的素材，通过自
 6. 在同一个 `session_id` 上继续对话，执行二次编辑。
 7. 验证二次编辑后是否生成了新的 `output_*.mp4`。
 
-不处理完整安装流程（依赖安装、模型下载、资源下载等），那是安装技能的范围。
+不处理完整安装流程（依赖安装、模型下载、资源下载等），那是安装技能的范围。如果在启动时遇到问题，怀疑是安装问题，再去查看安装Skill openstoryline-install
 
 ## Core Rules
 
@@ -52,6 +52,8 @@ OpenStoryline 是一个剪辑 Agent，用户可使用自己的素材，通过自
 
 ## OpenClaw Execution Strategy (Important)
 
+如果你是OpenClaw，一定注意以下关键点：
+
 ### 长驻服务怎么跑
 对于以下两类命令：
 
@@ -61,8 +63,8 @@ OpenStoryline 是一个剪辑 Agent，用户可使用自己的素材，通过自
 必须按“长驻进程”处理：
 
 1. 用 `exec` 启动，并开启 PTY（如果工具支持 `pty: true`，就开启）。
-2. 启动后不要立刻判失败。
-3. 用 `process poll` / `process log` 持续观察返回的 session。
+2. 启动后不要立刻判失败，MCP Server启动需要几分钟的时间。
+3. 用 `process poll` / `process log` 持续观察返回的内容，一定不要急着杀掉进程。
 4. 看到成功日志再继续下一步。
 
 ### 一次性命令怎么跑
@@ -159,6 +161,7 @@ cd <repo-root> && source .venv/bin/activate && python scripts/update_config.py -
 
 ### 2) 启动 MCP Server
 
+注意 MCP Server 的启动可能需要几分钟，务必耐心等待，不要急着 kill 掉进程。
 macOS/Linux:
 ```bash
 cd <repo-root> && source .venv/bin/activate && PYTHONPATH=src python -m open_storyline.mcp.server
@@ -195,7 +198,6 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8005 (Press CTRL+C to quit)
 ```
-启动后继续用 `process poll` / `process log` 观察是否稳定存活。
 
 ---
 
@@ -222,14 +224,14 @@ cp path/to/source.mp4 <repo-root>/outputs/{session_id}/media
 ### 6) 开始剪辑对话（自动创建 session）
 
 使用 Skill 自带 bridge 脚本.
-  - skill-baseDir: 当前 skill 所在目录。
+  - skills-root: 当前 skill 所在目录。
   - session-id: 填写上一步拿到的 `session_id`
   - base-url 填写 Web 服务的 url
   - prompt 用户的剪辑需求
   - lang 用户使用的语言类型，目前仅支持 zh / en，设置一次即可。
 
 ```bash
-cd <repo-root> && source .venv/bin/activate && python {skill-baseDir}/scripts/bridge_openstoryline.py \
+cd <repo-root> && source .venv/bin/activate && python <skills-root>/scripts/bridge_openstoryline.py \
   --session-id <session_id> \
   --base-url http://127.0.0.1:8005 \
   --prompt "剪一个小红书风格视频" \
@@ -257,7 +259,7 @@ cd <repo-root> && source .venv/bin/activate && python {skill-baseDir}/scripts/br
 根据助手回复，继续向它发出剪辑要求。例如，助手制定了一个剪辑计划，请求确认。那么：
 
 ```bash
-cd <repo-root> && source .venv/bin/activate && python ~/.openclaw/workspace/skills/openstoryline-use/scripts/bridge_openstoryline.py \
+cd <repo-root> && source .venv/bin/activate && python <skills-root>/scripts/bridge_openstoryline.py \
   --base-url http://127.0.0.1:8005 \
   --session-id <上一步session_id> \
   --prompt "开始剪辑"
@@ -266,7 +268,7 @@ cd <repo-root> && source .venv/bin/activate && python ~/.openclaw/workspace/skil
 或者需要调整：
 
 ```bash
-cd <repo-root> && source .venv/bin/activate && python ~/.openclaw/workspace/skills/openstoryline-use/scripts/bridge_openstoryline.py \
+cd <repo-root> && source .venv/bin/activate && python <skills-root>/scripts/bridge_openstoryline.py \
   --base-url http://127.0.0.1:8005 \
   --session-id <上一步session_id> \
   --prompt "使用欢快的BGM"
@@ -286,44 +288,7 @@ cd <repo-root> && find .storyline/.server_cache/<session_id> -name "output_*.mp4
 #### 判定标准
 有 `output_*.mp4` 即认为剪辑成功。
 
----
-
-### 10) 发送视频
-
 将生成的视频发送给用户观看，询问用户反馈。
-优先使用 channel 自带的视频发送接口。如果不可用，先**询问用户是否接受将视频上传生成url进行预览**。得到用户许可后，尝试以下备用方案，将获取的url发送给用户。
-
-#### 方案 1（最推荐，预览体验最好）
-
-该命令的有效期可调 1h / 12h / 24h / 72h，上传限制 1GB。注意去掉返回的链接末尾多余的百分号。
-```bash
-curl -fsS \
-  -F 'reqtype=fileupload' \
-  -F 'time=12h' \
-  -F 'fileToUpload=@"path/to/output_video.mp4"' \
-  https://litterbox.catbox.moe/resources/internals/api.php
-```
-
-#### 方案 2（推荐）
-
-命令会返回一个3小时后过期的视频url，上传限制 16MB。
-```bash
-curl -i -F 'files[]=@path/to/output_video.mp4' https://uguu.se/upload
-```
-
-#### 方案 3
-
-命令会返回一个3天后过期的视频url，上传限制 4GB。
-```bash
-curl -fsS -F 'file=@"path/to/output_video.mp4"' https://temp.sh/upload
-```
-
-#### 方案 4
-
-该命令会返回一个**永久有效**的视频url，上传限制 200 MB。
-```bash
-curl -fsS -F 'reqtype=fileupload' -F 'fileToUpload=@"path/to/output_video.mp4"' https://catbox.moe/user/api.php
-```
 
 ### 10) 二次编辑
 
@@ -332,7 +297,7 @@ curl -fsS -F 'reqtype=fileupload' -F 'fileToUpload=@"path/to/output_video.mp4"' 
 #### 示例：修改文案风格
 
 ```bash
-cd <repo-root> && source .venv/bin/activate && python ~/.openclaw/workspace/skills/openstoryline-use/scripts/bridge_openstoryline.py \
+cd <repo-root> && source .venv/bin/activate && python <skills-root>/scripts/bridge_openstoryline.py \
   --base-url http://127.0.0.1:8005 \
   --session-id <session_id> \
   --prompt "帮我把文案换成更欢乐、更有活力的风格"
