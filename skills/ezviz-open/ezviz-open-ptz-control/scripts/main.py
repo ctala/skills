@@ -5,7 +5,7 @@ Ezviz Open PTZ Controller - Main Script
 萤石开放平台云台设备控制主脚本
 
 支持设备列表查询、设备状态查询、云台控制 (PTZ)、预置点管理等功能
-使用环境变量认证，Token 自动获取（不缓存）
+使用环境变量认证，Token 自动获取（带缓存）
 """
 
 import os
@@ -14,9 +14,18 @@ import json
 import requests
 from datetime import datetime
 
+# Add lib directory to path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+lib_dir = os.path.join(os.path.dirname(script_dir), "lib")
+sys.path.insert(0, lib_dir)
+
+from token_manager import get_cached_token
+
 # ============================================================================
 # Configuration
 # ============================================================================
+
+API_BASE_URL = "https://openai.ys7.com"
 
 APP_KEY = os.getenv("EZVIZ_APP_KEY", "")
 APP_SECRET = os.getenv("EZVIZ_APP_SECRET", "")
@@ -25,35 +34,9 @@ APP_SECRET = os.getenv("EZVIZ_APP_SECRET", "")
 # API Functions
 # ============================================================================
 
-def get_access_token(app_key, app_secret):
-    """Get access token from Ezviz Open Platform"""
-    url = "https://open.ys7.com/api/lapp/token/get"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    data = {"appKey": app_key, "appSecret": app_secret}
-    
-    try:
-        response = requests.post(url, headers=headers, data=data, timeout=30)
-        result = response.json()
-        
-        if result.get("code") == "200":
-            token_data = result.get("data", {})
-            return {
-                "success": True,
-                "token": token_data.get("accessToken"),
-                "expire_time": token_data.get("expireTime")
-            }
-        else:
-            return {
-                "success": False,
-                "error": result.get("msg", "Failed to get token"),
-                "code": result.get("code")
-            }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
 def list_devices(access_token):
     """Get device list"""
-    url = "https://open.ys7.com/api/lapp/device/list"
+    url = f"{API_BASE_URL}/api/lapp/device/list"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {"accessToken": access_token, "pageStart": 0, "pageSize": 100}
     
@@ -70,7 +53,7 @@ def list_devices(access_token):
 
 def get_device_status(access_token, device_serial):
     """Get device status"""
-    url = "https://open.ys7.com/api/lapp/device/info"
+    url = f"{API_BASE_URL}/api/lapp/device/info"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {"accessToken": access_token, "deviceSerial": device_serial.upper()}
     
@@ -87,7 +70,7 @@ def get_device_status(access_token, device_serial):
 
 def get_device_capacity(access_token, device_serial):
     """Get device capacity"""
-    url = "https://open.ys7.com/api/lapp/device/capacity"
+    url = f"{API_BASE_URL}/api/lapp/device/capacity"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {"accessToken": access_token, "deviceSerial": device_serial.upper()}
     
@@ -104,7 +87,7 @@ def get_device_capacity(access_token, device_serial):
 
 def ptz_start(access_token, device_serial, channel_no, direction, speed):
     """Start PTZ control"""
-    url = "https://open.ys7.com/api/lapp/device/ptz/start"
+    url = f"{API_BASE_URL}/api/lapp/device/ptz/start"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {
         "accessToken": access_token,
@@ -127,7 +110,7 @@ def ptz_start(access_token, device_serial, channel_no, direction, speed):
 
 def ptz_stop(access_token, device_serial, channel_no):
     """Stop PTZ control"""
-    url = "https://open.ys7.com/api/lapp/device/ptz/stop"
+    url = f"{API_BASE_URL}/api/lapp/device/ptz/stop"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {
         "accessToken": access_token,
@@ -148,7 +131,7 @@ def ptz_stop(access_token, device_serial, channel_no):
 
 def preset_add(access_token, device_serial, channel_no):
     """Add preset"""
-    url = "https://open.ys7.com/api/lapp/device/preset/add"
+    url = f"{API_BASE_URL}/api/lapp/device/preset/add"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {
         "accessToken": access_token,
@@ -169,7 +152,7 @@ def preset_add(access_token, device_serial, channel_no):
 
 def preset_move(access_token, device_serial, channel_no, index):
     """Move to preset"""
-    url = "https://open.ys7.com/api/lapp/device/preset/move"
+    url = f"{API_BASE_URL}/api/lapp/device/preset/move"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {
         "accessToken": access_token,
@@ -191,7 +174,7 @@ def preset_move(access_token, device_serial, channel_no, index):
 
 def preset_clear(access_token, device_serial, channel_no, index):
     """Clear preset"""
-    url = "https://open.ys7.com/api/lapp/device/preset/clear"
+    url = f"{API_BASE_URL}/api/lapp/device/preset/clear"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {
         "accessToken": access_token,
@@ -213,7 +196,7 @@ def preset_clear(access_token, device_serial, channel_no, index):
 
 def mirror_flip(access_token, device_serial, channel_no, command):
     """Mirror flip"""
-    url = "https://open.ys7.com/api/lapp/device/ptz/mirror"
+    url = f"{API_BASE_URL}/api/lapp/device/ptz/mirror"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {
         "accessToken": access_token,
@@ -245,7 +228,7 @@ def print_header():
 
 def main():
     if len(sys.argv) < 4:
-        print("Usage: python3 main_controller.py appKey appSecret <command> [params...]")
+        print("Usage: python3 main.py appKey appSecret <command> [params...]")
         print("\nCommands:")
         print("  list                                    - List all devices")
         print("  status <dev>                            - Get device status")
@@ -271,20 +254,26 @@ def main():
         print("[ERROR] APP_KEY and APP_SECRET required")
         sys.exit(1)
     
-    # Step 1: Get token
+    # Step 1: Get token (with cache support)
     print("\n" + "=" * 70)
     print("[Step 1] Getting access token...")
     print("=" * 70)
     
-    token_result = get_access_token(app_key, app_secret)
+    token_result = get_cached_token(app_key, app_secret)
     
     if not token_result["success"]:
         print(f"[ERROR] Failed to get token: {token_result.get('error')}")
         sys.exit(1)
     
-    access_token = token_result["token"]
+    access_token = token_result["access_token"]
     expire_time = token_result["expire_time"]
-    print(f"[SUCCESS] Token obtained, expires: {expire_time}")
+    from_cache = token_result.get("from_cache", False)
+    expire_str = datetime.fromtimestamp(expire_time / 1000).strftime('%Y-%m-%d %H:%M:%S')
+    
+    if from_cache:
+        print(f"[SUCCESS] Using cached token, expires: {expire_str}")
+    else:
+        print(f"[SUCCESS] Token obtained, expires: {expire_str}")
     
     # Step 2: Execute command
     print("\n" + "=" * 70)
@@ -294,7 +283,7 @@ def main():
     result = None
     
     if command == "list":
-        print(f"[INFO] Calling API: https://open.ys7.com/api/lapp/device/list")
+        print(f"[INFO] Calling API: {API_BASE_URL}/api/lapp/device/list")
         result = list_devices(access_token)
         
         if result["success"]:
@@ -314,7 +303,7 @@ def main():
     elif command == "status" and len(args) >= 1:
         device_serial = args[0]
         print(f"[INFO] Device: {device_serial}")
-        print(f"[INFO] Calling API: https://open.ys7.com/api/lapp/device/info")
+        print(f"[INFO] Calling API: {API_BASE_URL}/api/lapp/device/info")
         result = get_device_status(access_token, device_serial)
         
         if result["success"]:
@@ -325,7 +314,7 @@ def main():
     elif command == "capacity" and len(args) >= 1:
         device_serial = args[0]
         print(f"[INFO] Device: {device_serial}")
-        print(f"[INFO] Calling API: https://open.ys7.com/api/lapp/device/capacity")
+        print(f"[INFO] Calling API: {API_BASE_URL}/api/lapp/device/capacity")
         result = get_device_capacity(access_token, device_serial)
         
         if result["success"]:
@@ -336,7 +325,7 @@ def main():
         device_serial, channel_no, direction, speed = args[0], int(args[1]), int(args[2]), int(args[3])
         print(f"[INFO] Device: {device_serial}, Channel: {channel_no}")
         print(f"[INFO] Direction: {direction}, Speed: {speed}")
-        print(f"[INFO] Calling API: https://open.ys7.com/api/lapp/device/ptz/start")
+        print(f"[INFO] Calling API: {API_BASE_URL}/api/lapp/device/ptz/start")
         result = ptz_start(access_token, device_serial, channel_no, direction, speed)
         
         if result["success"]:
@@ -345,7 +334,7 @@ def main():
     elif command == "ptz_stop" and len(args) >= 2:
         device_serial, channel_no = args[0], int(args[1])
         print(f"[INFO] Device: {device_serial}, Channel: {channel_no}")
-        print(f"[INFO] Calling API: https://open.ys7.com/api/lapp/device/ptz/stop")
+        print(f"[INFO] Calling API: {API_BASE_URL}/api/lapp/device/ptz/stop")
         result = ptz_stop(access_token, device_serial, channel_no)
         
         if result["success"]:
@@ -354,7 +343,7 @@ def main():
     elif command == "preset_add" and len(args) >= 2:
         device_serial, channel_no = args[0], int(args[1])
         print(f"[INFO] Device: {device_serial}, Channel: {channel_no}")
-        print(f"[INFO] Calling API: https://open.ys7.com/api/lapp/device/preset/add")
+        print(f"[INFO] Calling API: {API_BASE_URL}/api/lapp/device/preset/add")
         result = preset_add(access_token, device_serial, channel_no)
         
         if result["success"]:
@@ -364,7 +353,7 @@ def main():
     elif command == "preset_move" and len(args) >= 3:
         device_serial, channel_no, index = args[0], int(args[1]), int(args[2])
         print(f"[INFO] Device: {device_serial}, Channel: {channel_no}, Preset: {index}")
-        print(f"[INFO] Calling API: https://open.ys7.com/api/lapp/device/preset/move")
+        print(f"[INFO] Calling API: {API_BASE_URL}/api/lapp/device/preset/move")
         result = preset_move(access_token, device_serial, channel_no, index)
         
         if result["success"]:
@@ -373,7 +362,7 @@ def main():
     elif command == "preset_clear" and len(args) >= 3:
         device_serial, channel_no, index = args[0], int(args[1]), int(args[2])
         print(f"[INFO] Device: {device_serial}, Channel: {channel_no}, Preset: {index}")
-        print(f"[INFO] Calling API: https://open.ys7.com/api/lapp/device/preset/clear")
+        print(f"[INFO] Calling API: {API_BASE_URL}/api/lapp/device/preset/clear")
         result = preset_clear(access_token, device_serial, channel_no, index)
         
         if result["success"]:
@@ -382,7 +371,7 @@ def main():
     elif command == "mirror" and len(args) >= 3:
         device_serial, channel_no, cmd = args[0], int(args[1]), int(args[2])
         print(f"[INFO] Device: {device_serial}, Channel: {channel_no}, Command: {cmd}")
-        print(f"[INFO] Calling API: https://open.ys7.com/api/lapp/device/ptz/mirror")
+        print(f"[INFO] Calling API: {API_BASE_URL}/api/lapp/device/ptz/mirror")
         result = mirror_flip(access_token, device_serial, channel_no, cmd)
         
         if result["success"]:
@@ -390,7 +379,7 @@ def main():
     
     else:
         print(f"[ERROR] Unknown command: {command}")
-        print("[INFO] Use 'python3 main_controller.py appKey appSecret' to see usage")
+        print("[INFO] Use 'python3 main.py appKey appSecret' to see usage")
         sys.exit(1)
     
     # Output result
