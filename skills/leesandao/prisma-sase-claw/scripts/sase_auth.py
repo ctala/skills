@@ -3,10 +3,20 @@
 Prisma SASE API Authentication Helper
 
 Handles OAuth2 client credentials flow with automatic token caching and renewal.
+Credentials are loaded securely from .env files — no hardcoded secrets required.
+
+Credential lookup order:
+  1. Environment variables (already exported in shell)
+  2. .env file in the current working directory
+  3. ~/.sase/.env (global config)
 
 Usage:
     from sase_auth import SASEAuth
 
+    # Auto-discovers credentials from .env files
+    auth = SASEAuth()
+
+    # Or explicitly specify credentials
     auth = SASEAuth(
         client_id="your_client_id",
         client_secret="your_client_secret",
@@ -28,6 +38,7 @@ import sys
 import time
 import base64
 import json
+from pathlib import Path
 
 try:
     import requests
@@ -42,30 +53,134 @@ API_BASE = "https://api.sase.paloaltonetworks.com"
 # Refresh token 60 seconds before actual expiry to avoid edge-case failures
 TOKEN_REFRESH_BUFFER_SECONDS = 60
 
+# .env file search paths (in priority order)
+ENV_FILE_SEARCH_PATHS = [
+    Path.cwd() / ".env",             # Current working directory
+    Path.home() / ".sase" / ".env",  # Global SASE config
+]
+
+# Required credential keys
+CREDENTIAL_KEYS = {
+    "PRISMA_CLIENT_ID": "client_id",
+    "PRISMA_CLIENT_SECRET": "client_secret",
+    "PRISMA_TSG_ID": "tsg_id",
+}
+
+
+def _parse_env_file(filepath):
+    """
+    Parse a .env file and return a dict of key-value pairs.
+    Supports: KEY=VALUE, KEY="VALUE", KEY='VALUE', comments (#), blank lines.
+    """
+    env_vars = {}
+    filepath = Path(filepath)
+    if not filepath.is_file():
+        return env_vars
+
+    with open(filepath, "r") as f:
+        for line in f:
+            line = line.strip()
+            # Skip empty lines and comments
+            if not line or line.startswith("#"):
+                continue
+            # Skip lines without =
+            if "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip()
+            # Remove surrounding quotes
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                value = value[1:-1]
+            env_vars[key] = value
+
+    return env_vars
+
+
+def _discover_credentials():
+    """
+    Discover SASE credentials from environment variables and .env files.
+    Returns a dict with client_id, client_secret, tsg_id (values may be None).
+    """
+    creds = {"client_id": None, "client_secret": None, "tsg_id": None}
+
+    # Step 1: Check environment variables first
+    for env_key, cred_key in CREDENTIAL_KEYS.items():
+        val = os.environ.get(env_key)
+        if val:
+            creds[cred_key] = val
+
+    # Step 2: Fill in missing values from .env files
+    if not all(creds.values()):
+        for env_path in ENV_FILE_SEARCH_PATHS:
+            if all(creds.values()):
+                break
+            env_vars = _parse_env_file(env_path)
+            for env_key, cred_key in CREDENTIAL_KEYS.items():
+                if creds[cred_key] is None and env_key in env_vars:
+                    creds[cred_key] = env_vars[env_key]
+
+    return creds
+
+
+def _get_env_setup_instructions():
+    """Return user-friendly instructions for setting up credentials."""
+    global_env_path = Path.home() / ".sase" / ".env"
+    return (
+        "\nTo configure credentials, create a .env file in one of these locations:\n"
+        f"  Option 1: .env (in your current working directory)\n"
+        f"  Option 2: {global_env_path}\n"
+        "\nFile contents:\n"
+        "  PRISMA_CLIENT_ID=your_client_id@your_tsg.iam.panserviceaccount.com\n"
+        "  PRISMA_CLIENT_SECRET=your_client_secret\n"
+        "  PRISMA_TSG_ID=your_tsg_id\n"
+        "\nAlternatively, export them as environment variables in your shell.\n"
+    )
+
 
 class SASEAuth:
     """Handles OAuth2 authentication for Prisma SASE API."""
 
-    def __init__(self, client_id=None, client_secret=None, tsg_id=None):
+    def __init__(self, client_id=None, client_secret=None, tsg_id=None, env_file=None):
         """
-        Initialize with credentials. Falls back to environment variables if not provided:
-          - PRISMA_CLIENT_ID
-          - PRISMA_CLIENT_SECRET
-          - PRISMA_TSG_ID
+        Initialize with credentials.
+
+        Credential resolution order:
+          1. Explicit arguments (client_id, client_secret, tsg_id)
+          2. Custom env_file path (if provided)
+          3. Auto-discovery: environment variables → ./.env → ~/.sase/.env
         """
-        self.client_id = client_id or os.environ.get("PRISMA_CLIENT_ID")
-        self.client_secret = client_secret or os.environ.get("PRISMA_CLIENT_SECRET")
-        self.tsg_id = tsg_id or os.environ.get("PRISMA_TSG_ID")
+        # If a specific env_file is provided, load it first
+        if env_file:
+            env_vars = _parse_env_file(env_file)
+            for env_key, cred_key in CREDENTIAL_KEYS.items():
+                if env_key in env_vars:
+                    if cred_key == "client_id" and client_id is None:
+                        client_id = env_vars[env_key]
+                    elif cred_key == "client_secret" and client_secret is None:
+                        client_secret = env_vars[env_key]
+                    elif cred_key == "tsg_id" and tsg_id is None:
+                        tsg_id = env_vars[env_key]
+
+        # Auto-discover any still-missing credentials
+        discovered = _discover_credentials()
+
+        self.client_id = client_id or discovered["client_id"]
+        self.client_secret = client_secret or discovered["client_secret"]
+        self.tsg_id = tsg_id or discovered["tsg_id"]
 
         if not all([self.client_id, self.client_secret, self.tsg_id]):
             missing = []
             if not self.client_id:
-                missing.append("client_id / PRISMA_CLIENT_ID")
+                missing.append("PRISMA_CLIENT_ID")
             if not self.client_secret:
-                missing.append("client_secret / PRISMA_CLIENT_SECRET")
+                missing.append("PRISMA_CLIENT_SECRET")
             if not self.tsg_id:
-                missing.append("tsg_id / PRISMA_TSG_ID")
-            raise ValueError(f"Missing required credentials: {', '.join(missing)}")
+                missing.append("PRISMA_TSG_ID")
+            raise ValueError(
+                f"Missing credentials: {', '.join(missing)}\n"
+                + _get_env_setup_instructions()
+            )
 
         self._token = None
         self._token_expiry = 0
@@ -168,13 +283,6 @@ def main():
         print(auth.get_token())
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
-        print(
-            "\nSet environment variables:\n"
-            "  export PRISMA_CLIENT_ID=your_client_id\n"
-            "  export PRISMA_CLIENT_SECRET=your_client_secret\n"
-            "  export PRISMA_TSG_ID=your_tsg_id",
-            file=sys.stderr,
-        )
         sys.exit(1)
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
