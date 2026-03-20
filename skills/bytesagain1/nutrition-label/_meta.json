@@ -3,11 +3,16 @@
   "slug": "nutrition-label",
   "displayName": "Nutrition Label",
   "latest": {
-    "version": "2.3.7",
-    "publishedAt": 1773666620509,
-    "commit": "https://github.com/openclaw/skills/commit/c8a471147e657fe014777db6db121a9283a596bd"
+    "version": "3.0.0",
+    "publishedAt": 1773922259789,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.7",
+      "publishedAt": 1773666620509,
+      "commit": "https://github.com/openclaw/skills/commit/c8a471147e657fe014777db6db121a9283a596bd"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773447636309,
