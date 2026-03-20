@@ -3,11 +3,16 @@
   "slug": "loan-calculator",
   "displayName": "Loan Calculator",
   "latest": {
-    "version": "2.3.5",
-    "publishedAt": 1773666397795,
-    "commit": "https://github.com/openclaw/skills/commit/d2b90ab3fd9bf8f69945a108cb703cc9da2efe08"
+    "version": "2.0.0",
+    "publishedAt": 1773773693555,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.5",
+      "publishedAt": 1773666397795,
+      "commit": "https://github.com/openclaw/skills/commit/d2b90ab3fd9bf8f69945a108cb703cc9da2efe08"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773202695428,
