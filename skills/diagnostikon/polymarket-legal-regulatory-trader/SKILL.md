@@ -16,23 +16,48 @@ metadata:
 
 ## Strategy Overview
 
-PACER court filing velocity as leading indicator. Remix: CourtListener/PACER API for docket updates, SEC EDGAR enforcement releases, EU competition docket tracker, Courtroom View Network.
+Legal prediction markets have enormous information asymmetry — most Polymarket retail participants don't read court filings or understand regulatory procedure. They price criminal convictions as coin flips when the actual DOJ conviction rate is ~97%. This skill encodes documented institutional base rates directly into conviction sizing.
 
+## Signal Logic
 
-## Edge Thesis
+### Default Signal: Conviction-Based Sizing with Precedent Bias
 
-Legal prediction markets have enormous information asymmetry — most Polymarket retail participants don't read court filings:
+1. Discover active legal and regulatory markets on Polymarket
+2. Compute base conviction from distance to threshold (0% at boundary → 100% at p=0/p=1)
+3. Apply `precedent_bias()` — multiplier based on documented legal/regulatory outcome statistics
+4. Size = `max(MIN_TRADE, conviction × bias × MAX_POSITION)` — capped at MAX_POSITION
+5. Skip markets with spread > MAX_SPREAD or fewer than MIN_DAYS to resolution
 
-- **PACER docket monitoring**: Court scheduling orders, motion rulings, and filing deadlines are all public on PACER (10 cents/page). A ruling scheduled for Tuesday is priced as uncertain on Monday — but the docket shows the judge has been active all week
-- **SEC Wells Notice to enforcement**: The average time from Wells Notice to formal action is 4–6 months, well-documented. Markets on SEC cases systematically underprice speed of action
-- **EU competition timeline**: The EC follows a rigorous procedural calendar. Phase 2 investigation timelines are almost always 13 months from opening — markets frequently get this wrong
-- **Plea deal statistics**: DOJ criminal case plea rates are ~97% historically. When Polymarket prices a "will X be convicted" market, the base rate strongly favours yes if indicted
+### Precedent Bias (built-in, no API required)
+
+Retail prices legal outcomes as coin flips. `precedent_bias()` corrects this using documented historical statistics:
+
+| Action type | Historical rate | Multiplier |
+|---|---|---|
+| DOJ criminal conviction (post-indictment) | ~97% plea/conviction | **1.35x** |
+| Class action settlement | ~90%+ settle before trial | **1.25x** |
+| SEC enforcement (post-Wells Notice) | ~85% result in formal action | **1.20x** |
+| EU Phase 2 antitrust outcome | ~80%+ conditions or fine | **1.20x** |
+| SCOTUS reversal (cert granted) | ~70% reverse lower court | **1.15x** |
+| Crypto enforcement (post-charges) | High after formal charges | **1.15x** |
+| Big tech merger blocked (FTC/DOJ) | ~40–60%, rising trend | **1.10x** |
+| Regulatory approval / clearance | Harder to time | **0.80x** |
+
+Example: "Will X be convicted?" market at 25% after indictment → conviction 34% × 1.35x = 46% → $14. Retail prices this at 25%; base rate says 97%. That's the edge.
+
+### Why These Base Rates Hold
+
+- **DOJ plea rate**: Federal prosecutors only indict when they have ~overwhelming evidence — they win 97%+ of cases taken to trial or plea
+- **EU Phase 2**: The EC procedural calendar is legally defined — opening Phase 2 is a strong signal of serious concerns
+- **SCOTUS cert**: The Court takes cases primarily to correct errors — ~70% reversal is a documented statistical pattern
+- **Class action**: Discovery costs and litigation risk make settlement the rational outcome in ~90%+ of cases
 
 ### Remix Signal Ideas
-- **CourtListener**: https://www.courtlistener.com/api/ — free PACER docket API
-- **SEC EDGAR**: https://efts.sec.gov/LATEST/search-index?q=%22wells+notice%22
-- **EU Competition docket**: https://competition.ec.europa.eu/cases/
-- **Courtroom View Network**: Live trial feeds
+
+- **CourtListener API**: Free PACER docket API — monitor filing velocity as leading indicator before markets react
+- **SEC EDGAR enforcement**: Track Wells Notice dates to anticipate formal action timing (avg 4–6 months)
+- **EU Competition docket**: Phase 2 opening date + 13 months = almost exact closing date
+- **Courtroom View Network**: Live trial feeds for real-time signal on verdict direction
 
 
 ## Safety & Execution Mode
@@ -59,11 +84,14 @@ All declared as `tunables` in `clawhub.json` and adjustable from the Simmer UI.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SIMMER_MAX_POSITION` | See clawhub.json | Max USDC per trade |
-| `SIMMER_MIN_VOLUME` | See clawhub.json | Min market volume filter |
-| `SIMMER_MAX_SPREAD` | See clawhub.json | Max bid-ask spread |
-| `SIMMER_MIN_DAYS` | See clawhub.json | Min days until resolution |
-| `SIMMER_MAX_POSITIONS` | See clawhub.json | Max concurrent open positions |
+| `SIMMER_MAX_POSITION` | `30` | Max USDC per trade (reached at 100% conviction) |
+| `SIMMER_MIN_VOLUME` | `8000` | Min market volume filter (USD) |
+| `SIMMER_MAX_SPREAD` | `0.10` | Max bid-ask spread (10%) |
+| `SIMMER_MIN_DAYS` | `7` | Min days until resolution |
+| `SIMMER_MAX_POSITIONS` | `5` | Max concurrent open positions |
+| `SIMMER_YES_THRESHOLD` | `0.38` | Buy YES if market price ≤ this value |
+| `SIMMER_NO_THRESHOLD` | `0.62` | Sell NO if market price ≥ this value |
+| `SIMMER_MIN_TRADE` | `5` | Floor for any trade (min USDC regardless of conviction) |
 
 ## Dependency
 
