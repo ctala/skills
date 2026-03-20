@@ -21,6 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { exec } = require('child_process');
 const readline = require('readline');
 
 const CLAWCAP_BASE = 'https://clawcap.co/proxy';
@@ -76,15 +77,30 @@ function getToken() {
   return null;
 }
 
+function openBrowser(url) {
+  const platform = process.platform;
+  const cmd = platform === 'win32' ? `start "" "${url}"`
+    : platform === 'darwin' ? `open "${url}"`
+    : `xdg-open "${url}"`;
+  exec(cmd, () => {}); // fire-and-forget, ignore errors
+}
+
 function askForToken() {
   return new Promise((resolve) => {
+    const signupUrl = 'https://clawcap.co';
+    console.log('');
+    console.log('You need a ClawCap token to continue.');
+    console.log('Opening clawcap.co in your browser to sign up and get your token...');
+    console.log('');
+    openBrowser(signupUrl);
+
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question('Enter your ClawCap token (cc_live_...): ', (answer) => {
+    rl.question('Paste your ClawCap token here (cc_live_...): ', (answer) => {
       rl.close();
       const token = answer.trim();
       if (!/^cc_live_[a-f0-9]{32}$/.test(token)) {
         console.error('Error: Invalid token format. Must be cc_live_ followed by 32 hex characters.');
-        console.error('Get yours at https://clawcap.co/setup');
+        console.error('Sign up at https://clawcap.co to get your token.');
         process.exit(1);
       }
       resolve(token);
