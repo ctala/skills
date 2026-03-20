@@ -3,11 +3,16 @@
   "slug": "tapo",
   "displayName": "Tapo",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773263383365,
-    "commit": "https://github.com/openclaw/skills/commit/1eedbeb29a28fffcabbce92cb06817f7cf306c52"
+    "version": "0.2.0",
+    "publishedAt": 1773525077293,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773263383365,
+      "commit": "https://github.com/openclaw/skills/commit/1eedbeb29a28fffcabbce92cb06817f7cf306c52"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773257671227,

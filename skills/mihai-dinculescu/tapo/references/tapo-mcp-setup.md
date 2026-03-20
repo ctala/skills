@@ -8,11 +8,12 @@ Tapo MCP is an HTTP server (Streamable HTTP transport) that exposes TP-Link Tapo
 
 ### Tools
 
-| Tool               | Description                                                                      |
-| ------------------ | -------------------------------------------------------------------------------- |
-| `list_devices`     | List available Tapo devices on the network (includes capabilities).              |
-| `check_device`     | Verify a device ID matches at a given IP.                                        |
-| `set_device_state` | Apply a capability to a device (e.g. `OnOff(true)`). Runs `check_device` first. |
+| Tool               | Description                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| `list_devices`     | List available Tapo devices on the network (includes set and get capabilities).                |
+| `check_device`     | Verify a device ID matches at a given IP.                                                      |
+| `get_device_state` | Get a device's current state (e.g. `{"type": "DeviceInfo"}`). Runs `check_device` first.       |
+| `control_device`   | Control a device by applying one or more set capabilities. Runs `check_device` first.          |
 
 ### Resources
 
@@ -77,6 +78,8 @@ metadata:
   name: tapo-mcp
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: tapo-mcp
