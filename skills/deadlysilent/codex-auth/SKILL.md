@@ -1,7 +1,10 @@
 ---
 name: codex-auth
-description: Manual Telegram slash-style command to start/finish OpenAI Codex OAuth profile auth refresh. Use for /codex_auth, /codex_auth <profile>, or callback URL paste handling.
+description: DEPRECATED shim skill for /codex_auth. Use codex-profiler instead; codex-auth is no longer the maintained path.
 ---
+
+> ⚠️ **Deprecated:** `codex-auth` is no longer maintained as a standalone skill.
+> Use **codex-profiler** for all ongoing `/codex_auth` and `/codex_usage` operations.
 
 Run `scripts/codex_auth.py` to generate a login URL and apply callback URL tokens to `auth-profiles.json`.
 

@@ -3,11 +3,16 @@
   "slug": "codex-auth",
   "displayName": "Codex Auth",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773166204240,
-    "commit": "https://github.com/openclaw/skills/commit/b31e077650fa13e37c75797c50475ec1ee050f7e"
+    "version": "1.0.6",
+    "publishedAt": 1773230159975,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773166204240,
+      "commit": "https://github.com/openclaw/skills/commit/b31e077650fa13e37c75797c50475ec1ee050f7e"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1773160905462,
