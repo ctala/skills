@@ -1,137 +1,106 @@
 ---
 name: cognition
-description: Seven biologically-inspired memory systems for OpenClaw agents. Gives your agent overnight learning (nightly consolidation), metacognition (confidence tracking), prospective memory (future intents), procedural memory (compiled skills), spreading activation (cross-references), knowledge gap detection, and weekly deep reflection. Use when setting up agent memory architecture, implementing long-term memory, adding overnight consolidation, enabling self-improvement, or building cognitive infrastructure. Based on SOAR, ACT-R, Global Workspace Theory, and hippocampal replay research.
+description: Practical memory architecture for OpenClaw agents. Use when an agent needs to remember commitments across sessions, retrieve prior context, prevent repeat mistakes, stage durable-memory updates safely, compile reusable procedures, or improve memory hygiene over time. Supports a 3-tier adoption path: Core, Recommended, and Advanced.
 ---
 
-# 🧠 Cognition — Seven Memory Systems for OpenClaw Agents
+# Cognition
 
-Give your agent a mind, not just memory.
+Cognition gives an OpenClaw agent a practical memory architecture: raw logs, durable knowledge, commitments, and reusable procedures.
 
-## What It Does
+Use it to make memory operational, not decorative.
 
-Your agent forgets everything between sessions. Cognition fixes that with seven cognitive systems borrowed from neuroscience:
+## Start Here
 
-1. **Working Memory** — Context window management with GWT broadcasting
-2. **Episodic Memory** — Session replay with importance tagging
-3. **Semantic Memory** — Hierarchical knowledge with activation-weighted retrieval
-4. **Procedural Memory** — Compiled skills with Bayesian success tracking
-5. **Prospective Memory** — Structured future intents (never forget a commitment)
-6. **Metamemory** — Confidence scoring and knowledge gap detection
-7. **Causal-Temporal Reasoning** — Cross-references and spreading activation
-
-## Quick Start
-
-Run the install script to scaffold the full directory structure:
+Install the scaffolding:
 
 ```bash
 bash {baseDir}/scripts/install.sh
 ```
 
-This creates all template files and directories. Then follow the 4-phase adoption guide below.
+Then adopt it in 3 tiers.
 
-## Phase 1: Foundation (10 minutes)
+## Tier 1 — Core
 
-### 1.1 Add FUTURE_INTENTS.md to workspace root
+Adopt this first. It is the smallest useful subset.
 
-Copy from `{baseDir}/templates/FUTURE_INTENTS.md`. This is your agent's prospective memory — structured commitments with triggers, actions, and status tracking.
+### Core behavior
+1. Log important work to `memory/YYYY-MM-DD.md`
+2. Keep durable facts in `MEMORY.md` and deeper detail in `memory/bank/*.md`
+3. Track commitments in `memory/FUTURE_INTENTS.md`
+4. Add the protocol blocks from `{baseDir}/references/protocols.md` to your AGENTS.md
 
-### 1.2 Create procedural memory
+### What Core gives you
+- recent-session continuity
+- a compact durable memory index
+- fewer dropped promises
+- a default place to put important facts instead of hoping the model remembers
 
-The install script creates `memory/procedures/` with `index.yaml`. After solving non-trivial problems, compile solutions here. Each procedure tracks preconditions, steps, failure modes, and success rate.
+## Tier 2 — Recommended
 
-### 1.3 Set up nightly consolidation
+Adopt this once Core is part of normal use.
 
-Add a cron job using the prompt at `{baseDir}/references/consolidation-prompt.md`. Schedule: `0 2 * * *` (2 AM daily). Uses your agent's model to process the day's logs into durable knowledge.
+### Add these pieces
+- nightly staged consolidation via `{baseDir}/references/consolidation-prompt.md`
+- reusable procedures in `memory/procedures/`
+- procedure registry in `memory/procedures/index.yaml`
+- importance tagging from `{baseDir}/references/protocols.md`
 
-**Recommended model:** Any model with reliable tool use (Sonnet 4+, GPT-5+). Small local models may narrate instead of executing — test tool reliability first.
+### Safety model
+- consolidation stages proposals before durable mutation
+- daily logs stay append-only
+- uncertain items stay tagged `[NEEDS_REVIEW]`
+- new procedures start as `draft`
+- promote procedures cautiously: `draft` → `reviewed` → `trusted`
 
-### 1.4 Add Memory Protocol to AGENTS.md
+## Tier 3 — Advanced
 
-Paste the protocol block from `{baseDir}/references/protocols.md` into your AGENTS.md.
+Only adopt this if Core and Recommended are already working.
 
-## Phase 2: Consolidation Intelligence (10 minutes)
+### Optional overlays
+- `memory/bank/cross-references.md` for linked retrieval
+- `memory/KNOWLEDGE_MAP.md` for coarse confidence tracking
+- `memory/meta/gap_tracker.json` for repeated retrieval misses
+- `memory/meta/retrieval_log.json` for retrieval analytics
+- weekly reflection via `{baseDir}/references/weekly-reflection-prompt.md`
+- hybrid retrieval tuning via `{baseDir}/references/config.md`
 
-### 2.1 Add KNOWLEDGE_MAP.md
+Advanced is for sharper retrieval and maintenance, not for replacing the Core system.
 
-Copy from `{baseDir}/templates/KNOWLEDGE_MAP.md`. Customize domains for your use case. Confidence scores: 🟢 High (0.8+) | 🟡 Medium (0.5-0.8) | 🔴 Low (<0.5).
+## Core File Map
 
-### 2.2 Enable importance tagging
+### Always-on files
+- `memory/YYYY-MM-DD.md` — daily session log
+- `MEMORY.md` — durable fact index
+- `memory/bank/*.md` — deeper topic files
+- `memory/FUTURE_INTENTS.md` — commitments and deferred actions
 
-Add the tagging protocol from `{baseDir}/references/protocols.md` to AGENTS.md. Tag daily log entries:
-- `[REPLAY_PRIORITY: HIGH]` — Corrections, policy changes, decisions
-- `[REPLAY_PRIORITY: MEDIUM]` — New facts, milestones, config changes
-- LOW = default, no tag needed
+### Recommended files
+- `memory/consolidation/YYYY-MM-DD-staged.md` — staged memory proposals
+- `memory/procedures/index.yaml` — procedure registry
+- `memory/procedures/*.md` — reusable procedures
 
-### 2.3 Enable GWT Broadcasting
+### Advanced files
+- `memory/KNOWLEDGE_MAP.md`
+- `memory/bank/cross-references.md`
+- `memory/meta/gap_tracker.json`
+- `memory/meta/retrieval_log.json`
+- `memory/summaries/YYYY-WNN.md`
 
-Add the broadcasting rules from `{baseDir}/references/protocols.md`. When important info enters a session, push it to the correct store immediately.
+## Reference Map
 
-## Phase 3: Intelligence (15 minutes)
+Read only what you need:
 
-### 3.1 Create cross-references
+- `{baseDir}/references/protocols.md` — protocol blocks to copy into AGENTS.md
+- `{baseDir}/references/consolidation-prompt.md` — nightly staged consolidation
+- `{baseDir}/references/weekly-reflection-prompt.md` — weekly reflection without direct mutation
+- `{baseDir}/references/architecture.md` — core systems, overlays, retrieval tiers, safety notes, file structure
+- `{baseDir}/references/config.md` — advanced hybrid retrieval tuning
+- `{baseDir}/references/cognitive-science.md` — theory appendix
 
-Copy `{baseDir}/templates/cross-references.md` to `memory/bank/`. Customize with your person→file, project→resource, and domain→domain links. This enables spreading activation — retrieving one topic primes related topics.
+## Guardrails
 
-### 3.2 Set up gap tracking
-
-The install script creates `memory/meta/gap_tracker.json`. Failed searches are logged here. Gaps with 3+ misses are surfaced during weekly reflection.
-
-### 3.3 Upgrade weekly reflection
-
-Add a weekly cron using the prompt at `{baseDir}/references/weekly-reflection-prompt.md`. Schedule: `0 4 * * 0` (Sunday 4 AM). Performs 13-step deep cognitive maintenance.
-
-### 3.4 Update Retrieval Protocol
-
-Replace your basic retrieval protocol with the enhanced version from `{baseDir}/references/protocols.md` — adds cross-reference following and gap logging.
-
-## Phase 4: Evolution (ongoing)
-
-Phase 4 is emergent. As the other systems accumulate data:
-- Weekly reflection recommends AGENTS.md rule changes
-- Procedures compile automatically from solved problems
-- Knowledge gaps drive proactive research
-- Confidence scores guide when to act vs. when to ask
-
-## Configuration
-
-### Recommended openclaw.json settings
-
-Read `{baseDir}/references/config.md` for copy-paste config blocks:
-- `reserveTokensFloor`: 40000 (not the default 20K)
-- `memoryFlush`: enabled with 4K-10K soft threshold
-- Hybrid search: 0.7 vector / 0.3 BM25
-- MMR diversity: lambda 0.7
-- Temporal decay: halfLifeDays 30
-- Embedding cache: 50K entries
-
-## File Structure
-
-After installation:
-```
-workspace/
-├── FUTURE_INTENTS.md          # Prospective memory
-├── KNOWLEDGE_MAP.md           # Metamemory
-└── memory/
-    ├── bank/
-    │   └── cross-references.md  # Spreading activation
-    ├── meta/
-    │   ├── gap_tracker.json     # Knowledge gap detection
-    │   └── retrieval_log.json   # Search quality tracking
-    ├── procedures/
-    │   └── index.yaml           # Compiled skills registry
-    ├── consolidation/
-    │   └── YYYY-MM-DD.md        # Nightly consolidation logs
-    └── summaries/
-        └── YYYY-WNN.md          # Weekly reflection summaries
-```
-
-## Cognitive Science Foundation
-
-| Theory | Mechanism | System |
-|--------|-----------|--------|
-| SOAR | Procedural chunking | Procedural Memory |
-| ACT-R | Activation-weighted retrieval | Semantic Memory |
-| Global Workspace Theory | Broadcast to all stores | GWT Broadcasting |
-| Hippocampal Replay | Overnight consolidation | Nightly Cron |
-| Predictive Processing | Importance tagging | Episodic Memory |
-| Metacognition | Confidence calibration | Metamemory |
+- Prefer staged proposals over silent durable-memory edits
+- Keep raw logs append-only
+- Keep `MEMORY.md` compact; move detail into `memory/bank/`
+- Treat procedure promotion as earned, not automatic
+- If retrieval fails, log the gap instead of inventing certainty
