@@ -3,11 +3,16 @@
   "slug": "admapix",
   "displayName": "AdMapix",
   "latest": {
-    "version": "1.0.13",
-    "publishedAt": 1773645733658,
-    "commit": "https://github.com/openclaw/skills/commit/cbf009b09386b84c0a8ca92098403f79609c62da"
+    "version": "1.0.25",
+    "publishedAt": 1773990984860,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.13",
+      "publishedAt": 1773645733658,
+      "commit": "https://github.com/openclaw/skills/commit/cbf009b09386b84c0a8ca92098403f79609c62da"
+    },
     {
       "version": "1.0.9",
       "publishedAt": 1773395313699,
