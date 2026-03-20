@@ -1,13 +1,18 @@
 {
   "owner": "jisuapi",
   "slug": "weather2",
-  "displayName": "历史天气 - Chinese Historical Weather",
+  "displayName": "Historical Weather - 历史天气",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773632189895,
-    "commit": "https://github.com/openclaw/skills/commit/17319e85fea5af38800c66811ab3f106c9b05bc2"
+    "version": "1.0.3",
+    "publishedAt": 1773728518331,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773632189895,
+      "commit": "https://github.com/openclaw/skills/commit/17319e85fea5af38800c66811ab3f106c9b05bc2"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773375450186,
