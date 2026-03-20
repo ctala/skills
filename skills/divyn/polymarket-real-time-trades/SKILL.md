@@ -2,21 +2,16 @@
 name: polymarket-prediction-trades
 description: >
   Real-time streaming Polymarket prediction trades on Polygon (matic) with live USD pricing.
-  Use this skill to subscribe to a live stream of Polymarket prediction market trades over WebSocket:
-  outcome trades (buyer, seller, amount, collateral in USD, price, order ID), market metadata
-  (question title, resolution source, outcome labels), and transaction details — streamed in real
-  time from the Bitquery GraphQL API. Covers all Polymarket markets including sports odds, Bitcoin
-  Up or Down (and other crypto up/down markets), and general prediction markets.
-  ALWAYS use this skill when the user asks for Polymarket trades, Polymarket prediction feed,
-  stream Polymarket, live prediction market trades on Polygon, real-time Polymarket data,
-  Polymarket order flow, sports odds on Polymarket, Bitcoin up or down markets, prediction market
-  order book activity, or any trader-focused Polymarket feed.
-  Trigger for: "polymarket trades", "stream polymarket", "live prediction market",
-  "polymarket prediction feed", "real-time polymarket", "streaming polymarket data",
-  "Bitquery polymarket", "polymarket order flow", "polymarket sports odds", "bitcoin up down",
-  "prediction market trades Polygon", or any request for a live/streaming Polymarket prediction
-  trade feed. Do not wait for the user to say "use Bitquery" — if they want a live or streaming
-  Polymarket trade feed (including sports or crypto up/down), use this skill.
+  Subscribe to a live stream of Polymarket prediction market trades over WebSocket: outcome trades
+  (buyer, seller, amount, collateral in USD, price, order ID), market metadata (question title,
+  resolution source, outcome labels), and transaction details — streamed in real time from the
+  Bitquery GraphQL API. Covers all Polymarket markets including sports odds, Bitcoin Up or Down
+  (and other crypto up/down markets), and general prediction markets.
+requires:
+  env:
+    - name: BITQUERY_API_KEY
+      required: true
+      description: Your Bitquery API token (required for WebSocket connection)
 ---
 
 # Polymarket Prediction Trades — real-time streaming on Polygon
@@ -33,30 +28,48 @@ Trades are filtered to `TransactionStatus.Success: true`. The stream uses Bitque
 
 This skill's code implements the described Polymarket stream and contacts only Bitquery. Before installing:
 
-1. **Registry metadata**: Confirm the registry metadata declares **`BITQUERY_API_KEY`** as a required credential. The skill will fail at runtime without it. If the registry does not list this env var, the mismatch with this SKILL.md is the main inconsistency — ask the publisher to update the registry so installers see the requirement.
-2. **Token only via URL**: Bitquery supports **no other auth method** — the token can **only** be passed in the WebSocket URL as `?token=...`. Because the token always appears in the URL, it can leak to logs, proxy logs, shell history, or IDE history. Never print or log the full URL; store the key only in an environment variable; rotate the key if it may have been exposed.
-3. **Sandbox first**: Run the bundled script in a sandboxed environment (e.g. virtualenv or container) to observe behavior before relying on it in production.
-4. **Verify publisher/source**: If the skill's homepage or source is unknown, verify the publisher or use an alternative from a trusted source. If the registry declares `BITQUERY_API_KEY` and the source is validated, this skill is coherent with its stated purpose.
-5. **Rotate the key if exposed**: If the key may have been exposed (e.g. URL printed, committed, or logged), rotate it in the Bitquery dashboard and update your environment.
+1. **Required credential**: This skill requires `BITQUERY_API_KEY` (your Bitquery API token). The registry metadata **must** declare this credential so installers are prompted to provide it. Verify the registry entry lists `BITQUERY_API_KEY` as a required environment variable.
+
+2. **⚠️ Critical security risk — Token in WebSocket URL**: Bitquery's API does **not** support header-based auth or any method other than embedding the token in the WebSocket URL as `?token=...`. This is an **inherent design limitation** of the API, not a bug in this skill. However, it creates a **significant leakage risk**:
+   - The token will **always** be present in the connection URL in memory and in any logs or captured network traffic
+   - If the URL is printed, logged, captured in shell history, IDE history, proxy logs, firewall logs, or monitoring systems, the token is **exposed**
+   - Once exposed, anyone with the token can impersonate your account and consume your quota
+   - **Mitigation**: Store the key **only** in a secure environment variable; never print or log the full URL; rotate the key **immediately** if you suspect exposure; run in a sandboxed environment (virtualenv/container) to limit logging surface
+
+3. **Sandbox first**: Before using this skill in production or in shared environments, test it in an isolated environment (virtualenv, container, or dedicated machine) to confirm the logging behavior and ensure the URL is not captured by system monitoring or logging tools you have enabled.
+
+4. **Source and publisher**: Verify the publisher's identity and source control access. Review the code in `scripts/stream_polymarket.py` to confirm the script does not log the full URL before use.
 
 ---
 
-## Credentials
+## Security Checklist
 
-- **Single required secret at runtime:** `BITQUERY_API_KEY` (Bitquery API token).
-- **Registry:** The registry metadata should declare this as the primary/required credential. If it does not, installers may not see that the skill needs an API key until they read this SKILL.md or run the script — that mismatch is the main inconsistency to fix on the registry side.
+**Before running this skill, confirm:**
 
-**Credential and URL-only auth:** The Bitquery streaming endpoint accepts the token **only in the WebSocket URL** as a query parameter (`?token=...`). It does **not** support header-based auth or any other method. Therefore:
-  - The token will always be present in the connection URL and can be exposed in **logs, proxy logs, shell history, or IDE history** if the URL is printed or logged.
-  - **Do not** print or log the full WebSocket URL. Build the URL in code from an env var (e.g. `os.getenv("BITQUERY_API_KEY")`) and never emit it.
-  - Store the key only in an environment variable; **rotate the key** if you suspect it was exposed (e.g. URL was logged or committed).
+- [ ] You have set `BITQUERY_API_KEY` in your environment: `export BITQUERY_API_KEY=your_token_here`
+- [ ] You are running in a **sandboxed or isolated environment** (virtualenv, Docker, or dedicated machine)
+- [ ] **Logging and shell history are disabled or monitored** to prevent URL capture: check `HISTFILE`, `.bash_history`, system logs, IDE debug output
+- [ ] You understand that the WebSocket URL will contain your API token in plaintext in memory
+- [ ] You have a plan to rotate your key if it is ever exposed
+- [ ] You will **not** print, log, or commit the full URL to any file or logging system
+
+If any of these cannot be confirmed, do not proceed with this skill until those conditions are met.
 
 ---
 
 ## Prerequisites
 
-- **Environment**: `BITQUERY_API_KEY` — your Bitquery API token (required). Set it in your environment; the script and examples read it from there. See **Credential and URL-only auth** above — token only in URL; do not print or log the full URL.
-- **Runtime**: Python 3 and `pip`. Install the dependency: `pip install 'gql[websockets]'`.
+- **Environment**: `BITQUERY_API_KEY` — your Bitquery API token (required).
+
+**⚠️ URL-only authentication (Bitquery API limitation):** Bitquery's streaming endpoint accepts the token **only in the WebSocket URL** as a query parameter (`?token=...`). It does **not** support header-based auth or Bearer tokens. This design choice means:
+  - The token is embedded in the connection URL and will be present in memory, network traces, and any logs that capture the full URL
+  - **Never print, log, or emit the full WebSocket URL in any context**
+  - Always construct the URL from the environment variable and pass it only to the WebSocket transport
+  - If the URL appears in shell history, logs, IDE debugger, or network monitoring, the token is compromised
+  - **Rotate your API key immediately** if you suspect it was logged or captured
+  - Run this script only in controlled environments where logging and monitoring are configured securely
+
+- **Runtime**: Python 3.8+ and `pip`. Install the dependency: `pip install 'gql[websockets]'`.
 
 ---
 
