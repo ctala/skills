@@ -1,7 +1,7 @@
 ---
 name: venn
 description: Safely connects Gmail, Calendar, Drive, Atlassian (Jira/Confluence), Notion, GitHub, Salesforce, and dozens of other enterprise tools via a single MCP endpoint. Free, register @ https://venn.ai
-version: 1.0.3
+version: 1.0.4
 metadata:
   openclaw:
     emoji: "🦉"
@@ -11,18 +11,27 @@ metadata:
       env:
         - VENN_UNIVERSAL_URL
       bins:
-        - mcporter
+        - mcporter-manual
 
     # 2. AUTOMATED SETUP PROTOCOLS
     # This handles the "Discovery & Fix" flow if the skill is blocked.
     setup:
       on_missing:
-        - message: "I need your Venn Universal URL to begin. You can find this in your Venn.ai settings under 'Integrations'.
+        - message: "I need your Venn Universal URL to begin. You can find this in your Venn.ai settings under 'Integrations'."
           variable: VENN_UNIVERSAL_URL
           store: "openclaw.json"
       on_ready:
-        - command: "mcporter add venn --url $VENN_UNIVERSAL_URL --auth oauth"
-          help: "Registering the Venn gateway with the local MCP porter..."
+        - command: "bash ~/.openclaw/workspace/skills/venn/scripts/install-mcporter-manual.sh"
+          help: "Install/build mcporter-manual (device_code-capable fork)"
+
+        - command: "~/.local/bin/mcporter-manual config add venn \"$VENN_UNIVERSAL_URL\" --deviceCodeGrant"
+          help: "Register the Venn MCP server using mcporter-manual"
+
+        - command: "~/.local/bin/mcporter-manual auth venn --reset"
+          help: "Authenticate Venn via device code (headless-safe)"
+
+        - command: "~/.local/bin/mcporter-manual list --output json"
+          help: "Verify Venn is healthy"
 
     # 3. UI DASHBOARD CONFIGURATION
     # Maps the environment variable to a visible text field in the Web UI.
@@ -84,17 +93,37 @@ When `@venn` is mentioned, or the user asks for data from a connected SaaS servi
 ## Setup Request with Venn Universal URL & Bootstrap
 If the user provides a URL in response to a setup request:
 1. **Save & Sync:** Confirm you have saved the URL as an environment variable `VENN_UNIVERSAL_URL`
-2. **Register:** Immediately run `mcporter add venn --url <URL> --auth oauth`.
-3. **Authenticate:** Tell the user: "I've saved your URL. Now, I'm opening a browser window for you to authorize the connection via OAuth." Then run `mcporter auth venn`.
+2. **Register:** Immediately run `~/.local/bin/mcporter-manual config add venn --url <URL> --auth oauth --deviceCodeGrant`.
+3. **Authenticate:** Follow Venn Authentication.
 4. **Verify Health:** Run `mcporter list` and confirm the `venn` status is "ok" before proceeding.
 
 ## Setup Request with Missing Venn Universal URL
 If `VENN_UNIVERSAL_URL` is missing or the connection is broken:
 1. **Request URL:** Prompt the user for their Venn Universal URL from Venn.ai.
 2. **Register Server:** Once provided, run:
-   `mcporter add venn --url "$VENN_UNIVERSAL_URL" --auth oauth`
-3. **Initiate OAuth:** Run `mcporter auth venn` to launch the browser authorization.
+   `~/.local/bin/mcporter-manual config add venn --url "$VENN_UNIVERSAL_URL" --auth oauth --deviceCodeGrant`
+3. **Initiate OAuth:** Check browser availability (see above).
+   - **Browser available:** Run `mcporter auth venn` to launch the browser authorization.
+   - **No browser:** Follow **Headless Authentication** below.
 4. **Verify Health:** Run `mcporter list` and confirm the `venn` status is "ok" before proceeding.
+
+## Venn Authentication
+
+### Step 1 — Build mcporter-manual (once)
+Check if the build already exists. If `~/.local/share/mcporter-manual/dist/cli.js` is missing, run:
+```bash ~/.openclaw/workspace/skills/venn/scripts/install-mcporter-manual.sh"
+
+### Step 2 — Authenticate
+```bash
+~/.local/bin/mcporter-manual auth venn --reset
+```
+This will:
+1. Print: "To authorize, visit [[authorization_url]]"
+2. Print: "Waiting for authorization..."
+
+Tell the user: "Open this URL in a browser to complete authentication: [[authorization_url]]"
+
+Once the authorization is complete the auth and refresh tokens are saved to `~/config/mcporter.json` and normal `mcporter` commands work immediately.
 
 ## Execution Protocols
 
@@ -106,4 +135,11 @@ If `VENN_UNIVERSAL_URL` is missing or the connection is broken:
 ### 2. Single Tool Calls via `venn.execute_tool`
 For individual operations, use this syntax:
 ```bash
-mcporter call venn.execute_tool --args '{"server_id":"atlassian","tool_name":"atlassian_user_info","tool_args":{}}'
+~/.local/bin/mcporter-manual call venn.execute_tool --args '{"server_id":"atlassian","tool_name":"atlassian_user_info","tool_args":{}}'
+```
+
+### 3. Discover which services are connected to Venn via `venn.help` tool
+To list all services that user has connected to their Venn account, use this syntax:
+```bash
+~/.local/bin/mcporter-manual call venn.help --args '{"action":"LIST_SERVERS"}'
+```
