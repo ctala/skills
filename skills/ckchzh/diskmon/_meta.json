@@ -3,9 +3,15 @@
   "slug": "diskmon",
   "displayName": "Diskmon",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773673755503,
-    "commit": "https://github.com/openclaw/skills/commit/247a9e4a583ef2477d6d1cebca00aef098db901c"
+    "version": "2.0.1",
+    "publishedAt": 1773830487651,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773673755503,
+      "commit": "https://github.com/openclaw/skills/commit/247a9e4a583ef2477d6d1cebca00aef098db901c"
+    }
+  ]
 }
