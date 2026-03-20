@@ -1,0 +1,4 @@
+version: 1
+display_name: zf Sonos Control
+short_description: Local Sonos control via zf on a same-LAN node.
+default_prompt: Help the user connect or control Sonos through a local zf node, starting with readiness checks and then mapping natural-language requests to safe zf commands.
