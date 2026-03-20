@@ -1,102 +1,124 @@
 ---
 name: clawhub-cli
 description: Use the ClawHub CLI to search, install, update, and publish agent skills from clawhub.ai. Use when you need to fetch new skills on the fly, sync installed skills to the latest or a specific version, or publish new or updated skill folders with the npm-installed ClawHub CLI.
+metadata: {"openclaw":{"emoji":"🦞","requires":{"bins":[]},"os":["linux","darwin","win32"]}}
 ---
 
-# ClawHub CLI Helper
+# ClawHub CLI Skill (Agent Playbook)
 
-This skill guides the agent on how to use the **ClawHub CLI** to manage skills from the public ClawHub registry.
+You are an execution assistant for managing **agent skills** using the **ClawHub CLI** (search, install, list, update, publish, sync).
 
-## When to Use
+Your goal is to produce **the smallest set of correct commands** that achieve the user's intent, while avoiding destructive actions and avoiding publishing secrets.
 
-Use this skill when:
+## Use This Skill When
 
-- The user wants to **search** for skills on ClawHub by name or natural language.
-- The user wants to **install** a skill from ClawHub into a local workspace.
-- The user wants to **update** installed skills to the latest or a specific version.
-- The user wants to **publish** or **sync** local skill folders to ClawHub.
+Use this skill if the user asks to:
 
-## Requirements
+- discover skills on ClawHub (search by keywords)
+- install skills into a workspace
+- list what is installed (as recorded by the CLI; may be lockfile-backed depending on setup)
+- update skills (all or a single one, latest or a pinned version)
+- publish one local skill folder
+- sync many local skill folders in bulk
 
-- ClawHub CLI installed globally, for example:
+## Guardrails (Must Follow)
+
+- **Do not invent CLI flags or subcommands.** If you are unsure, instruct to run `clawhub --help` or `clawhub <command> --help` first, then adapt.
+- **Never publish secrets.** Before publish/sync, remind the user to exclude `.env`, tokens, credentials, private keys, and proprietary data.
+- **Prefer dry-run when available.** For bulk operations, suggest `--dry-run` if the CLI supports it for that command.
+- **Keep versions valid.** Use SemVer like `0.1.0`, `1.2.3`. If bumping, use the smallest bump that matches the change.
+
+## Preconditions / Preflight
+
+1) Ensure the CLI is installed (global):
 
 ```bash
 npm i -g clawhub
 ```
 
-or
+Alternative:
 
 ```bash
 pnpm add -g clawhub
 ```
 
-- User is logged in:
+2) Ensure the user is logged in:
 
 ```bash
 clawhub login
 ```
 
-or
+or:
 
 ```bash
 clawhub login --token <api-token>
 ```
 
-## Common Workflows
+3) If anything fails, ask for the **exact CLI error output** and rerun with a corrected command.
+
+## Quick Decision Guide
+
+- If the user describes a capability but not a slug → **search**
+- If the user provides a slug and wants it locally → **install**
+- If the user wants to see what is installed → **list**
+- If the user wants "latest everything" → **update --all**
+- If the user wants to ship a local folder to ClawHub → **publish** (single skill) or **sync** (many skills)
+
+## Common Workflows (Command Patterns)
 
 ### Search for skills
 
-When the user wants to discover skills (for example "Postgres backup", "Git tools"):
+Use when the user is exploring / unsure of the exact slug.
 
 ```bash
 clawhub search "your query"
 ```
 
-You can suggest concrete queries or slugs based on what the user describes.
+Offer 2-5 candidate queries based on the user's words (domain + action + platform).
 
 ### Install a skill
 
-To install a skill by slug into the current workspace (default `skills` directory under workdir):
+Install by slug into the current workspace (destination/path may vary by CLI version; check `clawhub install --help`).
 
 ```bash
 clawhub install <skill-slug>
 ```
 
-Examples:
+Example:
 
 ```bash
 clawhub install postgres-backup-tools
 ```
 
-Use `--version <semver>` if the user needs a specific version instead of latest.
+If a specific version is required, add `--version <semver>`.
 
 ### List installed skills
-
-To show what is currently installed according to the ClawHub lockfile:
 
 ```bash
 clawhub list
 ```
 
+Use this to confirm the lockfile state after install/update.
+
 ### Update installed skills
 
-To update all installed skills to their latest tagged versions:
+Update all:
 
 ```bash
 clawhub update --all
 ```
 
-To update a single skill:
+Update one:
 
 ```bash
 clawhub update <skill-slug>
 ```
 
-Use `--version <semver>` if the user needs to pin a specific version.
+If the user needs a specific version, add `--version <semver>`.
 
-### Publish a single local skill
+### Publish a single local skill folder
 
-Given a local skill folder with a `SKILL.md`, for example `skills/my-skill`, recommend a command like:
+Use when the user has exactly one folder to publish and it contains a `SKILL.md`.
 
 ```bash
 clawhub publish ./skills/my-skill \
@@ -106,35 +128,55 @@ clawhub publish ./skills/my-skill \
   --tags latest
 ```
 
-Adjust:
+Before providing the final publish command, make sure the user has:
 
-- `./skills/my-skill` to the user’s actual folder path.
-- `slug` to a unique, lowercase, hyphenated identifier.
-- `version` to a valid semver string (`0.1.0`, `1.0.0`, etc.).
-- `tags` to appropriate labels (`latest`, `beta`, `internal`, and so on).
+- **path**: the local folder path
+- **slug**: lowercase, hyphenated, unique
+- **name**: human-friendly display name
+- **version**: SemVer
+- **tags**: e.g. `latest`, `beta`, `internal` (use only what the user intends)
 
 ### Sync many skills at once
 
-If the user has many skill folders under a root (for example `skills/`), suggest:
+Use when the user has a directory containing many skill subfolders.
 
 ```bash
 clawhub sync --all
 ```
 
-Optional flags:
+Common options (only if supported by the CLI in this environment):
 
-- `--tags latest` to tag new/updated versions.
-- `--changelog "Update skills"` in non-interactive runs.
-- `--bump patch|minor|major` for automatic version increments on existing skills.
-- `--dry-run` to see what would be uploaded without actually publishing.
+- `--tags latest`
+- `--changelog "Update skills"`
+- `--bump patch|minor|major`
+- `--dry-run`
 
-## Verification and Troubleshooting
+## Verification & Troubleshooting Playbook
 
-After suggesting commands:
+After install/update:
 
-- Ask the user to check CLI output for errors.
-- For publish/sync, optionally suggest:
-  - `clawhub list` to verify local records.
-  - Opening `clawhub.ai` and searching by slug or display name.
-- If an error occurs (for example slug already exists, version conflict, not logged in), explain what it means and propose a corrected command (new slug, bumped version, or re-login).
+- Run `clawhub list` and confirm the expected slug(s) and version(s).
 
+After publish/sync:
+
+- Verify locally with `clawhub list` (if it records published state)
+- Verify on the website by searching by slug or display name
+
+If any errors occur (examples: slug already exists, version conflict, not logged in):
+
+- explain the likely cause in one sentence
+- propose a corrected command (new slug, bump version, or re-login)
+
+## Local References
+
+Use these documents when you need more detail:
+
+| Document | Use when | What you get |
+|---|---|---|
+| `reference/CLI-COMMANDS.md` | You need a command cheat sheet | Common commands + safe patterns |
+| `reference/PUBLISHING-CHECKLIST.md` | You’re about to publish/sync | Pre-publish checklist (no secrets, slug/version/tags) |
+| `reference/SECURITY.md` | You’re publishing or handling tokens | Safety rules + what must never be published |
+| `reference/TROUBLESHOOTING.md` | A command fails | Common errors + corrective actions |
+| `reference/SEMVER-GUIDE.md` | You need to pick the next version | Patch/minor/major guidance |
+| `reference/SKILL-STRUCTURE.md` | You’re packaging/refactoring a skill folder | Recommended folder layout + conventions |
+| `reference/WINDOWS-USAGE.md` | You’re on Windows and cannot use scripts | Direct `clawhub` command snippets + Git Bash/WSL notes |
