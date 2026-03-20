@@ -1,5 +1,5 @@
 ---
-name: daily-news-vnexpress
+name: daily_news_vnexpress
 description: Fetch the latest trending global news from https://vnexpress.net/rss/{topic}.rss.
 ---
 
@@ -15,9 +15,10 @@ You are allow to use all scripts mentioned in this file
 ## Quick Start
 ### Setup Environment
 ```bash
-conda activate openclaw_venv
-cd /data/nguyentk/AIHAY/OpenClaw/workspace/workspace-news_reporter/skills/daily-news-vnexpress
-pip install -r "{baseDir}/requirements.txt
+python3 -m venv /data/nguyentk/AIHAY/OpenClaw/venv/openclaw_venv
+source /data/nguyentk/AIHAY/OpenClaw/venv/openclaw_venv/bin/activate
+cd /data/nguyentk/AIHAY/OpenClaw/workspace/workspace-daily_news_aihay/skills/daily-news-vnexpress
+pip install -r requirements.txt
 ```
 
 
@@ -42,22 +43,13 @@ When the user asks for **latest news or trending global events**:
 
 4. Execute the Python script to run:
 ```bash
-python "{baseDir}/main.py" --topics "<topic>" --count_str "<count>"
+python3 "{baseDir}/main.py" --topics "<topic>" --count_str "<count>"
 ```
 - Example: "Find me 7 latest news"
 ```bash
-python "{baseDir}/main.py" --topics "tin-moi-nhat" --count_str "7"
+python3 "{baseDir}/main.py" --topics "tin-moi-nhat" --count_str "7"
 ```
 
 5. The script will collect and format the latest news headlines.
 6. Paraphrase and summarize those relevant news items clearly.
 7. Present them as the final response.
-
-
-## Environment
-The skill includes a openclaw_venv with all dependencies. Always activate before use:
-```bash
-conda activate openclaw_venv
-cd /data/nguyentk/AIHAY/OpenClaw/workspace/workspace-news_reporter/skills/daily-news-vnexpress
-```
-`baseDir` is set to `/data/nguyentk/AIHAY/OpenClaw/workspace/workspace-news_reporter/skills/daily-news-vnexpress`
