@@ -3,11 +3,16 @@
   "slug": "thesis-helper",
   "displayName": "Thesis Helper",
   "latest": {
-    "version": "2.3.6",
-    "publishedAt": 1773674047961,
-    "commit": "https://github.com/openclaw/skills/commit/4bc585ba93ffbf6101df31ec473bdb96511498e0"
+    "version": "2.0.0",
+    "publishedAt": 1773773938289,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.6",
+      "publishedAt": 1773674047961,
+      "commit": "https://github.com/openclaw/skills/commit/4bc585ba93ffbf6101df31ec473bdb96511498e0"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773444853466,
