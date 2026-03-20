@@ -3,11 +3,16 @@
   "slug": "poem-generator",
   "displayName": "Poem Generator",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773666762450,
-    "commit": "https://github.com/openclaw/skills/commit/3e9e479e6ee92f323d4f18248b6de426e47fba17"
+    "version": "2.0.0",
+    "publishedAt": 1773773883906,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773666762450,
+      "commit": "https://github.com/openclaw/skills/commit/3e9e479e6ee92f323d4f18248b6de426e47fba17"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773447783056,

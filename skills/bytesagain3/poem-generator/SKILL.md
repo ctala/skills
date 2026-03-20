@@ -1,8 +1,10 @@
 ---
 version: "2.0.0"
 name: poem-generator
-description: "诗歌生成助手。现代诗、俳句、对联、藏头诗、古诗翻译。Poem generator with free verse, haiku, couplets, acrostic poems, classical poetry translation. Use when you need poem generator capabilities. Triggers on: poem generator."
+description: "诗歌生成助手。现代诗、俳句、对联、藏头诗、古诗翻译。Poem generator with free verse, haiku, couplets, acrostic poems."
 author: BytesAgain
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 ---
 # poem-generator
 
