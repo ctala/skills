@@ -22,7 +22,7 @@ def _normalize_version(version: Any) -> str:
     return v or "full"
 
 
-def _call_api(url: str, appkey: str, params: dict | None = None) -> Any:
+def _call_api(url: str, appkey: str, params: dict = None) -> Any:
     query = {"appkey": appkey}
     if params:
         query.update({k: v for k, v in params.items() if v not in (None, "")})
@@ -60,7 +60,7 @@ def get_result(appkey: str, version: str, answer: str) -> Any:
     return _call_api(ANSWER_URL, appkey, {"version": version, "answer": answer})
 
 
-def _pick_code(question: dict, choice: Any) -> str | None:
+def _pick_code(question: dict, choice: Any):
     c = (str(choice) if choice is not None else "").strip().lower()
     if c in ("a", "1", "answer1"):
         return question.get("type1")

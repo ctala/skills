@@ -1,13 +1,18 @@
 {
   "owner": "jisuapi",
   "slug": "character",
-  "displayName": "MBTI性格测试 - MBTI Personality Test",
+  "displayName": "MBTI Personality Test - MBTI性格测试",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773632700328,
-    "commit": "https://github.com/openclaw/skills/commit/95d8237dce70702bc84bff236c0288014a729c5c"
+    "version": "1.0.3",
+    "publishedAt": 1773721520679,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773632700328,
+      "commit": "https://github.com/openclaw/skills/commit/95d8237dce70702bc84bff236c0288014a729c5c"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772791138110,
