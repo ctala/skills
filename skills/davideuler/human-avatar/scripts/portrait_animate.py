@@ -28,19 +28,27 @@ def _headers(async_mode: bool = False):
     return h
 
 
-def upload_to_oss(local_path: str) -> str:
+_OSS_SIGNED_URL_EXPIRES = int(os.environ.get("OSS_SIGNED_URL_EXPIRES", str(3 * 24 * 3600)))  # 默认 3 天
+
+
+def upload_to_oss(local_path: str, expires: int = _OSS_SIGNED_URL_EXPIRES) -> str:
+    """上传文件到 OSS，返回签名 URL（私有 bucket）。有效期默认 3 天。"""
     import oss2
 
     auth = oss2.Auth(
         os.environ["ALIBABA_CLOUD_ACCESS_KEY_ID"],
         os.environ["ALIBABA_CLOUD_ACCESS_KEY_SECRET"],
     )
-    bucket = os.environ["OSS_BUCKET"]
+    bucket_name = os.environ["OSS_BUCKET"]
     endpoint = os.environ.get("OSS_ENDPOINT", "oss-cn-beijing.aliyuncs.com")
-    client = oss2.Bucket(auth, f"https://{endpoint}", bucket)
+    # normalize: strip any existing scheme prefix to avoid double https://
+    endpoint = endpoint.replace("https://", "").replace("http://", "").rstrip("/")
+    bucket = oss2.Bucket(auth, f"https://{endpoint}", bucket_name)
     key = f"human-avatar/{Path(local_path).name}"
-    client.put_object_from_file(key, local_path)
-    return f"https://{bucket}.{endpoint}/{key}"
+    bucket.put_object_from_file(key, local_path)
+    # 签名 URL，DashScope 可直接下载，过期时间默认 3 天
+    signed_url = bucket.sign_url("GET", key, expires)
+    return signed_url
 
 
 def emo_detect(image_url: str, ratio: str = "1:1"):

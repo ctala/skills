@@ -1,11 +1,17 @@
 {
   "owner": "davideuler",
   "slug": "human-avatar",
-  "displayName": "Human Avatar",
+  "displayName": "Human Avatar — 阿里云 AI 视频 & 语音生成",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1772980511607,
-    "commit": "https://github.com/openclaw/skills/commit/b8f9a3d48bcdc00a914cf51c5960a79b47d7b0a6"
+    "version": "1.5.4",
+    "publishedAt": 1773986079285,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1772980511607,
+      "commit": "https://github.com/openclaw/skills/commit/b8f9a3d48bcdc00a914cf51c5960a79b47d7b0a6"
+    }
+  ]
 }
