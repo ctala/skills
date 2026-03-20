@@ -3,9 +3,15 @@
   "slug": "dotfiles",
   "displayName": "Dotfiles",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773663638181,
-    "commit": "https://github.com/openclaw/skills/commit/f0e8bd4cd1039bc8df828db7569130c3a95dc308"
+    "version": "2.0.1",
+    "publishedAt": 1773830506605,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773663638181,
+      "commit": "https://github.com/openclaw/skills/commit/f0e8bd4cd1039bc8df828db7569130c3a95dc308"
+    }
+  ]
 }
