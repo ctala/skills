@@ -98,19 +98,38 @@ API_LIST = [
 ]
 
 
-def _call_jisu_api(api_path: str, appkey: str, params: dict | None = None) -> Any:
-    """统一 GET 调用：https://api.jisuapi.com/{api_path}?appkey=xxx&..."""
+def _call_jisu_api(api_path: str, appkey: str, params: dict = None) -> Any:
+    """
+    统一调用：https://api.jisuapi.com/{api_path}
+    - 大部分接口使用 GET；
+    - 部分识别类接口（vinrecognition/generalrecognition/idcardrecognition/bankcardcognition）
+      官方文档推荐使用 POST，这里自动切换为 POST，并将参数放在表单中。
+    """
     api_path = api_path.strip().replace(".", "/")
     if not api_path:
         return {"error": "invalid_api", "message": "api is required"}
+
     url = f"{BASE_URL}/{api_path}"
     all_params = {"appkey": appkey}
     if params:
         for k, v in params.items():
             if v not in (None, ""):
                 all_params[k] = v
+
+    # 需要用 POST 的识别类接口
+    post_apis = {
+        "vinrecognition/recognize",
+        "generalrecognition/recognize",
+        "idcardrecognition/recognize",
+        "bankcardcognition/recognize",
+    }
+
     try:
-        resp = requests.get(url, params=all_params, timeout=15)
+        if api_path in post_apis:
+            # 识别类接口按文档使用 POST，参数放在表单中
+            resp = requests.post(url, data=all_params, timeout=15)
+        else:
+            resp = requests.get(url, params=all_params, timeout=15)
     except Exception as e:
         return {"error": "request_failed", "message": str(e)}
     if resp.status_code != 200:
