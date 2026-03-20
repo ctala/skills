@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Single source of runtime values for openclaw-popup-application v1 (DEV)
+# Single source of runtime values for edgeos-applications v1
 # Source this file from other scripts: source "$(dirname "$0")/env.sh"
 
 BASE_URL="https://api-citizen-portal.simplefi.tech"

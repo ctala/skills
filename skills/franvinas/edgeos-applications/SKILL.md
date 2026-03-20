@@ -1,6 +1,6 @@
 ---
 name: edgeos-applications
-description: Apply to an EdgeOS popup city through OpenClaw (v1 fixed PROD backend). Use when users ask to apply to a popup city (for example Edge Esmeralda), submit an application, check application status, select products after approval, or generate/check payment links. Covers OTP login, popup discovery, application submission, approval-aware product selection, payment preview/create, and payment status checks.
+description: Apply to an EdgeOS popup city and buy tickets through OpenClaw. Use when users ask to authenticate by email OTP, submit/check popup applications, retrieve accepted applications and attendees, browse active products, purchase with checkout links, or settle crypto payments via /agent/buy-ticket (x402 + USDC on Base, optional AgentKit discount).
 ---
 
 # OpenClaw Popup Application (v1)
@@ -41,6 +41,8 @@ Prefer scripts in `{baseDir}/scripts` over ad-hoc curl construction:
 - `payment_preview.sh`
 - `payment_create.sh`
 - `payment_status.sh`
+- `buy_ticket_challenge.sh` (x402 challenge from `/agent/buy-ticket`)
+- `buy_ticket_submit.sh` (x402 submit with `PAYMENT-SIGNATURE`, optional `AGENTKIT`)
 
 Only fall back to raw curl if a script cannot handle the case.
 
@@ -83,6 +85,16 @@ Additional rules:
 - On unauthorized responses, reload JWT from script state and retry once before asking for new OTP.
 - Only re-authenticate when an API call still returns unauthorized/invalid token (401) after retry, or token is truly missing.
 
+## Crypto payment support (x402)
+
+When the user chooses to pay with crypto, the skill uses `POST /agent/buy-ticket` (x402 protocol).
+The skill gets payment requirements from the server, provides them to the agent, and the agent
+signs the USDC transfer with whatever wallet it has configured (CDP, MCP tool, etc.).
+The skill does NOT handle wallet signing — it provides the data and the agent handles signing.
+
+World ID-verified agents (via AgentKit) receive a 10% discount automatically when the
+`AGENTKIT` header is included with a valid signed payload.
+
 ## Guardrails
 
 - Never expose full OTP codes or JWTs.
@@ -93,6 +105,9 @@ Additional rules:
 - Confirm before final submission.
 - Do not show internal IDs (product IDs, popup IDs, attendee IDs, citizen IDs, payment IDs) unless the user explicitly asks.
 - Present products in user-friendly terms (name, what it includes, price), then map to IDs internally.
+- Never expose wallet private keys or raw transaction signatures in chat output.
+- When presenting x402 payment info, show human-readable amounts (e.g. "$10.00 USDC") not atomic units.
+- Convert USDC atomic amounts: divide by 1,000,000 for display (e.g. "1000000" → "$1.00").
 
 ## Outputs to return
 

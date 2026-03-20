@@ -1,13 +1,13 @@
 # EdgeOS API Flow (v1)
 
-Base settings (v1 fixed PROD):
+Base settings:
 - source `{baseDir}/scripts/env.sh`
 - `BASE_URL` comes from that file
 - Auth header: `Authorization: Bearer $JWT`
 
 ## 1) Request OTP
 Use script: `scripts/auth_request_otp.sh <email>`
-(under the hood: `POST /citizens/authenticate-edgeclaw`)
+(under the hood: `POST /citizens/authenticate` with `use_code=true`)
 
 ## 2) Exchange OTP for JWT
 Use script: `scripts/auth_login.sh <email> <6digit>`
@@ -17,67 +17,57 @@ Use script: `scripts/auth_login.sh <email> <6digit>`
 Other scripts auto-load token for `SESSION_EMAIL` when `JWT` env is not provided.
 Do not request a new OTP unless API returns 401/unauthorized or JWT is missing.
 
-## 3) Profile
-`GET /citizens/profile`
-Extract `id`, `first_name`, `last_name`.
+## 3) Resolve accepted application
+- `GET /applications`
+- Select application with `status=accepted`
+- Store `application_id` and `popup_city_id`
 
-## 4) Popups
-`GET /popups`
-Resolve popup `id` by exact or close name/slug match, with date-aware ranking:
-- Prefer `end_date >= now` (not finished).
-- Then prefer nearest upcoming `start_date`.
-- Reject finished popups (`end_date < now`) for new applications.
-- If all matches are finished, ask user to choose a currently active/upcoming popup.
+## 4) Resolve attendees
+- `GET /applications/{application_id}`
+- Extract `attendees[].id` for each purchase line
 
-## 5) Submit application
-`POST /applications/`
-If using temp payload files, include email reference in filename (example: `.tmp_application_payload_francisco_openclaw_muvinai_com_249_7.json`).
-Minimum fields:
-- `first_name`
-- `last_name`
-- `citizen_id`
-- `popup_city_id`
-- `status` = `in review`
-- required conversation fields for v1 (`telegram`, `gender`, `age`, `local_resident`, `organization`, `duration`)
+## 5) Product retrieval (accepted only)
+- `GET /products?popup_city_id=<id>`
+- Keep only active products (`is_active=true`)
+- Support fixed-price and variable-price products (`min_price` / `max_price` + `custom_amount`)
 
-Optional fill strategy:
-- Include optional fields aggressively when values are known/inferred.
-- Default unknown optional booleans to `false`.
-- Leave uncertain free-text optional fields omitted.
+## 6) Checkout-link flow (SimpleFi)
+- Preview: `scripts/payment_preview.sh`
+- Create: `scripts/payment_create.sh`
+- Status: `scripts/payment_status.sh`
 
-Store:
-- `id` => application_id
-- `status`
+## 7) Crypto flow (x402 via /agent/buy-ticket)
+When user chooses crypto payment:
 
-## 6) Check status
-Preferred script behavior:
-- If `application_id` is known: `GET /applications/{id}`
-- If not: resolve with `GET /applications?citizen_id=<id>&popup_city_id=<id>`, then fetch by id.
+**Step 1 — Get payment challenge:**
+- Use script: `scripts/buy_ticket_challenge.sh --payload-file <payment-create-body.json>`
+- (under the hood: `POST /agent/buy-ticket` with JWT + payment body, no `PAYMENT-SIGNATURE`)
+- Expect 402
 
-Return current status to user.
+Parse from 402 JSON:
+- `accepts[0].amount` (USDC atomic)
+- `accepts[0].payTo`
+- `accepts[0].network`
+- `accepts[0].asset`
+- `accepts[0].maxTimeoutSeconds`
+- `accepts[0].extra`
+- optional `extensions.agentkit` challenge/discount
 
-## 7) Product retrieval (accepted only)
-`GET /products?popup_city_id=<id>&is_active=true&limit=100&sort_by=name&sort_order=asc`
+**Step 2 — Sign EIP-3009:**
+- Domain uses USD Coin v2 on Base (chainId 8453)
+- Sign `TransferWithAuthorization(from,to,value,validAfter,validBefore,nonce)`
 
-Only proceed if application status is `accepted`.
+**Step 3 — Submit payment:**
+- Use script: `scripts/buy_ticket_submit.sh --payload-file <same-body.json> --payment-signature-b64 <...> [--agentkit-b64 <...>]`
+- (or pass `--payment-signature-file` / `--agentkit-file` JSON files and let the script base64-encode)
+- Re-send exact same body to `POST /agent/buy-ticket`
+- Include `PAYMENT-SIGNATURE` header (base64 x402 payload)
+- Include `AGENTKIT` header when discount proof is available
+- Success returns approved payment + transaction hash in `PAYMENT-RESPONSE`
 
-## 8) Payment preview
-Use script: `scripts/payment_preview.sh`
-
-Required inputs:
-- application_id
-- product_id (internal mapping from user's product choice)
-- attendee_id (main attendee)
-
-## 9) Payment create
-Use script: `scripts/payment_create.sh`
-
-Return `checkout_url` to user.
-
-## 10) Payment status
-Use script: `scripts/payment_status.sh --payment-id <id>`
-
-Terminal states:
-- success: `approved`
-- failure: `expired`, `cancelled`
-- pending: keep waiting / check later
+## 8) Error handling
+- `401`: re-auth and retry
+- first `402`: expected challenge
+- second `402`: payment verification failure (balance/signature/timing/amount)
+- `400`: invalid request (wrong ids/status/body constraints)
+- `500`: settlement/on-chain failure; retry after wallet/state checks
