@@ -3,11 +3,16 @@
   "slug": "rednote-cli",
   "displayName": "Rednote CLI",
   "latest": {
-    "version": "0.1.12",
-    "publishedAt": 1773673027370,
-    "commit": "https://github.com/openclaw/skills/commit/90b74c82382d9f718c24b60c37a4aa50916ce8f7"
+    "version": "0.1.13",
+    "publishedAt": 1773994763462,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.12",
+      "publishedAt": 1773673027370,
+      "commit": "https://github.com/openclaw/skills/commit/90b74c82382d9f718c24b60c37a4aa50916ce8f7"
+    },
     {
       "version": "0.1.10",
       "publishedAt": 1773388583956,
