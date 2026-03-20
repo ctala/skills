@@ -8,8 +8,6 @@
 import json
 import os
 import re
-import ssl
-import subprocess
 import sys
 import urllib.parse
 import urllib.request
@@ -79,11 +77,7 @@ def search_arxiv(keywords, days=1, max_results=20):
     print(f"  API URL: {api_url[:80]}...")
     
     try:
-        # 发送请求 (禁用SSL验证以避免证书问题)
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        
+        # 发送请求（arXiv API 使用标准 SSL 验证）
         req = urllib.request.Request(
             api_url,
             headers={
@@ -91,7 +85,7 @@ def search_arxiv(keywords, days=1, max_results=20):
             }
         )
         
-        with urllib.request.urlopen(req, context=ssl_context, timeout=30) as response:
+        with urllib.request.urlopen(req, timeout=30) as response:
             xml_data = response.read().decode('utf-8')
         
         # 解析 XML

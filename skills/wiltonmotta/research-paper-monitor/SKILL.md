@@ -1,7 +1,15 @@
 ---
 name: research-paper-monitor
-description: 科研文献智能监测与摘要推送系统。自动监测多个学术信源（arXiv、PubMed、CNKI等），根据用户关注的领域和关键词采集最新论文，生成中文摘要并推送。适用于需要跟踪学术前沿的科研工作者、研究生、教师等。使用场景包括：(1) 定时监测特定研究领域的最新论文，(2) 根据关键词筛选高相关度论文，(3) 自动生成论文中文摘要，(4) 构建个人文献知识库，(5) 接收每日/每周文献推送。
+description: 科研文献智能监测与摘要推送系统。自动监测多个学术信源（arXiv、PubMed、CNKI等），根据用户关注的领域和关键词采集最新论文，生成中文摘要并推送。适用于需要跟踪学术前沿的科研工作者、研究生、教师等。使用场景包括：(1) 定时监测特定研究领域的最新论文，(2) 根据关键词筛选高相关度论文，(3) 自动生成论文中文摘要，(4) 接收每日/每周文献推送（需配置飞书渠道）。
 license: MIT
+clawhub:
+  slug: research-paper-monitor
+  repo: wiltonMotta/skills
+  repoPath: skills/research-paper-monitor
+  ref: main
+  version: main
+  autoEnable: true
+  url: https://clawhub.ai/wiltonMotta/research-paper-monitor
 ---
 
 # 科研文献智能监测与摘要推送系统
@@ -22,8 +30,6 @@ license: MIT
 
 ## 快速开始
 
-### 方式一：零配置快速开始（推荐）
-
 使用 **arXiv 公开 API**（免费、无需注册、无需 API Key）：
 
 ```bash
@@ -33,17 +39,6 @@ python ~/.openclaw/workspace/skills/research-paper-monitor/scripts/config.py
 # 2. 运行监测
 python ~/.openclaw/workspace/skills/research-paper-monitor/scripts/monitor.py
 ```
-
-### 方式二：多信源监测（需要配置）
-
-如需使用 Google Scholar、PubMed、IEEE 等信源，需配置 **Brave Search API Key**：
-
-1. 访问 https://api.search.brave.com/ 获取免费 API Key
-2. 配置到 OpenClaw：
-   ```bash
-   openclaw configure --section web
-   # 或设置环境变量：export BRAVE_API_KEY="your-key"
-   ```
 
 ---
 
