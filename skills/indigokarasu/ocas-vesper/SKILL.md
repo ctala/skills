@@ -1,9 +1,7 @@
 ---
 name: ocas-vesper
-description: >
-  Daily briefing generator. Aggregates signals into concise morning and
-  evening briefings. Surfaces outcomes and opportunities in natural
-  language without exposing internal system processes.
+description: Daily briefing generator. Aggregates signals from across the system into concise morning and evening briefings. Surfaces outcomes, opportunities, and decisions in natural language without exposing internal processes. Use for morning/evening briefings, on-demand briefings, or pending decision review. Do not use for deep research (Sift), pattern analysis (Corvus), or message drafting (Dispatch).
+metadata: {"openclaw":{"emoji":"🌅"}}
 ---
 
 # Vesper
@@ -24,9 +22,13 @@ Vesper generates concise daily briefings by aggregating signals from across the 
 - Message drafting — use Dispatch
 - Action execution — use relevant domain skill
 
-## Core promise
+## Responsibility boundary
 
-Concise, actionable briefings. Signal, not noise. Opportunities surfaced without exposing the analysis that found them. Decisions framed as optional, not demanded.
+Vesper owns briefing generation, signal aggregation, and decision presentation.
+
+Vesper does not own: pattern analysis (Corvus), web research (Sift), communications delivery (Dispatch), action decisions (Praxis).
+
+Vesper receives InsightProposal files from Corvus. Vesper may request Dispatch to deliver briefings.
 
 ## Commands
 
@@ -36,6 +38,7 @@ Concise, actionable briefings. Signal, not noise. Opportunities surfaced without
 - `vesper.decisions.pending` — list unacted decision requests
 - `vesper.config.set` — update schedule, sections, delivery
 - `vesper.status` — last briefing time, pending decisions, schedule
+- `vesper.journal` — write journal for the current run; called at end of every run
 
 ## Invocation modes
 
@@ -72,26 +75,104 @@ Read `references/briefing_templates.md` for structure and examples.
 - No speculative observations
 - Only concrete outcomes and actionable opportunities
 
-## Support file map
+## Inter-skill interfaces
 
-- `references/schemas.md` — Briefing, BriefingSection, ContentItem, DecisionRequest, SignalEvaluation
-- `references/briefing_templates.md` — morning/evening structure, section formats, weather rules, opportunity presentation
-- `references/signal_filtering.md` — inclusion/exclusion criteria, source expectations, Corvus opportunity handling
+Vesper receives InsightProposal files from Corvus at: `~/openclaw/data/ocas-vesper/intake/{proposal_id}.json`
+
+Vesper checks its intake during briefing generation. Applies signal filtering rules before including. After processing each file, move to `intake/processed/`.
+
+See `spec-ocas-interfaces.md` for the InsightProposal schema and handoff contract.
 
 ## Storage layout
 
 ```
-.vesper/
+~/openclaw/data/ocas-vesper/
   config.json
   briefings.jsonl
   signals_evaluated.jsonl
   decisions_presented.jsonl
   decisions.jsonl
+  intake/
+    {proposal_id}.json
+    processed/
+
+~/openclaw/journals/ocas-vesper/
+  YYYY-MM-DD/
+    {run_id}.json
 ```
 
-## Validation rules
+The OCAS_ROOT environment variable overrides `~/openclaw` if set.
 
-- Briefings contain only included signals, not excluded ones
-- No internal system terminology in output
-- Decision requests include option, benefit, and cost
-- Weather appears only in morning briefing opening
+Default config.json:
+```json
+{
+  "skill_id": "ocas-vesper",
+  "skill_version": "2.0.0",
+  "config_version": "1",
+  "created_at": "",
+  "updated_at": "",
+  "schedule": {
+    "morning_window": "07:00-09:00",
+    "evening_window": "17:00-19:00",
+    "timezone": "America/Los_Angeles"
+  },
+  "sections": {
+    "today": true,
+    "messages": true,
+    "logistics": true,
+    "markets": true,
+    "decisions": true,
+    "system": true
+  },
+  "retention": {
+    "days": 30,
+    "max_records": 10000
+  }
+}
+```
+
+## OKRs
+
+Universal OKRs from spec-ocas-journal.md apply to all runs.
+
+```yaml
+skill_okrs:
+  - name: signal_precision
+    metric: fraction of included signals rated actionable by user
+    direction: maximize
+    target: 0.85
+    evaluation_window: 30_runs
+  - name: terminology_compliance
+    metric: fraction of briefings free of internal system terminology
+    direction: maximize
+    target: 1.0
+    evaluation_window: 30_runs
+  - name: decision_framing
+    metric: fraction of decision requests including option, benefit, and cost
+    direction: maximize
+    target: 1.0
+    evaluation_window: 30_runs
+```
+
+## Optional skill cooperation
+
+- Corvus — receives InsightProposal files via intake directory
+- Dispatch — may request Dispatch to deliver briefings
+- Rally — reads portfolio outcome signals
+- Calendar/Weather — reads external context for briefing content
+
+## Journal outputs
+
+Action Journal — every briefing generation run.
+
+## Visibility
+
+public
+
+## Support file map
+
+File | When to read
+`references/schemas.md` | Before creating briefings, sections, or decision requests
+`references/briefing_templates.md` | Before generating briefing content
+`references/signal_filtering.md` | Before evaluating signals for inclusion
+`references/journal.md` | Before vesper.journal; at end of every run
