@@ -31,6 +31,8 @@ Keep configuration in one place:
 - pull interface url
 - callback url
 - timeout settings
+- host allowlists
+- dry-run switch
 - whitelist
 - custom rules
 
@@ -43,6 +45,7 @@ Keep shared support code in classes:
 - trace id builder
 - retry and callback retry policy
 - config loader
+- URL host allowlist validation
 - rule provider interface + loader
 - HTTP client
 - stdin input reader
@@ -68,4 +71,10 @@ Keep moderation transport responsibilities in one class:
 - if full-auto strict mode is enabled, fail closed on model/network/media errors
 - if callback fails, retry with backoff instead of dropping the result silently
 - replace placeholder media inspection with real image/video preprocessing
+- keep outbound destinations on a strict allowlist
+- use `dry_run` while testing pull/audit pipelines before enabling result callbacks
 - if moving into Yaf, split current support file into constants, dto, contracts, client, formatter, provider, and service directories
+
+## Important limitation
+
+The current bundled media inspector is only a placeholder. It can count attached media and return a simple status object, but it does **not** actually inspect image or video content. If you need real media moderation, implement OCR, QR detection, frame extraction, and ASR in your own pipeline before using the result for automatic production decisions.

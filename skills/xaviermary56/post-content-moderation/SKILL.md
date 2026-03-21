@@ -1,6 +1,6 @@
 ---
 name: post-content-moderation
-description: Review, rewrite, and moderate user-generated posts across title, body text, images, and videos to block ads and contact information while allowing configurable whitelist exceptions and project-specific custom rules. Use when checking community posts, feed submissions, comments with media, short-video captions, image/video attachments, or any post package before publishing, rejecting, or returning a moderation reason.
+description: Review, rewrite, and moderate user-generated posts across title, body text, images, and videos to block ads and contact information while allowing configurable whitelist exceptions and project-specific custom rules.
 ---
 
 # Post Content Moderation
@@ -8,6 +8,46 @@ description: Review, rewrite, and moderate user-generated posts across title, bo
 ## Overview
 
 Apply a strict moderation workflow to the full post package, not just plain text. Default goal: review title, body content, images, and videos together, then reject content that contains advertising intent or contact information unless the match falls inside an explicit whitelist or a user-provided custom rule.
+
+## Skill maintenance note
+
+If this skill is published to ClawHub, keep the local version in the sibling `VERSION` file in sync with the published version.
+
+Recommended release flow:
+1. update skill content
+2. bump `VERSION`
+3. publish with the same version number
+4. keep `VERSION` as the last published version after success
+
+Recommended publish command template:
+
+```bash
+clawhub publish /path/to/post-content-moderation \
+  --slug post-content-moderation \
+  --name "Post Content Moderation" \
+  --version $(cat VERSION) \
+  --changelog "your release note"
+```
+
+## Security and capability notice
+
+Before using this skill in production, treat it as a **networked moderation integration**, not a purely local rules engine.
+
+Important boundaries:
+- bundled PHP scripts can send moderation payloads to external APIs
+- bundled PHP scripts can pull pending content from a remote API and callback results to a remote API
+- any post text, comment text, whitelist, custom rules, image URLs, or video URLs included in the payload may leave the local environment
+- the bundled media inspector in `scripts/moderation_support.php` is currently a placeholder and does **not** perform real image OCR, QR decoding, frame extraction, speech recognition, or video inspection by itself
+- if you claim image/video moderation in production, implement and verify real media preprocessing first
+
+Recommended safety baseline:
+- use environment variables for all secrets
+- use narrowly scoped allowlisted API hosts only
+- keep timeout and fail-close policy explicit
+- add dry-run testing before enabling callback writes
+- do not send unnecessary user data to external models
+- document to operators that media URLs may be exposed to third-party services if passed through
+- avoid presenting the bundled PHP scripts as a full local media-audit engine
 
 ## Quick operating modes
 
@@ -104,14 +144,14 @@ Common ad signals:
 ### 2. Contact information
 
 Block direct or disguised contact details, including:
-- phone or mobile numbers
-- WeChat / VX / V / vx / wx variants
-- QQ numbers or QQ group numbers
-- email addresses
-- URLs, domains, short links, QR-code invitations expressed in text or shown in media
-- Telegram, WhatsApp, Line, Discord, Skype, social account IDs
-- platform handles or IDs whose clear purpose is off-platform contact
-- QR codes, payment codes, contact cards, business cards, profile screenshots, or group invitation screenshots
+  - phone or mobile numbers
+  - WeChat / VX / V / vx / wx variants
+  - QQ numbers or QQ group numbers
+  - email addresses
+  - URLs, domains, short links, QR-code invitations expressed in text or shown in media
+  - WhatsApp, Line, Discord, Skype, social account IDs
+  - platform handles or IDs whose clear purpose is off-platform contact
+  - QR codes, payment codes, contact cards, business cards, profile screenshots, or group invitation screenshots
 
 Also treat as violations when contact information is deliberately obfuscated, for example:
 - replacing digits with spaces, symbols, Chinese numerals, or homophones

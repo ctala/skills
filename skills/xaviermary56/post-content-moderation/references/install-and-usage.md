@@ -40,12 +40,28 @@ Import it using the target environment's skill import/install flow.
 
 ## What this skill does after installation
 
-- audits title, body, images, and videos together
-- blocks ads and contact information by default
+- reviews title and body with a default ad/contact blocking policy
+- can be used as a moderation prompt/policy skill for multimodal review tasks
 - supports whitelist exceptions
 - supports custom project rules
 - supports strict full-auto mode and balanced mode
 - can return human-readable output or JSON output
+- includes optional PHP demo scripts for remote pull + callback workflows
+
+## Important safety note
+
+This skill is **not** a purely local moderation pack if you use the bundled PHP demos.
+
+The demo scripts can:
+- call external model APIs
+- pull pending moderation items from a remote service
+- send moderation results to a remote callback service
+- expose text fields and media URLs to third-party services depending on your integration
+
+Also note:
+- the bundled media inspector is currently a placeholder only
+- image/video moderation claims require your own verified OCR / QR / ASR / frame extraction pipeline before production use
+- you should not present this demo as a complete media-audit implementation without those additions
 
 ## Recommended operating pattern
 
@@ -71,6 +87,10 @@ Before using this skill in production, confirm:
 - media URLs are readable by the audit service
 - timeout / retry / fail-close policy is agreed
 - sample pass/reject cases were tested
+- outbound hosts are allowlisted
+- secrets are injected only through environment variables
+- a dry-run path exists before callback writes are enabled
+- operators know which fields may be sent to external model providers
 
 ## Example request
 
