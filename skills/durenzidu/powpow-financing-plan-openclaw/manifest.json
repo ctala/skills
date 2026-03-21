@@ -1,0 +1,14 @@
+{
+  "package_name": "powpow_investment_upload",
+  "version": "0.1.0",
+  "description": "OpenClaw + ClawHub 跨平台上传包：PowPow 投融资技能",
+  "contents": [
+    {"path": "openclaw_skill.json", "description": "OpenClaw 原始技能 JSON"},
+    {"path": "clawhub_skill.json", "description": "ClawHub 兼容 JSON"},
+    {"path": "openclaw_financing_plan.json", "description": "OpenClaw 新融资计划技能 JSON"},
+    {"path": "clawhub_financing_plan.json", "description": "ClawHub 新融资计划技能 JSON"},
+    {"path": "README_upload.md", "description": "上传说明"},
+    {"path": "SKILL.md", "description": "技能文档（SKILL.md）"},
+    {"path": "manifest.json", "description": "打包清单（当前文件）"}
+  ]
+}
