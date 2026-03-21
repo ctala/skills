@@ -3,9 +3,15 @@
   "slug": "dap",
   "displayName": "Dap",
   "latest": {
-    "version": "0.4.3",
-    "publishedAt": 1773815899446,
-    "commit": "https://github.com/openclaw/skills/commit/5373152d42a9accb0306b0b58aab2b8ba8268f83"
+    "version": "0.5.0",
+    "publishedAt": 1773911747758,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.4.3",
+      "publishedAt": 1773815899446,
+      "commit": "https://github.com/openclaw/skills/commit/5373152d42a9accb0306b0b58aab2b8ba8268f83"
+    }
+  ]
 }
