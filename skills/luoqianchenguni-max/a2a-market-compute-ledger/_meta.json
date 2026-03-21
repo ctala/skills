@@ -3,9 +3,15 @@
   "slug": "a2a-market-compute-ledger",
   "displayName": "a2a-Market-Compute-Ledger",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773884004105,
-    "commit": "https://github.com/openclaw/skills/commit/1d76bfef1307f46cfe05930465a340630d0c9f23"
+    "version": "0.2.0",
+    "publishedAt": 1773902935200,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773884004105,
+      "commit": "https://github.com/openclaw/skills/commit/1d76bfef1307f46cfe05930465a340630d0c9f23"
+    }
+  ]
 }

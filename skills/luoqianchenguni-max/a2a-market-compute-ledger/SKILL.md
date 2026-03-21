@@ -40,3 +40,8 @@ Current status: scaffold-first skill for early registration. Keep APIs stable, a
 - Add double-entry validation rules.
 - Add monthly statement export and audit tooling.
 
+## Runtime Implementation
+- Status: implemented in local runtime package.
+- Primary code paths:
+- `runtime/src/domain/compute-ledger.js`
+- Validation: covered by `runtime/tests` and `npm test` in `runtime/`.
