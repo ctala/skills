@@ -5,6 +5,8 @@ description: "Generate marketing QR codes with batch output, UTM tracking links,
 
 # QR Campaign Studio
 
+> Cross-platform Python: on Windows prefer `py -3.11`; on Linux/macOS prefer `python3`; if plain `python` already points to Python 3, it also works.
+
 Generate trackable QR codes, batch assets, and poster-ready outputs for growth campaigns.
 Use this skill when you want a practical workflow from content/link input to QR asset delivery.
 
@@ -21,7 +23,7 @@ Use this skill when you want to:
 Run from the installed skill directory with a local virtual environment:
 
 ```bash
-python3 -m venv .venv
+py -3.11 -m venv .venv
 .venv/bin/python -m pip install qrcode[pil] pillow
 .venv/bin/python scripts/qr_generate.py \
   --url "https://jisuapi.com" \
@@ -71,7 +73,7 @@ Use a different tool when you need:
 推荐使用虚拟环境（避免系统 Python 的 PEP 668 限制）：
 
 ```bash
-python3 -m venv .venv
+py -3.11 -m venv .venv
 .venv/bin/python -m pip install qrcode[pil] pillow
 ```
 
