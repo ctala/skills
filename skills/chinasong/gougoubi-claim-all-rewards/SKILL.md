@@ -1,17 +1,30 @@
 ---
 name: gougoubi-claim-all-rewards
-description: One-click claim of all rewards for specified addresses, including winner rewards, governance rewards, and LP rewards. Supports direct profile-method claim without scanning conditions.
-metadata: {"clawdbot":{"emoji":"💰","os":["darwin","linux","win32"]}}
+description: Claim all Gougoubi rewards for one or more addresses, including winner rewards, governance rewards, and LP rewards. Use when users want one-click claiming without scanning every condition.
+metadata:
+  pattern: pipeline
+  interaction: single-turn
+  domain: gougoubi-pbft
+  outputs: structured-json
+  clawdbot:
+    emoji: "💰"
+    os: ["darwin", "linux", "win32"]
 ---
 
 # Gougoubi Claim All Rewards
 
-Claim all available rewards for one or multiple addresses in one run.
+Use this skill for one-click reward claiming across one or multiple addresses.
 
-## When To Use
+## Use This Skill When
 
-- User asks to claim all rewards for one or more addresses.
-- User asks to avoid slow condition scanning and use profile method.
+- The user wants to claim all rewards for one address or multiple addresses.
+- The user explicitly wants the profile-style fast path.
+- The user wants winner, governance, and LP rewards claimed together.
+
+## Do Not Use This Skill When
+
+- The user wants to inspect missing results before claiming. Use `gougoubi-recovery-ops`.
+- The user wants proposal activation or LP staking. Use activation skills instead.
 
 ## Input
 
@@ -24,18 +37,28 @@ Claim all available rewards for one or multiple addresses in one run.
 
 Defaults:
 
-- `method=profile` (fast path, one-click style)
+- `method=profile`
 
-## Deterministic Flow
+## Pipeline
 
-1. Validate addresses.
-2. Choose method:
-   - `profile`: claim by profile reward-detail style (recommended).
-   - `quick`: fast direct claim script.
-   - `full-scan`: exhaustive fallback.
-3. Execute claim for each address.
-4. Collect tx hashes and per-type claimed amount if available.
-5. Return summary.
+Step 1: Validate all addresses.
+
+Step 2: Pick claim method:
+- `profile`: match the reward-detail modal behavior.
+- `quick`: fast direct claim path.
+- `full-scan`: exhaustive fallback only when needed.
+
+Step 3: Run claim for each address.
+
+Step 4: Record all tx hashes and per-type claim status when available.
+
+Step 5: Return a full summary.
+
+## Checkpoints
+
+- Prefer `profile` unless the user explicitly asks otherwise.
+- Do not force slow condition scanning when the user asked for one-click claim.
+- Safe re-run behavior is required.
 
 ## Output
 
@@ -53,11 +76,23 @@ Defaults:
       "lpRewardClaimed": true,
       "txHashes": ["0x..."]
     }
-  ]
+  ],
+  "warnings": []
 }
 ```
 
-## Script Mapping In This Project
+Failure:
+
+```json
+{
+  "ok": false,
+  "stage": "validation|claim|confirm",
+  "error": "reason",
+  "retryable": true
+}
+```
+
+## Project Scripts
 
 - `scripts/pbft-claim-rewards-profile-method.mjs`
 - `scripts/pbft-claim-rewards-quick.mjs`
@@ -65,6 +100,5 @@ Defaults:
 
 ## Boundaries
 
-- Do not require condition scan when user asks one-click profile method.
-- Keep idempotent behavior (safe re-run).
-
+- Claim all three reward classes together when available.
+- Keep the method explicit in the output.
