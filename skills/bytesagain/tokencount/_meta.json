@@ -3,11 +3,16 @@
   "slug": "tokencount",
   "displayName": "Tokencount",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773774771439,
-    "commit": "https://github.com/openclaw/skills/commit/0c25703aa5b6180a9dbd12fad1d9d963819726ea"
+    "version": "3.0.0",
+    "publishedAt": 1773916874604,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773774771439,
+      "commit": "https://github.com/openclaw/skills/commit/0c25703aa5b6180a9dbd12fad1d9d963819726ea"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773661776555,
