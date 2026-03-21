@@ -1,0 +1,11 @@
+{
+  "owner": "montycn",
+  "slug": "higress-gateway-management",
+  "displayName": "Higress Gateway Management",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773997922273,
+    "commit": null
+  },
+  "history": []
+}
