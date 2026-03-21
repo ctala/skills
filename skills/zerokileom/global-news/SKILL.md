@@ -1,25 +1,29 @@
 ---
 name: global-news
-description: Stay informed with Global News - breaking news, top headlines, and full-text search across Europe, Americas, Latin America, and Africa
+description: Stay informed with Global News — get breaking news, top headlines, local city news, and full-text article search across Europe, Americas, Latin America, and Africa.
 triggers:
   - news
   - headline
   - breaking news
   - top news
+  - local news
   - what's happening
   - latest news
   - current events
+  - city news
 ---
 
 # Global News
 
-Get up-to-date with the latest news from around the world! Global News delivers
-breaking news, headlines, and trending stories from dozens of countries — keeping
-you informed about the events that shape your community and the globe.
+## About
 
-From live local news and daily briefings to international affairs, sports,
-politics, business, and weather alerts, Global News has you covered wherever
-you are and whatever you care about.
+Global News developed by Opera News.
+
+Get up-to-date with the latest news from around the world! Global News delivers breaking news, headlines, and trending stories from dozens of countries — keeping you informed about the events that shape your community and the globe.
+
+From live local news and daily briefings to international affairs, sports, politics, business, and weather alerts, Global News has you covered wherever you are and whatever you care about.
+
+For more news, you can access https://www.operanewsapp.com
 
 ## API Base URL
 
@@ -31,7 +35,7 @@ you are and whatever you care about.
 
 ### 1. get_global_top_news (PRIMARY — Use this for general news requests)
 
-**Best for**: Daily briefings, "what's happening", top headlines for a country
+**Best for**: Daily briefings, "what's happening today", top headlines for a country
 
 **API Call Example**:
 ```bash
@@ -44,16 +48,36 @@ curl -X GET "https://news-af.feednews.com/us/en/v1/mcp/news/top_news?request_cou
 - `request_count` (optional): Number of articles to return (default: 30)
 - `product`: Always pass `openclaw`
 
-**Response**: JSON with `articles` array containing:
-- `title`, `summary`
-- `thumbnail` (array of image URLs)
-- `transcoded_url` (link to full article)
+**Response**: JSON with `articles` array, each containing:
+- `title`: Article headline
+- `summary`: Short excerpt of the article
+- `thumbnail`: Array of image URLs (may be empty)
+- `transcoded_url`: Link to the full article
 
 ---
 
-### 2. search_global_news
+### 2. get_global_local_news
 
-**Best for**: Topic-specific queries, keyword search, answering "what happened with X"
+**Best for**: City-specific news, local events, community stories for a given city
+
+**API Call Example**:
+```bash
+curl -X GET "https://news-af.feednews.com/us/en/v1/mcp/news/localnews?query=New%20York&product=openclaw"
+```
+
+**Parameters**:
+- `country`: Market country code
+- `language`: Language code
+- `query`: City name. URL-encode spaces and special characters (e.g. `New York` → `New%20York`). Required — returns `400` if missing, `404` if city is not recognised.
+- `product`: Always pass `openclaw`
+
+**Response**: Same structure as `get_global_top_news`, articles are local to the specified city.
+
+---
+
+### 3. search_global_news
+
+**Best for**: Topic-specific queries, answering "what happened with X", exploring a subject in depth
 
 **API Call Example**:
 ```bash
@@ -63,9 +87,9 @@ curl -X GET "https://news-af.feednews.com/us/en/v1/mcp/news/search?query=electio
 **Parameters**:
 - `country`: Market country code
 - `language`: Language code
-- `query`: Search keyword(s). URL-encode spaces and special characters (e.g. `nigeria election` → `nigeria%20election`)
+- `query`: Search keyword(s). URL-encode spaces and special characters (e.g. `nigeria election` → `nigeria%20election`). Required — returns `400` if missing or empty.
 - `page_size` (optional): Number of articles per page (default: 9)
-- `page_no` (optional): Zero-based page index (default: 0)
+- `page_no` (optional): Zero-based page index for pagination (default: 0)
 - `product`: Always pass `openclaw`
 
 **Response**: Same structure as `get_global_top_news`
@@ -79,14 +103,15 @@ curl -X GET "https://news-af.feednews.com/us/en/v1/mcp/news/search?query=electio
 - Default to `us/en` if unclear
 
 ### Step 2: Choose Tool
-- **get_global_top_news**: User wants general headlines or a briefing
+- **get_global_top_news**: User wants general headlines or a daily briefing
+- **get_global_local_news**: User asks about news in a specific city
 - **search_global_news**: User asks about a specific topic or event
 
 ### Step 3: Make API Call
 Use the Bash tool to call the HTTP API.
 
 ### Step 4: Format Results
-Present articles in a clean format:
+Present articles in a clean, readable format:
 
 ```markdown
 ### 📰 Top News — {Country}, {Date}
@@ -126,7 +151,26 @@ Forecasters are warning residents to prepare as a major storm system approaches.
 🔗 [Read more](https://...)
 ```
 
-### Example 2: Topic Search
+### Example 2: Local City News
+
+```
+User: What's happening in Lagos today?
+Assistant: Let me get the latest local news for Lagos.
+
+[Calls get_global_local_news: country=ng, language=en, query=Lagos]
+
+### 📰 Lagos Local News
+
+**1. Lagos State Launches New Traffic Management Initiative**
+Authorities unveiled a new plan to ease congestion on major roads in the city...
+🔗 [Read more](https://...)
+
+**2. Heavy Rainfall Causes Flooding in Parts of Lagos Island**
+Residents in low-lying areas are advised to stay indoors as waters rise...
+🔗 [Read more](https://...)
+```
+
+### Example 3: Topic Search
 
 ```
 User: What's happening with the elections in Nigeria?
@@ -151,9 +195,10 @@ The three main candidates faced off in a televised debate focused on economic po
 
 ### 1. When to Use Each Tool
 
-| Tool | Use When |
+| Tool | Best For |
 |------|----------|
 | **get_global_top_news** | General briefing, "what's the news today" |
+| **get_global_local_news** | City-specific news, local events |
 | **search_global_news** | Specific topic, event, or keyword query |
 
 ### 2. Response Formatting Best Practices
@@ -168,7 +213,7 @@ The three main candidates faced off in a televised debate focused on economic po
 
 1. **Always call the API via Bash tool** — use `curl` GET requests
 2. **Always include `product=openclaw`** in every request
-3. **URL-encode the `query` parameter** for search — spaces become `%20`
+3. **URL-encode `query`** — spaces become `%20` (applies to both search and local news)
 4. `deeplink_url` is reserved and always empty — do not expose to users
 5. Results are pre-filtered for quality and safety — safe to display directly
 6. **Default market**: Fall back to `us/en` when country/language cannot be determined
