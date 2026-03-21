@@ -3,9 +3,15 @@
   "slug": "lobstr",
   "displayName": "Lobstr",
   "latest": {
-    "version": "0.1.2",
-    "publishedAt": 1773819433939,
-    "commit": "https://github.com/openclaw/skills/commit/fc629d57a4e0c938ac93673eb445e448894b7f6d"
+    "version": "0.3.0",
+    "publishedAt": 1773999731397,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.2",
+      "publishedAt": 1773819433939,
+      "commit": "https://github.com/openclaw/skills/commit/fc629d57a4e0c938ac93673eb445e448894b7f6d"
+    }
+  ]
 }
