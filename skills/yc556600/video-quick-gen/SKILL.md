@@ -1,7 +1,6 @@
 ---
 name: video-quick-gen
-description: | 
-  Quick-generate a marketing video via the local content-marketing-dashboard (dashboard-console) Video module: first call POST /video/script/gen to create a video script from a user requirement, then call POST /video/task/create to start video generation, poll GET /video/task/state until completion, and return the final video_url (optionally download mp4). Use when the user says “快速生成视频/生成一个视频/做个视频/把这个需求直接生成视频” and they expect the result produced by the dashboard API (not manual writing).
+description: 营销视频生成服务，通过小念AI的视频模块快速生成营销视频：当用户说"快速生成视频/生成一个视频/做个视频/把这个需求直接生成视频"并希望通过小念AI生成结果而不是手动编写时使用。
 ---
 
 # video-quick-gen
