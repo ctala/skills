@@ -6,7 +6,8 @@ set -e
 
 INPUT="$1"
 OUTPUT_FORMAT="$2"
-OUTPUT_DIR="/home/pago/.openclaw/workspace/converted"
+# 默认输出到输入文件同目录，可通过环境变量 OUTPUT_DIR 覆盖
+OUTPUT_DIR="${OUTPUT_DIR:-$(dirname "$INPUT")/converted}"
 
 mkdir -p "$OUTPUT_DIR"
 
