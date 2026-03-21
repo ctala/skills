@@ -97,6 +97,7 @@ class Config:
         system: str,
         category: int,
         bilingual: bool = True,
+        language: str = "zh",
         output: str = "./output",
         format: str = "both",
         **kwargs,
@@ -105,6 +106,7 @@ class Config:
         self.system = system
         self.category = str(category)
         self.bilingual = bilingual
+        self.language = language
         self.output = output
         self.format = format
         self.date = datetime.now().strftime("%Y-%m-%d")
@@ -130,6 +132,8 @@ class Config:
             "APPROVER": getattr(self, "approver", "[Approver]"),
             "DOC_ID": getattr(self, "doc_id", "[DOC-XXX]"),
             "VERSION": getattr(self, "version", "1.0"),
+            "LANGUAGE": self.language,
+            "BILINGUAL": "true" if self.bilingual else "false",
         }
 
     @classmethod

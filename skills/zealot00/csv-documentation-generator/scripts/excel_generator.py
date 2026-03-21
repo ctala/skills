@@ -7,6 +7,12 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 
+# Import STANDARD_MODULES for RTM generation
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent))
+from requirements.parser import STANDARD_MODULES
+
 
 class ExcelGenerator:
     """Generate Excel documents from templates"""
@@ -36,8 +42,18 @@ class ExcelGenerator:
         headers: Optional[List[str]] = None,
         filename: Optional[str] = None,
         variables: Optional[Dict[str, str]] = None,
+        db: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """Generate Excel document"""
+        """Generate Excel document
+
+        Args:
+            doc_type: Type of document to generate
+            data: Optional data rows for custom generation
+            headers: Optional headers for custom generation
+            filename: Optional custom filename
+            variables: Optional template variables
+            db: Optional requirements database for RTM generation
+        """
 
         if variables is None:
             variables = {}
@@ -51,7 +67,7 @@ class ExcelGenerator:
 
         # Generate based on document type
         if doc_type == "rtm":
-            self._generate_rtm(ws, variables)
+            self._generate_rtm(ws, variables, db)
         elif doc_type == "checklist":
             self._generate_checklist(ws, variables)
         elif doc_type == "test-case":
@@ -64,7 +80,11 @@ class ExcelGenerator:
 
         # Save document
         if filename is None:
-            filename = f"{doc_type.upper()}.xlsx"
+            project_name = variables.get("PROJECT_NAME", "")
+            if project_name:
+                filename = f"RTM_{project_name}.xlsx"
+            else:
+                filename = f"{doc_type.upper()}.xlsx"
 
         output_path = self.output_dir / filename
         wb.save(str(output_path))
@@ -74,7 +94,7 @@ class ExcelGenerator:
     def _set_column_widths(self, ws, doc_type: str):
         """Set column widths based on document type"""
         widths = {
-            "rtm": [15, 40, 15, 40, 15, 40, 15, 20],
+            "rtm": [15, 35, 15, 10, 12, 12, 15, 12, 15, 12, 15, 12, 12, 20],
             "checklist": [30, 50, 20, 20],
             "test-case": [15, 30, 40, 20, 20, 20],
         }
@@ -86,28 +106,121 @@ class ExcelGenerator:
         for i, width in enumerate(col_widths, 1):
             ws.column_dimensions[get_column_letter(i)].width = width
 
-    def _generate_rtm(self, ws, variables: Dict[str, str]):
-        """Generate Traceability Matrix"""
+    def _generate_rtm(
+        self, ws, variables: Dict[str, str], db: Optional[Dict[str, Any]] = None
+    ):
+        """Generate Traceability Matrix with 14 columns
+
+        Columns:
+        1. Requirement ID
+        2. Requirement Description
+        3. Module
+        4. Priority
+        5. FS Reference
+        6. TS Reference
+        7. IQ Test Case ID
+        8. IQ Test Result
+        9. OQ Test Case ID
+        10. OQ Test Result
+        11. PQ Test Case ID
+        12. PQ Test Result
+        13. Status
+        14. Comments
+        """
         # Headers
         headers = [
-            "Requirement ID / 需求ID",
-            "Requirement / 需求描述",
-            "Test Case ID / 测试用例ID",
-            "Test Case / 测试用例描述",
-            "FS Reference / FS参考",
-            "Critical Function / 关键功能",
-            "Test Result / 测试结果",
-            "Status / 状态",
+            "Requirement ID\n需求ID",
+            "Requirement Description\n需求描述",
+            "Module\n模块",
+            "Priority\n优先级",
+            "FS Reference\nFS参考",
+            "TS Reference\nTS参考",
+            "IQ Test Case ID\nIQ测试用例ID",
+            "IQ Test Result\nIQ测试结果",
+            "OQ Test Case ID\nOQ测试用例ID",
+            "OQ Test Result\nOQ测试结果",
+            "PQ Test Case ID\nPQ测试用例ID",
+            "PQ Test Result\nPQ测试结果",
+            "Status\n状态",
+            "Comments\n备注",
         ]
 
         self._write_headers(ws, headers)
 
-        # Sample data rows (will be filled by user)
-        for row in range(2, 12):
-            for col in range(1, 9):
-                cell = ws.cell(row=row, column=col)
-                cell.alignment = self.CELL_ALIGN
-                cell.border = self.BORDER
+        # Get requirements and test results from db
+        requirements = []
+        test_results = []
+
+        if db:
+            requirements = db.get("requirements", [])
+            test_results = db.get("test_results", [])
+
+        # Create test results lookup
+        test_results_by_req: Dict[str, Dict[str, str]] = {}
+        for tr in test_results:
+            req_id = tr.get("requirement_id")
+            if req_id:
+                if req_id not in test_results_by_req:
+                    test_results_by_req[req_id] = {}
+                test_type = tr.get("test_type", "OQ")
+                test_results_by_req[req_id][test_type] = tr.get("status", "Pending")
+
+        # Group requirements by module for organized output
+        by_module: Dict[str, List[Dict]] = {}
+        for req in requirements:
+            module = req.get("module", "business_func")
+            if module not in by_module:
+                by_module[module] = []
+            by_module[module].append(req)
+
+        # Write requirements by module
+        row = 2
+        for module_id, module_reqs in by_module.items():
+            # Get module name
+            if module_id in STANDARD_MODULES:
+                module_name = STANDARD_MODULES[module_id]["name_cn"]
+            else:
+                module_name = module_id
+
+            for req in module_reqs:
+                req_id = req.get("id", "")
+
+                # Get test results for this requirement
+                iq_result = test_results_by_req.get(req_id, {}).get("IQ", "Pending")
+                oq_result = test_results_by_req.get(req_id, {}).get("OQ", "Pending")
+                pq_result = test_results_by_req.get(req_id, {}).get("PQ", "Pending")
+
+                row_data = [
+                    req_id,
+                    req.get("description", ""),
+                    module_name,
+                    req.get("priority", ""),
+                    req.get("fs_ref", ""),
+                    req.get("ts_ref", ""),
+                    "",  # IQ Test Case ID - to be filled
+                    iq_result,
+                    "",  # OQ Test Case ID - to be filled
+                    oq_result,
+                    "",  # PQ Test Case ID - to be filled
+                    pq_result,
+                    req.get("status", "Draft"),
+                    "",  # Comments
+                ]
+
+                for col, value in enumerate(row_data, 1):
+                    cell = ws.cell(row=row, column=col, value=value)
+                    cell.alignment = self.CELL_ALIGN
+                    cell.border = self.BORDER
+
+                row += 1
+
+        # If no requirements, add sample rows
+        if row == 2:
+            for r in range(2, 12):
+                for col in range(1, 15):
+                    cell = ws.cell(row=r, column=col)
+                    cell.alignment = self.CELL_ALIGN
+                    cell.border = self.BORDER
 
     def _generate_checklist(self, ws, variables: Dict[str, str]):
         """Generate Validation Checklist"""

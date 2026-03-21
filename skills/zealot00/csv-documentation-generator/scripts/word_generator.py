@@ -4,12 +4,11 @@ import re
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from docx import Document
-from docx.shared import Inches, Pt, Cm, RGBColor, Cm
+from docx.shared import Inches, Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
-from docx.oxml.parser import OxmlElement
 from docx.table import Table, _Cell
 
 
@@ -19,33 +18,37 @@ from docx.table import Table, _Cell
 class Colors:
     """Professional color palette for GMP documentation"""
 
-    # Primary colors - Professional blue/gray
+    # Primary colors - Professional blue
     PRIMARY_DARK = RGBColor(30, 58, 95)  # #1E3A5F - Deep blue
-    PRIMARY_MEDIUM = RGBColor(44, 82, 130)  # #2C5282 - Medium blue
+    PRIMARY_MEDIUM = RGBColor(37, 99, 235)  # #2563EB - Royal blue (better contrast)
     PRIMARY_LIGHT = RGBColor(59, 130, 246)  # Blue for links
 
     # Text colors
-    TEXT_PRIMARY = RGBColor(55, 65, 81)  # #374151 - Dark gray
-    TEXT_SECONDARY = RGBColor(107, 114, 128)  # #6B7280 - Medium gray
+    TEXT_PRIMARY = RGBColor(30, 41, 59)  # #1E293B - Dark slate (high contrast)
+    TEXT_SECONDARY = RGBColor(71, 85, 105)  # #475569 - Slate gray
     TEXT_WHITE = RGBColor(255, 255, 255)  # White
 
-    # Table colors - Lighter blue for better readability
-    TABLE_HEADER_BG = RGBColor(70, 130, 180)  # #4682B4 - Steel blue (lighter)
-    TABLE_HEADER_TEXT = RGBColor(255, 255, 255)  # White text
-    TABLE_ROW_EVEN = RGBColor(255, 255, 255)
-    TABLE_ROW_ODD = RGBColor(240, 248, 255)  # #F0F8FF - Alice blue
-    TABLE_BORDER = RGBColor(180, 190, 200)
+    # Table colors - Professional with good contrast
+    TABLE_HEADER_BG = RGBColor(37, 99, 235)  # #2563EB - Royal blue
+    TABLE_HEADER_TEXT = RGBColor(255, 255, 255)  # White
+    TABLE_ROW_EVEN = RGBColor(255, 255, 255)  # White
+    TABLE_ROW_ODD = RGBColor(241, 245, 249)  # #F1F5F9 - Light slate
+    TABLE_BORDER = RGBColor(203, 213, 225)  # #CBD5E1 - Slate border
 
-    # Status colors - Professional/muted
-    STATUS_PASS = RGBColor(5, 150, 105)  # #059669 - Deep green
-    STATUS_FAIL = RGBColor(185, 28, 28)  # #B91C1C - Deep red
-    STATUS_PENDING = RGBColor(180, 83, 9)  # #B45309 - Deep amber
+    # Status colors
+    STATUS_PASS = RGBColor(5, 150, 105)  # #059669 - Green
+    STATUS_FAIL = RGBColor(185, 28, 28)  # #B91C1C - Red
+    STATUS_PENDING = RGBColor(180, 83, 9)  # #B45309 - Amber
     STATUS_NA = RGBColor(107, 114, 128)  # #6B7280 - Gray
 
     # Priority colors
-    PRIORITY_MUST = RGBColor(185, 28, 28)  # #B91C1C - Deep red
-    PRIORITY_SHOULD = RGBColor(180, 83, 9)  # #B45309 - Deep amber
-    PRIORITY_COULD = RGBColor(5, 150, 105)  # #059669 - Deep green
+    PRIORITY_MUST = RGBColor(185, 28, 28)  # #B91C1C - Red
+    PRIORITY_SHOULD = RGBColor(180, 83, 9)  # #B45309 - Amber
+    PRIORITY_COULD = RGBColor(5, 150, 105)  # #059669 - Green
+
+    # Font settings
+    FONT_CN = "宋体"  # Chinese font
+    FONT_EN = "Arial"  # English font
 
 
 # =============================================================================
@@ -168,25 +171,25 @@ class WordGenerator:
         return str(output_path)
 
     def _setup_document_styles(self, doc: Document):
-        """Setup document-wide styles"""
+        """Setup document-wide styles with unified fonts"""
         # Normal style
         style = doc.styles["Normal"]
         font = style.font
-        font.name = "Arial"
+        font.name = Colors.FONT_EN
         font.size = Pt(11)
         font.color.rgb = Colors.TEXT_PRIMARY
         # Set Chinese font
-        style._element.rPr.rFonts.set(qn("w:eastAsia"), "微软雅黑")
+        style._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
 
         # Heading styles
         for level in range(1, 4):
             if f"Heading {level}" in doc.styles:
                 heading_style = doc.styles[f"Heading {level}"]
                 heading_font = heading_style.font
-                heading_font.name = "Arial"
+                heading_font.name = Colors.FONT_EN
                 heading_font.bold = True
                 heading_font.color.rgb = Colors.PRIMARY_DARK
-                heading_style._element.rPr.rFonts.set(qn("w:eastAsia"), "微软雅黑")
+                heading_style._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
                 if level == 1:
                     heading_font.size = Pt(16)
                 elif level == 2:
@@ -222,8 +225,8 @@ class WordGenerator:
         title_run.font.size = Pt(22)
         title_run.font.bold = True
         title_run.font.color.rgb = Colors.PRIMARY_DARK
-        title_run.font.name = "Arial"
-        title_run._element.rPr.rFonts.set(qn("w:eastAsia"), "微软雅黑")
+        title_run.font.name = Colors.FONT_EN
+        title_run._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
 
         # Add spacing
         doc.add_paragraph()
@@ -270,6 +273,8 @@ class WordGenerator:
         approval_run.font.size = Pt(14)
         approval_run.font.bold = True
         approval_run.font.color.rgb = Colors.PRIMARY_DARK
+        approval_run.font.name = Colors.FONT_EN
+        approval_run._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
 
         # Approval table
         approval_table = doc.add_table(rows=4, cols=4)
@@ -280,8 +285,7 @@ class WordGenerator:
         header_cells = approval_table.rows[0].cells
         for i, header in enumerate(headers):
             cell = header_cells[i]
-            cell.text = header
-            self._style_header_cell(cell)
+            self._set_header_cell_text(cell, header)
 
         # Fill approval rows
         roles = [
@@ -296,10 +300,10 @@ class WordGenerator:
             row[1].text = name
             row[2].text = ""
             row[3].text = ""
-            self._style_cell(row[0])
-            self._style_cell(row[1])
-            self._style_cell(row[2])
-            self._style_cell(row[3])
+            self._set_data_cell_text(row[0], role)
+            self._set_data_cell_text(row[1], name)
+            self._set_data_cell_text(row[2], "")
+            self._set_data_cell_text(row[3], "")
 
     def _fill_cover_row(self, cell, label, value):
         """Fill a cover info row"""
@@ -312,66 +316,69 @@ class WordGenerator:
         for run in para.runs:
             run.font.size = Pt(11)
             run.font.color.rgb = Colors.TEXT_PRIMARY
+            run.font.name = Colors.FONT_EN
+            run._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
 
-    def _style_header_cell(self, cell: _Cell):
-        """Style table header cell"""
-        # Clear existing and set text
-        cell.text = cell.text
-
-        # Set background color
+    def _set_header_cell_text(self, cell: _Cell, text: str):
+        """Set header cell text and styling - FIXED version"""
+        # Set background color first
         shading = OxmlElement("w:shd")
-        shading.set(qn("w:fill"), "4682B4")  # Steel blue
+        shading.set(qn("w:fill"), "2563EB")  # Royal blue
         cell._tc.get_or_add_tcPr().append(shading)
 
-        # Clear and rebuild paragraph with proper styling
+        # Clear and rebuild paragraph with styled run
         para = cell.paragraphs[0]
         para.clear()
         para.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        # Add styled run
-        run = para.add_run(cell.text)
+        # Add styled run with explicit text
+        run = para.add_run(text)
         run.font.bold = True
         run.font.color.rgb = Colors.TEXT_WHITE
         run.font.size = Pt(10)
+        run.font.name = Colors.FONT_EN
+        run._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
 
-    def _style_cell(self, cell: _Cell):
-        """Style table cell"""
+    def _set_data_cell_text(self, cell: _Cell, text: str):
+        """Set data cell text and styling"""
+        cell.text = text
         para = cell.paragraphs[0]
         for run in para.runs:
             run.font.size = Pt(10)
             run.font.color.rgb = Colors.TEXT_PRIMARY
+            run.font.name = Colors.FONT_EN
+            run._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
 
     def _setup_headers_footers(self, doc: Document, variables: Dict[str, str]):
         """Setup headers and footers"""
         # Note: In python-docx, headers/footers need section access
-        # This is a simplified version
         pass
 
     def _process_content(self, doc: Document, content: str):
-        """Process markdown content to Word"""
+        """Process markdown content to Word - FIXED: processes all tables"""
         lines = content.split("\n")
+        i = 0
 
-        for line in lines:
-            line = line.strip()
+        while i < len(lines):
+            line = lines[i].strip()
 
             if not line:
                 doc.add_paragraph()
+                i += 1
                 continue
 
             # Table detection
             if line.startswith("|") and "|" in line[1:]:
-                self._process_table(doc, lines)
-                break
+                i = self._process_table(doc, lines, i)  # Returns next line index
+                continue
 
             # Headings
-            elif line.startswith("### "):
+            if line.startswith("### "):
                 heading = doc.add_heading(line[4:], level=3)
                 self._format_heading(heading, 3)
-
             elif line.startswith("## "):
                 heading = doc.add_heading(line[3:], level=2)
                 self._format_heading(heading, 2)
-
             elif line.startswith("# "):
                 heading = doc.add_heading(line[2:], level=1)
                 self._format_heading(heading, 1)
@@ -386,20 +393,23 @@ class WordGenerator:
 
             # Separator
             elif "=" in line and len(line) < 20:
+                i += 1
                 continue
 
-            # Regular paragraph with inline formatting
+            # Regular paragraph
             else:
                 self._add_formatted_paragraph(doc, line)
 
-    def _process_table(self, doc: Document, lines: List[str]):
-        """Process markdown table with styling"""
+            i += 1
+
+    def _process_table(self, doc: Document, lines: List[str], start_idx: int) -> int:
+        """Process markdown table with styling - FIXED: returns next line index"""
         table_started = False
         table = None
         row_idx = 0
 
-        for line in lines:
-            line = line.strip()
+        for i in range(start_idx, len(lines)):
+            line = lines[i].strip()
 
             if not line:
                 continue
@@ -408,9 +418,10 @@ class WordGenerator:
             if re.match(r"^\|[\s\-:|]+\|$", line):
                 continue
 
+            # End of table
             if not line.startswith("|"):
                 if table_started:
-                    break
+                    return i  # Return current index for next processing
                 continue
 
             cells = [c.strip() for c in line.split("|") if c.strip()]
@@ -419,38 +430,37 @@ class WordGenerator:
                 continue
 
             if not table_started:
+                # Create new table
                 table = doc.add_table(rows=1, cols=len(cells))
                 table.style = "Table Grid"
                 table_started = True
 
                 # Header row
                 header_cells = table.rows[0].cells
-                for i, cell_text in enumerate(cells):
-                    if i < len(header_cells):
-                        header_cells[i].text = cell_text
-                        self._style_header_cell(header_cells[i])
+                for j, cell_text in enumerate(cells):
+                    if j < len(header_cells):
+                        self._set_header_cell_text(header_cells[j], cell_text)
                 row_idx = 1
             else:
                 # Data row
                 if len(cells) == len(table.columns):
                     row = table.add_row()
-                    for i, cell_text in enumerate(cells):
-                        if i < len(row.cells):
-                            cell = row.cells[i]
-                            cell.text = cell_text
-                            self._style_cell(cell)
-
-                            # Apply priority/status coloring
+                    for j, cell_text in enumerate(cells):
+                        if j < len(row.cells):
+                            cell = row.cells[j]
+                            self._set_data_cell_text(cell, cell_text)
                             self._apply_inline_formatting(cell, cell_text)
 
                     # Alternate row colors
                     if row_idx % 2 == 0:
                         for cell in row.cells:
                             shading = OxmlElement("w:shd")
-                            shading.set(qn("w:fill"), "F9FAFB")
+                            shading.set(qn("w:fill"), "F1F5F9")  # Light slate
                             cell._tc.get_or_add_tcPr().append(shading)
 
                     row_idx += 1
+
+        return len(lines)  # Return end of lines
 
     def _apply_inline_formatting(self, cell: _Cell, text: str):
         """Apply inline formatting based on markers"""
@@ -484,6 +494,8 @@ class WordGenerator:
         for run in heading.runs:
             run.font.bold = True
             run.font.color.rgb = Colors.PRIMARY_DARK
+            run.font.name = Colors.FONT_EN
+            run._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
             if level == 1:
                 run.font.size = Pt(16)
             elif level == 2:
@@ -514,19 +526,24 @@ class WordGenerator:
             run = para.add_run(text)
             run.font.color.rgb = Colors.TEXT_PRIMARY
 
+        run.font.name = Colors.FONT_EN
+        run._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
+
     def _add_bullet_item(self, doc: Document, line: str):
         """Add bullet list item"""
         text = line[2:].strip()
         para = doc.add_paragraph(text, style="List Bullet")
         for run in para.runs:
             run.font.color.rgb = Colors.TEXT_PRIMARY
+            run.font.name = Colors.FONT_EN
+            run._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
 
     def _add_checklist_item(self, doc: Document, line: str):
         """Add checklist item"""
         is_checked = "[x]" in line[:4]
         text = line[4:].strip()
-
         para = doc.add_paragraph()
+
         if is_checked:
             run = para.add_run("☑ ")
             run.font.size = Pt(12)
@@ -536,10 +553,11 @@ class WordGenerator:
 
         text_run = para.add_run(text)
         text_run.font.color.rgb = Colors.TEXT_PRIMARY
+        text_run.font.name = Colors.FONT_EN
+        text_run._element.rPr.rFonts.set(qn("w:eastAsia"), Colors.FONT_CN)
 
     def _sanitize_filename(self, name: str) -> str:
         """Sanitize filename"""
         if not name or name == "[Project Name]":
             return "Document"
-        # Remove invalid characters
         return re.sub(r'[<>:"/\\|?*]', "_", name)

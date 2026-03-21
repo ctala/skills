@@ -66,24 +66,39 @@ class TemplateLoader:
         return sorted(templates)
 
 
-def process_markdown_table_bilingual(content: str) -> str:
-    """Process bilingual markdown tables"""
+def process_markdown_table_bilingual(
+    content: str, bilingual: bool = True, language: str = "zh"
+) -> str:
+    """
+    Process bilingual markdown tables based on bilingual and language settings.
+
+    Args:
+        content: Markdown content
+        bilingual: If True, headers remain bilingual; content follows language
+                  If False, all content is single language based on --language
+        language: Primary language for content ('zh' or 'en')
+
+    Bilingual format expected: "中文 / English" or "English / 中文"
+    - First part is Chinese
+    - Second part is English
+    """
     lines = content.split("\n")
     result = []
 
     in_table = False
-    header_processed = False
+    is_header_row = True
 
     for line in lines:
         # Check if line is a table separator
         if re.match(r"^\|[\s\-:|]+\|$", line):
             result.append(line)
+            is_header_row = False
             continue
 
         # Table start
         if "|" in line and not in_table:
             in_table = True
-            header_processed = False
+            is_header_row = True
 
         # Process table content
         if in_table and "|" in line:
@@ -95,18 +110,46 @@ def process_markdown_table_bilingual(content: str) -> str:
 
                 # Check if cell contains bilingual content (has / separator)
                 if "/" in cell and not cell.startswith("-"):
-                    # Split and format
-                    parts = cell.split("/")
-                    if len(parts) == 2:
-                        cell = f"{parts[0].strip()} / {parts[1].strip()}"
-                    elif len(parts) > 2:
-                        # Multiple translations
-                        cell = " / ".join([p.strip() for p in parts])
+                    parts = [p.strip() for p in cell.split("/") if p.strip()]
+
+                    if len(parts) >= 2:
+                        # Determine which is Chinese and which is English
+                        # Chinese typically has Chinese characters
+                        chinese_part = None
+                        english_part = None
+
+                        for p in parts:
+                            if re.search(r"[\u4e00-\u9fff]", p):
+                                chinese_part = p
+                            else:
+                                english_part = p
+
+                        if bilingual:
+                            if is_header_row:
+                                # Headers stay bilingual: "中文 / English"
+                                cell = f"{chinese_part or parts[0]} / {english_part or parts[-1]}"
+                            else:
+                                # Content follows language setting
+                                cell = (
+                                    chinese_part if language == "zh" else english_part
+                                )
+                                if cell is None:
+                                    cell = parts[0]
+                        else:
+                            # Not bilingual mode - single language only
+                            cell = chinese_part if language == "zh" else english_part
+                            if cell is None:
+                                cell = parts[0]
 
                 processed_cells.append(cell)
 
             line = "|".join(processed_cells)
-
-        result.append(line)
+            result.append(line)
+            is_header_row = False
+        else:
+            # Non-table content
+            if in_table:
+                in_table = False
+            result.append(line)
 
     return "\n".join(result)
