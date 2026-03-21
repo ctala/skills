@@ -47,8 +47,12 @@ Use this skill for the combined Plan B + Plan C workflow.
 - `references/deployment.md` - migration/install checklist
 - `references/input-template.md` - canonical Telegram input block
 - `references/clawhub.md` - publish/install/update commands via ClawHub
+- `references/troubleshooting.md` - common runtime and routing issues
+- `references/windows.md` - Windows-specific guidance
+- `references/macos.md` - macOS-specific guidance
 
 ## Included assets/scripts
 Read these only when needed:
 - `scripts/` for generator/parser/bot helpers
 - `assets/` for original `.docx` template
+- `assets/windows/` for Windows example env files and quick-start PowerShell wrapper

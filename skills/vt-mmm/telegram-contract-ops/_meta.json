@@ -3,9 +3,15 @@
   "slug": "telegram-contract-ops",
   "displayName": "Telegram Contract Ops",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773770968498,
-    "commit": "https://github.com/openclaw/skills/commit/482f0bfa3b41eaee2e4eb34a4a4374737e188599"
+    "version": "1.0.1",
+    "publishedAt": 1773840828034,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773770968498,
+      "commit": "https://github.com/openclaw/skills/commit/482f0bfa3b41eaee2e4eb34a4a4374737e188599"
+    }
+  ]
 }
