@@ -21,6 +21,8 @@ type CandidateResult = {
   givenLength: 1 | 2;
   score: number;
   scoreBreakdown: {
+    sancaiWugeScore: number;
+    elementPreferenceScore: number;
     luckScore: number;
     relationScore: number;
     elementScore: number;
@@ -33,12 +35,12 @@ type CandidateResult = {
     地格: GeResult;
     外格: GeResult;
     总格: GeResult;
-  };
+  } | null;
   sancai: {
     pattern: string;
     天人关系: WugeRelationDirection;
     人地关系: WugeRelationDirection;
-  };
+  } | null;
   givenCharacters: Array<{
     char: string;
     kangxi: string | null;
@@ -50,7 +52,7 @@ type CandidateResult = {
 };
 
 type CliOptions = {
-  surname: string;
+  surname?: string;
   givenLen: GivenLenMode;
   count: number;
   format: OutputFormat;
@@ -96,14 +98,14 @@ function printUsage(): void {
   console.log(`Pick given-name candidates by Hanzi element + WuGe numerology.
 
 Usage:
-  node scripts/pickName.ts --surname <姓> [--given-len <1|2|both>] [--count <N>]
+  node scripts/pickName.ts [--surname <姓>] [--given-len <1|2|both>] [--count <N>]
                            [--favorable-element <金|木|水|火|土>]
                            [--secondary-element <金|木|水|火|土>]
                            [--format <json|markdown>]
                            [--allow-unknown-element] [--allow-level2] [--disable-name-filter]
 
 Options:
-  --surname  Required. 1-2 Chinese chars.
+  --surname  Optional. 1-2 Chinese chars. Omit for no-surname/company naming mode.
   --given-len  Optional. 1 | 2 | both. Default: both.
   --count  Optional. 1-100. Default: 50.
   --favorable-element  Optional. Prefer this hanzi element.
@@ -181,10 +183,7 @@ function parseArgs(argv: string[]): CliOptions {
   }
 
   const surname = raw["surname"];
-  if (!surname) {
-    fail("--surname is required.");
-  }
-  if (surname.length < 1 || surname.length > 2) {
+  if (surname && (surname.length < 1 || surname.length > 2)) {
     fail(`Invalid --surname length: ${surname.length}. Allowed length is 1-2.`);
   }
 
@@ -228,21 +227,28 @@ function parseArgs(argv: string[]): CliOptions {
   };
 }
 
+const SCORE_WEIGHTS = {
+  favorableElement: 50,
+  secondaryElement: 25,
+  unknownElement: 2,
+  noConflictBonus: 1,
+} as const;
+
 function luckScore(luck: string): number {
-  if (luck === "吉") return 20;
-  if (luck === "半吉") return 10;
-  if (luck === "吉带凶" || luck === "凶带吉" || luck === "吉帶凶") return 4;
-  if (luck === "吉凶各半") return 2;
-  if (luck === "凶") return -12;
+  if (luck === "吉") return 8;
+  if (luck === "半吉") return 4;
+  if (luck === "吉带凶" || luck === "凶带吉" || luck === "吉帶凶") return 1;
+  if (luck === "吉凶各半") return 0;
+  if (luck === "凶") return -5;
   return 0;
 }
 
 function relationScore(relation: WugeRelation): number {
-  if (relation === "生") return 8;
-  if (relation === "同") return 6;
-  if (relation === "泄") return -2;
-  if (relation === "耗") return -3;
-  return -8;
+  if (relation === "生") return 3;
+  if (relation === "同") return 2;
+  if (relation === "泄") return -1;
+  if (relation === "耗") return -2;
+  return -4;
 }
 
 function charElementScore(
@@ -255,13 +261,13 @@ function charElementScore(
     return 0;
   }
   if (!element) {
-    return allowUnknownElement ? 4 : -100;
+    return allowUnknownElement ? SCORE_WEIGHTS.unknownElement : -100;
   }
   if (favorableElement && element === favorableElement) {
-    return 30;
+    return SCORE_WEIGHTS.favorableElement;
   }
   if (secondaryElement && element === secondaryElement) {
-    return 15;
+    return SCORE_WEIGHTS.secondaryElement;
   }
   return -100;
 }
@@ -297,20 +303,29 @@ function buildCandidateResult(
   options: CliOptions,
 ): CandidateResult | null {
   const givenStrokes = givenRecords.map((item) => item.wugeStrokeCount);
+  const hasSurname = surnameStrokes.length > 0;
 
-  const tiange = buildGeObject(getTiange(surnameStrokes));
-  const renge = buildGeObject(getRenge(surnameStrokes, givenStrokes));
-  const dige = buildGeObject(getDige(givenStrokes));
-  const waige = buildGeObject(getWaige(surnameStrokes, givenStrokes));
-  const zongge = buildGeObject(getZongge(surnameStrokes, givenStrokes));
+  const tiange = hasSurname ? buildGeObject(getTiange(surnameStrokes)) : null;
+  const renge = hasSurname ? buildGeObject(getRenge(surnameStrokes, givenStrokes)) : null;
+  const dige = hasSurname ? buildGeObject(getDige(givenStrokes)) : null;
+  const waige = hasSurname ? buildGeObject(getWaige(surnameStrokes, givenStrokes)) : null;
+  const zongge = hasSurname ? buildGeObject(getZongge(surnameStrokes, givenStrokes)) : null;
 
-  const tr = getRelation(tiange.wuxing, renge.wuxing);
-  const rd = getRelation(renge.wuxing, dige.wuxing);
-  const trDirection = getRelationDirection(renge.wuxing, tiange.wuxing);
-  const rdDirection = getRelationDirection(renge.wuxing, dige.wuxing);
+  const tr = tiange && renge ? getRelation(tiange.wuxing, renge.wuxing) : null;
+  const rd = renge && dige ? getRelation(renge.wuxing, dige.wuxing) : null;
+  const trDirection = tiange && renge ? getRelationDirection(renge.wuxing, tiange.wuxing) : null;
+  const rdDirection = renge && dige ? getRelationDirection(renge.wuxing, dige.wuxing) : null;
 
-  const lScore = [tiange, renge, dige, waige, zongge].reduce((sum, item) => sum + luckScore(item.luck), 0);
-  const rScore = relationScore(tr) + relationScore(rd) + (tr !== "克" && rd !== "克" ? 4 : 0);
+  const lScore =
+    tiange && renge && dige && waige && zongge
+      ? [tiange, renge, dige, waige, zongge].reduce((sum, item) => sum + luckScore(item.luck), 0)
+      : 0;
+  const rScore =
+    tr && rd
+      ? relationScore(tr) +
+        relationScore(rd) +
+        (tr !== "克" && rd !== "克" ? SCORE_WEIGHTS.noConflictBonus : 0)
+      : 0;
 
   let eScore = 0;
   for (const record of givenRecords) {
@@ -336,24 +351,32 @@ function buildCandidateResult(
     givenLength: givenRecords.length as 1 | 2,
     score,
     scoreBreakdown: {
+      sancaiWugeScore: lScore + rScore,
+      elementPreferenceScore: eScore,
       luckScore: lScore,
       relationScore: rScore,
       elementScore: eScore,
       levelScore,
       repeatPenalty,
     },
-    wuge: {
-      天格: tiange,
-      人格: renge,
-      地格: dige,
-      外格: waige,
-      总格: zongge,
-    },
-    sancai: {
-      pattern: `${tiange.wuxing}-${renge.wuxing}-${dige.wuxing}`,
-      天人关系: trDirection,
-      人地关系: rdDirection,
-    },
+    wuge:
+      tiange && renge && dige && waige && zongge
+        ? {
+            天格: tiange,
+            人格: renge,
+            地格: dige,
+            外格: waige,
+            总格: zongge,
+          }
+        : null,
+    sancai:
+      tiange && renge && dige && trDirection && rdDirection
+        ? {
+            pattern: `${tiange.wuxing}-${renge.wuxing}-${dige.wuxing}`,
+            天人关系: trDirection,
+            人地关系: rdDirection,
+          }
+        : null,
     givenCharacters: givenRecords.map((item) => ({
       char: item.simplified,
       kangxi: item.kangxi ?? null,
@@ -476,7 +499,7 @@ function samplePoolRandomly(pool: HanziRecord[], size: number): HanziRecord[] {
 function renderMarkdown(
   output: {
     input: {
-      surname: string;
+      surname: string | null;
       givenLen: GivenLenMode;
       count: number;
       favorableElement: Wuxing | null;
@@ -497,7 +520,7 @@ function renderMarkdown(
   const lines: string[] = [
     `# 起名推荐结果`,
     ``,
-    `- 姓氏：${output.input.surname}`,
+    `- 姓氏：${output.input.surname ?? "（无）"}`,
     `- 名字长度：${output.input.givenLen}`,
     `- 返回数量：${output.input.count}`,
     `- 喜用神主五行：${output.input.favorableElement ?? "-"}`,
@@ -518,17 +541,23 @@ function renderMarkdown(
   }
 
   output.results.forEach((item, index) => {
+    lines.push(``, `### ${index + 1}. ${item.given}（${item.givenLength}字名，${item.score}分）`);
+    if (item.sancai && item.wuge) {
+      lines.push(
+        `- 三才：${item.sancai.pattern}`,
+        `- 天人关系：${item.sancai.天人关系}`,
+        `- 人地关系：${item.sancai.人地关系}`,
+        `- 天格：${item.wuge.天格.number}（${item.wuge.天格.luck}，数理五行=${item.wuge.天格.wuxing}）`,
+        `- 人格：${item.wuge.人格.number}（${item.wuge.人格.luck}，数理五行=${item.wuge.人格.wuxing}）`,
+        `- 地格：${item.wuge.地格.number}（${item.wuge.地格.luck}，数理五行=${item.wuge.地格.wuxing}）`,
+        `- 外格：${item.wuge.外格.number}（${item.wuge.外格.luck}，数理五行=${item.wuge.外格.wuxing}）`,
+        `- 总格：${item.wuge.总格.number}（${item.wuge.总格.luck}，数理五行=${item.wuge.总格.wuxing}）`,
+      );
+    } else {
+      lines.push(`- 三才五格：未启用（未提供姓氏）`);
+    }
     lines.push(
-      ``,
-      `### ${index + 1}. ${item.given}（${item.givenLength}字名，${item.score}分）`,
-      `- 三才：${item.sancai.pattern}`,
-      `- 天人关系：${item.sancai.天人关系}`,
-      `- 人地关系：${item.sancai.人地关系}`,
-      `- 天格：${item.wuge.天格.number}（${item.wuge.天格.luck}，数理五行=${item.wuge.天格.wuxing}）`,
-      `- 人格：${item.wuge.人格.number}（${item.wuge.人格.luck}，数理五行=${item.wuge.人格.wuxing}）`,
-      `- 地格：${item.wuge.地格.number}（${item.wuge.地格.luck}，数理五行=${item.wuge.地格.wuxing}）`,
-      `- 外格：${item.wuge.外格.number}（${item.wuge.外格.luck}，数理五行=${item.wuge.外格.wuxing}）`,
-      `- 总格：${item.wuge.总格.number}（${item.wuge.总格.luck}，数理五行=${item.wuge.总格.wuxing}）`,
+      `- 维度分：喜用神=${item.scoreBreakdown.elementPreferenceScore}, 三才五格=${item.scoreBreakdown.sancaiWugeScore}`,
       `- 分数拆解：luck=${item.scoreBreakdown.luckScore}, relation=${item.scoreBreakdown.relationScore}, element=${item.scoreBreakdown.elementScore}, level=${item.scoreBreakdown.levelScore}, repeat=${item.scoreBreakdown.repeatPenalty}`,
     );
     for (const char of item.givenCharacters) {
@@ -546,11 +575,13 @@ function main(): void {
   const records = readHanziRecords();
   const lookup = buildHanziLookup(records);
 
-  let surnameRecords: HanziRecord[];
-  try {
-    surnameRecords = findRecordsOrThrow(options.surname, lookup);
-  } catch (error) {
-    fail((error as Error).message);
+  let surnameRecords: HanziRecord[] = [];
+  if (options.surname) {
+    try {
+      surnameRecords = findRecordsOrThrow(options.surname, lookup);
+    } catch (error) {
+      fail((error as Error).message);
+    }
   }
   const surnameStrokes = surnameRecords.map((item) => item.wugeStrokeCount);
 
@@ -597,7 +628,7 @@ function main(): void {
 
   const output = {
     input: {
-      surname: options.surname,
+      surname: options.surname ?? null,
       givenLen: options.givenLen,
       count: options.count,
       favorableElement: options.favorableElement ?? null,
