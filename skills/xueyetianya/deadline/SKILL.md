@@ -1,8 +1,10 @@
 ---
 name: "Deadline"
-description: "Your personal Deadline assistant. Track, analyze, and manage all your content creation needs from the command line."
+description: "Your personal Deadline assistant. Use when you need deadline."
 version: "2.0.0"
 author: "BytesAgain"
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 tags: ["social-media", "copywriting", "creative", "deadline", "writing"]
 ---
 
