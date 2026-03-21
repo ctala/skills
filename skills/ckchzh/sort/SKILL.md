@@ -1,89 +1,101 @@
 ---
 name: sort
-version: "2.0.0"
+version: "3.0.2"
 author: BytesAgain
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 license: MIT-0
 tags: [sort, tool, utility]
-description: "Sort - command-line tool for everyday use"
+description: "Sort files, lines, and columns with custom ordering and dedup. Use when scanning duplicates, monitoring changes, reporting results, alerting anomalies."
 ---
 
-# Sort
+# sort
 
-Sort toolkit — sort files, lines, columns, custom ordering, and deduplication.
+File & Text Sorting Tool.
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `sort help` | Show usage info |
-| `sort run` | Run main task |
-| `sort status` | Check state |
-| `sort list` | List items |
-| `sort add <item>` | Add item |
-| `sort export <fmt>` | Export data |
+### `lines`
 
-## Usage
+Sort lines (flags: -r reverse, -n numeric, -u unique)
 
 ```bash
-sort help
-sort run
-sort status
+scripts/script.sh lines <file> [-r] [-n] [-u]
 ```
 
-## Examples
+### `csv`
+
+Sort CSV file by column number (1-based)
 
 ```bash
-sort help
-sort run
-sort export json
+scripts/script.sh csv <file> <column>
 ```
 
-## Output
+### `json`
 
-Results go to stdout. Save with `sort run > output.txt`.
+Sort JSON array by a key
 
-## Configuration
+```bash
+scripts/script.sh json <file> <key>
+```
 
-Set `SORT_DIR` to change data directory. Default: `~/.local/share/sort/`
+### `dedup`
+
+Remove duplicate lines (preserving order)
+
+```bash
+scripts/script.sh dedup <file>
+```
+
+### `shuffle`
+
+Randomly shuffle lines
+
+```bash
+scripts/script.sh shuffle <file>
+```
+
+### `rank`
+
+Rank/sort tabular data by a numeric column
+
+```bash
+scripts/script.sh rank <file> <column>
+```
+
+### `top`
+
+Show top N entries by column value
+
+```bash
+scripts/script.sh top <file> <column> [n]
+```
+
+### `freq`
+
+Frequency analysis — count occurrences of each line
+
+```bash
+scripts/script.sh freq <file>
+```
+
+### `stats`
+
+Show basic stats about the file content
+
+```bash
+scripts/script.sh stats <file>
+```
+
+## Requirements
+
+- python3
+- jq (optional)
 
 ---
-*Powered by BytesAgain | bytesagain.com*
-*Feedback & Feature Requests: https://bytesagain.com/feedback*
 
+*Powered by BytesAgain | bytesagain.com | hello@bytesagain.com*
 
-## Features
+## Data Storage
 
-- Simple command-line interface for quick access
-- Local data storage with JSON/CSV export
-- History tracking and activity logs
-- Search across all entries
-- Status monitoring and health checks
-- No external dependencies required
-
-## Quick Start
-
-```bash
-# Check status
-sort status
-
-# View help and available commands
-sort help
-
-# View statistics
-sort stats
-
-# Export your data
-sort export json
-```
-
-## How It Works
-
-Sort stores all data locally in `~/.local/share/sort/`. Each command logs activity with timestamps for full traceability. Use `stats` to see a summary, or `export` to back up your data in JSON, CSV, or plain text format.
-
-## Support
-
-- Feedback: https://bytesagain.com/feedback/
-- Website: https://bytesagain.com
-- Email: hello@bytesagain.com
-
-Powered by BytesAgain | bytesagain.com
+Operation history is logged to `~/.local/share/sort/history.log` for audit purposes.

@@ -3,9 +3,15 @@
   "slug": "sort",
   "displayName": "Sort",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773664162607,
-    "commit": "https://github.com/openclaw/skills/commit/43461eb51771081c9ea01809b7daf58af8616fac"
+    "version": "3.0.2",
+    "publishedAt": 1773914375818,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773664162607,
+      "commit": "https://github.com/openclaw/skills/commit/43461eb51771081c9ea01809b7daf58af8616fac"
+    }
+  ]
 }
