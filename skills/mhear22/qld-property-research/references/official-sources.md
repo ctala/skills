@@ -21,7 +21,7 @@ Do not use:
 
 ## Statewide foundations
 
-Use these pages to anchor address, roads, and transport checks.
+Use these pages to anchor address, roads, transport, and NBN checks.
 
 ### Queensland address and spatial context
 
@@ -33,6 +33,7 @@ Use these pages to anchor address, roads, and transport checks.
 Use Queensland Globe to verify address placement and inspect official spatial layers for roads and land-use context.
 
 For Brisbane addresses, it is often more reliable to query the live Brisbane ArcGIS parcel and flood services exposed by the public flood app than to rely on the consumer map interface alone.
+Use `scripts/brisbane_flood_check.py` as the default Brisbane flood path. Treat the Flood Awareness browser UI as a fallback, not the primary workflow.
 
 ### Major roads
 
@@ -52,6 +53,15 @@ Use Queensland Globe road layers and current Queensland Government mapping tools
 
 Use Translink for nearest-station identification and station-entry coordinates. Then use openrouteservice for the walking route, as described in [openrouteservice.md](openrouteservice.md).
 
+### NBN infrastructure
+
+- Official public check page:
+  [Check address | nbn](https://www.nbnco.com.au/check-address)
+
+Use the NBN Co check-address service for premises technology such as FTTP, HFC, FTTN, FTTC, FTTB, Fixed Wireless, or Satellite.
+For repeatable checks, prefer `scripts/nbn_infrastructure_check.py --address "<full address>"`, which queries the same public official service endpoints used by the check-address page.
+When the script returns both premises and serving-area technology, treat the premises technology as the property-specific result and the serving-area technology as broader context only.
+
 ## Flood source order by region
 
 Choose the first applicable official source in this order.
@@ -65,6 +75,7 @@ High-confidence coverage.
 
 Use FloodWise when property-level detail is available. Use the Flood Awareness Map for the mapped finding and likelihood context.
 For repeatable checks, prefer the live public ArcGIS services exposed by Flood Awareness Online, especially parcel boundaries, parcel metrics, and the flood-awareness layers.
+Use `scripts/brisbane_flood_check.py --address "<full address>"` before opening FloodWise or the browser map.
 
 ### City of Moreton Bay
 
@@ -141,6 +152,6 @@ Use a partial report when any of these conditions apply:
 
 When partial:
 
-- keep the `Address / Coverage`, `Flood`, `Main Road Proximity`, `Train Access`, and `Sources` sections
+- keep the `Address / Coverage`, `NBN Infrastructure`, `Flood`, `Main Road Proximity`, `Train Access`, and `Sources` sections
 - keep `Composite Score` as a heading but state that it is not emitted because one or more sections are unsupported
 - explain exactly which section is unsupported and why

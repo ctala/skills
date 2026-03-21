@@ -22,6 +22,13 @@ Use this structure for every supported address.
 - Official sources used: <short list>
 - Coverage note: <why this is full coverage or partial>
 
+## NBN Infrastructure
+- Premises technology: <FTTP / HFC / FTTN / FTTC / FTTB / Fixed Wireless / Satellite / Unsupported>
+- Serving-area technology: <if different or useful>
+- Service status: <available / planned / other official wording>
+- Evidence: <1-2 cited findings from the official nbn source>
+- Interpretation: <plain-English meaning and any caveat about premises vs serving-area values>
+
 ## Flood
 - Result: <short finding>
 - Evidence: <1-2 cited findings from the official source>
@@ -55,9 +62,30 @@ Use this structure for every supported address.
 
 Use `Unsupported with current official data` when a section cannot be supported.
 
+## NBN infrastructure
+
+Use the official nbn address-check service for the infrastructure result.
+
+Preferred process:
+
+1. Run `scripts/nbn_infrastructure_check.py --address "<full address>"`.
+2. Use `selected_match.formatted_address` to confirm the matched premises.
+3. Use `nbn.premises_technology` as the primary result.
+4. If `nbn.serving_area_technology` differs, mention it as contextual evidence only.
+5. Cite the official nbn check-address page and the property-specific API result surfaced by the script.
+
+Rules:
+
+- Treat `nbn.premises_technology` as the authoritative property-specific technology when present.
+- If the premises and serving-area technologies differ, explain that the serving-area value is broader area context.
+- Do not convert the NBN section into the composite score unless the user explicitly requests a modified model.
+- If the script returns `status: not_found` or no premises technology, mark the section `Unsupported with current official data`.
+
 ## Flood scoring
 
 Use the most property-specific official flood source available. If multiple official flood products exist, score the worst supported mapped result for the property.
+
+For Brisbane addresses, run `scripts/brisbane_flood_check.py` first. If it returns structured parcel and layer-hit data, use that result directly instead of manually driving the browser map.
 
 Map the official result to a flood subscore:
 
@@ -152,6 +180,7 @@ Interpretation bands:
 
 Always include these ideas in the report where relevant:
 
+- NBN technology comes from NBN Co's official address-check service. Where premises and serving-area technologies differ, the premises technology is the property-specific result.
 - Flood mapping is an official planning or awareness input, not a promise of future behaviour at the lot.
 - Main-road proximity is a road-adjacency screen, not a measured air-quality or CO2 reading.
 - Train access is based on official property and station coordinates plus a third-party OSM-based walking route from openrouteservice, not an official government walking route, service frequency, parking availability, or personal mobility need unless the user asks for those separately.
