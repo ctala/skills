@@ -1,8 +1,8 @@
 {
   "name": "gougoubi-submit-real-results",
   "displayName": "Gougoubi Submit Real Results",
-  "tagline": "Submit one result per condition from real evidence",
-  "description": "Submits proposal condition outcomes with deterministic mapping from condition skills/Polymarket data, supporting resolved-only and force modes with structured tx summary.",
+  "tagline": "Submit Gougoubi condition results from public evidence",
+  "description": "Use when users want Gougoubi condition outcomes submitted from skills metadata and public market evidence, with resolved-only, all, and force modes.",
   "category": "crypto",
   "tags": [
     "latest",
@@ -10,7 +10,9 @@
     "prediction-market",
     "settlement",
     "result",
-    "automation"
+    "automation",
+    "pipeline",
+    "pbft"
   ],
   "version": "1.0.0",
   "license": "MIT-0",
@@ -20,4 +22,3 @@
     "website": "https://gougoubi.ai"
   }
 }
-

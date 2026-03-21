@@ -1,12 +1,18 @@
 # Gougoubi Submit Real Results
 
-Submit real outcomes for proposal conditions with deterministic, auditable mapping to public data sources.
+Use this skill when the user wants to submit Gougoubi condition outcomes from public evidence.
 
-Required:
+Best for:
 
-- `proposalAddress`
+- resolved-only settlement first
+- full proposal result submission
+- forced fallback for pending conditions when explicitly requested
 
-Recommended:
+Typical input:
 
-- `mode=resolved-only` first
-
+```json
+{
+  "proposalAddress": "0x...",
+  "mode": "resolved-only"
+}
+```

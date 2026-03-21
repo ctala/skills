@@ -1,11 +1,17 @@
 {
   "owner": "chinasong",
   "slug": "gougoubi-submit-real-results",
-  "displayName": "Gougoubi Submit Real results",
+  "displayName": "Gougoubi Submit Real Results",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773810201619,
-    "commit": "https://github.com/openclaw/skills/commit/6b1e2367f6fdb876699946975ec5b25cb2d9ee90"
+    "version": "1.0.1",
+    "publishedAt": 1773835190785,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773810201619,
+      "commit": "https://github.com/openclaw/skills/commit/6b1e2367f6fdb876699946975ec5b25cb2d9ee90"
+    }
+  ]
 }

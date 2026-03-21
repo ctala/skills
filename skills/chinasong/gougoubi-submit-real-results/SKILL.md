@@ -1,18 +1,30 @@
 ---
 name: gougoubi-submit-real-results
-description: Submit real-world outcomes for Gougoubi proposal conditions using deterministic mapping from condition skills (Polymarket marketId/event slug). Supports resolved-only mode and forced fallback mode, one submission per condition.
-metadata: {"clawdbot":{"emoji":"✅","os":["darwin","linux","win32"]}}
+description: Submit real-world outcomes for Gougoubi conditions using deterministic evidence from condition skills and public market data. Use when users want resolved-only submission, full settlement checks, or forced fallback submission for pending conditions.
+metadata:
+  pattern: pipeline
+  interaction: single-turn
+  domain: gougoubi-pbft
+  outputs: structured-json
+  clawdbot:
+    emoji: "✅"
+    os: ["darwin", "linux", "win32"]
 ---
 
 # Gougoubi Submit Real Results
 
-Submit condition results for a proposal with deterministic evidence and safe guards.
+Use this skill to map external evidence to on-chain condition results and submit one result per condition.
 
-## When To Use
+## Use This Skill When
 
-- User asks to submit real outcomes for all conditions under a proposal.
-- User asks to submit only officially resolved conditions first.
-- User asks to force-submit remaining conditions as YES/NO.
+- The user wants to submit real outcomes for all conditions in a proposal.
+- The user wants to submit only officially resolved conditions first.
+- The user wants a forced fallback such as `No` for remaining unresolved conditions.
+
+## Do Not Use This Skill When
+
+- The user only wants to inspect missing results without submitting. Use `gougoubi-recovery-ops`.
+- The user only wants activation or LP staking.
 
 ## Input
 
@@ -20,7 +32,7 @@ Submit condition results for a proposal with deterministic evidence and safe gua
 {
   "proposalAddress": "0x...",
   "mode": "resolved-only|all|force",
-  "forceResult": "yes|no (required when mode=force)",
+  "forceResult": "yes|no",
   "evidenceNote": "optional"
 }
 ```
@@ -28,23 +40,33 @@ Submit condition results for a proposal with deterministic evidence and safe gua
 Defaults:
 
 - `mode=resolved-only`
-- `evidenceNote` auto-generated with timestamp
+- `evidenceNote` should be auto-generated when missing
 
-## Deterministic Flow
+## Pipeline
 
-1. Validate proposal address and chain (BSC 56).
-2. Enumerate all conditions from proposal.
-3. Read each condition `skills` payload and extract `event slug` + `conditionMarketId`.
-4. Fetch event data from `gamma-api.polymarket.com`.
-5. Build result map:
-   - `resolved-only`: only markets with official resolved marker.
-   - `all`: infer all markets with clear winner.
-   - `force`: use same forced side for pending conditions.
-6. For each target condition:
-   - skip if `status != ACTIVE` or already has result (`result != 0`).
-   - submit exactly one result vote per condition.
-   - auto switch voter if creator/insufficient.
-7. Return structured summary and tx hashes.
+Step 1: Validate proposal address and target chain.
+
+Step 2: Enumerate all conditions under the proposal.
+
+Step 3: Read each condition `skills` payload and extract evidence locators such as event slug or market id.
+
+Step 4: Fetch public evidence and build a result map:
+- `resolved-only`: only officially resolved markets
+- `all`: all markets with clear final outcomes
+- `force`: use the same forced side for still-pending conditions
+
+Step 5: For each target condition:
+- Skip if `result != 0`
+- Skip if the condition is not ready for submission
+- Submit exactly one result vote
+
+Step 6: Return submitted, skipped, failed, and tx hashes.
+
+## Checkpoints
+
+- Prefer `resolved-only` unless the user explicitly asks for `all` or `force`.
+- Never duplicate a submission for a condition that already has `result != 0`.
+- Keep evidence mapping and tx results together in the output.
 
 ## Output
 
@@ -66,7 +88,8 @@ Defaults:
     }
   ],
   "skipped": [],
-  "failed": []
+  "failed": [],
+  "warnings": []
 }
 ```
 
@@ -81,18 +104,15 @@ Failure:
 }
 ```
 
-## Script Mapping In This Project
+## Project Scripts
 
-- Generic submit: `scripts/pbft-submit-all-condition-results.mjs`
-- Existing deterministic examples:
-  - `scripts/pbft-submit-real-results-1605.mjs`
-  - `scripts/pbft-submit-real-results-c427-confirmed.mjs`
-  - `scripts/pbft-submit-real-results-ba0c-resolved-only.mjs`
-  - `scripts/pbft-submit-remaining-no-ba0c.mjs`
+- `scripts/pbft-submit-all-condition-results.mjs`
+- `scripts/pbft-submit-real-results-1605.mjs`
+- `scripts/pbft-submit-real-results-c427-confirmed.mjs`
+- `scripts/pbft-submit-real-results-ba0c-resolved-only.mjs`
+- `scripts/pbft-submit-remaining-no-ba0c.mjs`
 
 ## Boundaries
 
-- Never submit duplicated votes for the same condition by default.
-- Prefer `resolved-only` unless user explicitly asks to force.
-- Always keep evidence text and tx hashes in result.
-
+- Do not infer unresolved results unless the user explicitly asks for `all` or `force`.
+- Preserve an auditable mapping from evidence to submitted result.
