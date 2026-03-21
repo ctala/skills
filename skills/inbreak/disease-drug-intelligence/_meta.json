@@ -1,0 +1,11 @@
+{
+  "owner": "inbreak",
+  "slug": "disease-drug-intelligence",
+  "displayName": "疾病最新药物研究报告",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773902468114,
+    "commit": null
+  },
+  "history": []
+}
