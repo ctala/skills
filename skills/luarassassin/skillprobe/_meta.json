@@ -3,9 +3,15 @@
   "slug": "skillprobe",
   "displayName": "SkillProbe",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773841397416,
-    "commit": "https://github.com/openclaw/skills/commit/595cbfb622523fcd6f1b7e44c1d5c5c7cc013030"
+    "version": "0.2.5",
+    "publishedAt": 1773912089796,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773841397416,
+      "commit": "https://github.com/openclaw/skills/commit/595cbfb622523fcd6f1b7e44c1d5c5c7cc013030"
+    }
+  ]
 }

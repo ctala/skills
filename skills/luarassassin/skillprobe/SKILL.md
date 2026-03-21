@@ -2,23 +2,32 @@
 name: skillprobe
 description: >
   A/B evaluate any AI agent skill's real impact. Generates skill profiles,
-  synthetic test tasks, runs baseline vs with-skill experiments, scores across
-  6 dimensions, performs attribution analysis, and produces structured reports
-  with install recommendations. Use when you need to decide whether a skill
-  is worth enabling, or when optimizing an existing skill.
-homepage: https://github.com/FreedomIntelligence/skillprobe
+  synthetic test tasks, compares baseline vs with-skill behavior, performs
+  attribution analysis, and produces structured reports with install
+  recommendations. Use when you need to decide whether a skill is worth
+  enabling, or when optimizing an existing skill.
+homepage: https://clawhub.ai/LuarAssassin/skillprobe
 metadata:
   clawdbot:
     emoji: "🔬"
-    requires:
-      env: ["OPENAI_API_KEY"]
-    primaryEnv: "OPENAI_API_KEY"
     files: ["scripts/*"]
 ---
 
 # SkillProbe — Skill Effect Evaluator
 
 Evaluate whether an AI agent skill actually improves performance, or just adds complexity.
+
+## How Evaluation Runs (No Extra API Key Required)
+
+This skill is designed to run **inside the same agent or runtime** that will use the evaluated skills (e.g. Cursor agent, OpenClaw, ClaudeCode). In that case:
+
+- The current agent **orchestrates** Steps 4–5 (task set, run order, scoring inputs), but execution must be split into isolated workers:
+  - Worker A: baseline only (do not read/apply target skill content)
+  - Worker B: with-skill only (read/apply target skill content before running the same tasks)
+- The runtime’s existing model access is used; no separate API key is required by this skill.
+- The optional **standalone CLI** (`skillprobe evaluate …`) is for local runs outside an agent; that path should use whatever provider/model the local runtime is already configured to use.
+
+So: **in-agent or in OpenClaw/ClaudeCode, the skill is directly testable** — follow the 7-step workflow using the runtime’s own model and tools.
 
 ## When to Use
 
@@ -64,8 +73,8 @@ Create a diverse set of test tasks that:
 ### Step 4: Run Baseline (No Skill)
 
 Execute all tasks WITHOUT the target skill enabled:
-- Record outputs, reasoning traces, tool calls
-- Measure duration and token usage
+- Record outputs, tool calls when available, and token usage
+- Measure duration and note missing traces explicitly if the runtime cannot provide them
 - Establish the performance floor
 
 ### Step 5: Run With Skill
@@ -75,9 +84,33 @@ Execute the SAME tasks WITH the target skill enabled:
 - The ONLY variable is skill on/off
 - Record skill trigger events (when, how often, whether helpful)
 
+### Strict A/B Protocol (Required)
+
+- Baseline and with-skill runs must be **real executions**, not hypothetical or simulated answers.
+- Use isolated contexts for the two arms (separate child agents or separate sessions) to avoid cross-contamination.
+- Never run both arms inside a single child-agent invocation.
+- If explicit skill on/off toggles are unavailable, you must still run real dual arms using this operational proxy:
+  - Baseline arm: do not read/apply the target skill content.
+  - With-skill arm: read and apply the target skill content before running the same tasks.
+- Never write conclusions based on wording such as “assuming skill disabled/enabled”, “simulated baseline”, or “hypothetical with-skill”.
+
+### Execution Topology (Required)
+
+- For each evaluated skill, use at least two execution workers:
+  - Worker A: baseline only
+  - Worker B: with-skill only
+- Use a third context (main agent or worker C) to score and compare outputs.
+- Record per-task arm evidence (`session_id` / `agent_id`) so independence is auditable.
+
+### No Early-Stop Policy (Required)
+
+- Do not stop at Step 1–3.
+- For every requested evaluation session, complete at least one skill end-to-end through Step 6 scoring.
+- Never return `Inconclusive` only because of a conservative runtime assumption. `Inconclusive` is allowed only after an attempted dual-arm execution where evidence is genuinely insufficient (for example repeated hard execution failures).
+
 ### Step 6: Score Both Runs
 
-Apply three-layer scoring:
+Apply layered scoring:
 
 **Layer 1 — Rule-based** (hard requirements):
 - Did it produce output?
@@ -90,7 +123,7 @@ Apply three-layer scoring:
 - Information completeness
 - Test pass rate
 
-**Layer 3 — LLM Judge** (soft quality):
+**Layer 3 — LLM Judge** (soft quality, optional if runtime supports it):
 - Reasoning depth
 - Professional quality
 - Task completion degree
@@ -103,7 +136,7 @@ Score across 6 dimensions (100-point scale):
 | Effectiveness | 30 | Task completion, correctness, key objective hits |
 | Quality | 20 | Professionalism, clarity, reasoning depth |
 | Efficiency | 15 | Duration, token cost, tool call overhead |
-| Stability | 15 | Run-to-run variance, edge case resilience |
+| Stability | 15 | Run-to-run variance and edge case resilience when repeated runs are available |
 | Trigger Fitness | 10 | Trigger accuracy, restraint, utility |
 | Safety | 10 | Hallucination, verbosity, misleading content |
 
@@ -152,10 +185,10 @@ The final report should follow this structure:
 ## Key Principles
 
 1. **A/B must be reproducible**: Same model, temperature, seed, tools, tasks. Only variable is skill on/off.
-2. **Scoring is multi-layered**: Never rely on LLM judge alone. Rules + results + LLM judge.
+2. **Scoring must be evidence-backed**: Use rules and result checks first; use LLM judge only as an optional additional layer.
 3. **Conclusions must have attribution**: Don't just say "+8 points". Say WHY and WHERE.
 4. **Evaluation drives improvement**: Every report should include actionable next steps.
-5. **Be honest about uncertainty**: If data is insufficient, say "Inconclusive", not "Recommended".
+5. **Finish execution before uncertainty claims**: Only use "Inconclusive" after attempted real dual-arm runs with insufficient evidence, not before execution.
 
 ## Derived Metrics
 
@@ -172,28 +205,34 @@ The final report should follow this structure:
 | Conditionally Recommended | Net Gain >= 3, some regressions in specific categories |
 | Not Recommended | Net Gain < 0 or significant side effects |
 | Needs Revision | Potential exists but current version has clear issues |
-| Inconclusive | Insufficient data or high variance |
+| Inconclusive | Real dual-arm execution attempted, but evidence is still insufficient (e.g., repeated execution failures or extreme instability) |
+
+## Packaging Note
+
+- **Primary use**: In ClawHub/OpenClaw or in an agent (e.g. Cursor, ClaudeCode), this skill is used as a prompt-driven workflow. The agent executes baseline and with-skill runs itself using the runtime’s model; no extra API key is required.
+- The bundled `scripts/evaluate.sh` is an **optional** helper for standalone local runs; it invokes the SkillProbe Python CLI when installed. That CLI path should use the local runtime’s configured provider and model settings.
+- For standalone local runs, recommended command shape is:
+  - `skillprobe evaluate <skill-path> --tasks 30 --repeats 2 --db outputs/evaluations.db`
+  - Add `--llm-judge [--judge-model <model>]` when you want pairwise judge scoring in the aggregated dimensions.
+- The helper script supports these flags as passthrough: `--model`, `--tasks`, `--repeats`, `--llm-judge`, `--judge-model`, `--db`.
+- If you are not using the CLI, follow the 7-step workflow in this file and state which evidence was or was not directly observable.
 
 ## External Endpoints
 
-| Endpoint | Purpose | Data Sent |
-|----------|---------|-----------|
-| OpenAI API (or configured LLM provider) | Execute test tasks for baseline and with-skill runs, LLM judge scoring | Task prompts, skill content, agent outputs for comparison |
-
-No other external endpoints are called. All evaluation logic runs locally.
+When run **in-agent or in OpenClaw/ClaudeCode**: the runtime’s existing model is used; no separate endpoint or API key is required by this skill. When run via the **standalone CLI**, the CLI uses whatever LLM provider the local runtime is configured with; task prompts, skill content, and agent outputs are sent there for execution and optional judge scoring. No other external endpoints. All evaluation logic runs locally.
 
 ## Security & Privacy
 
 - Skill content being evaluated is sent to the configured LLM provider for execution
-- Task prompts and agent outputs are sent to the LLM for judge scoring
+- Task prompts and agent outputs may be sent to the LLM for optional judge scoring
 - All evaluation data (profiles, tasks, runs, reports) is stored locally
 - No data is sent to SkillProbe servers or any third party beyond the LLM provider
 - No telemetry or analytics are collected
 
 ## Model Invocation Note
 
-This skill guides the agent through a structured evaluation workflow. The agent will make multiple LLM API calls to execute test tasks and perform judge scoring. This is the core function of the skill and is expected behavior.
+This skill guides the agent through a structured evaluation workflow. When used inside an agent or OpenClaw/ClaudeCode, the runtime performs baseline and with-skill runs using its own model. When using the standalone CLI, the CLI’s configured LLM provider is used. Optional LLM judge scoring is supported where the runtime allows it.
 
 ## Trust Statement
 
-By using this skill, task prompts and skill content will be sent to your configured LLM provider (e.g., OpenAI) for evaluation. Only install this skill if you trust your LLM provider with the content of the skills you plan to evaluate.
+When used in-agent or in OpenClaw/ClaudeCode, task prompts and skill content are handled by the same runtime you already use. When using the standalone CLI, they are sent to the CLI’s configured LLM provider. Only install this skill if you trust that runtime or provider with the content of the skills you plan to evaluate.
