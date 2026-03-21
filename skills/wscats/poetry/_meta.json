@@ -1,0 +1,11 @@
+{
+  "owner": "wscats",
+  "slug": "poetry",
+  "displayName": "Poetry",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773797322351,
+    "commit": null
+  },
+  "history": []
+}
