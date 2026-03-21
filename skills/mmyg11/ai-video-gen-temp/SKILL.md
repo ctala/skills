@@ -1,5 +1,5 @@
 ---
-name: ai-video-gen
+name: ai-video-gen-local
 description: End-to-end AI video generation - create videos from text prompts using image generation, video synthesis, voice-over, and editing. Supports OpenAI DALL-E, Replicate models, LumaAI, Runway, and FFmpeg editing.
 ---
 
