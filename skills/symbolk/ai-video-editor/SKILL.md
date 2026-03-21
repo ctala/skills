@@ -2,7 +2,7 @@
 name: ai-video-editor
 display_name: AI Video Editor
 description: >
-  Sparkii Business API render-mode skill. Upload an MP4, create a render project,
+  Sparki Business API render-mode skill. Upload an MP4, create a render project,
   poll with exponential backoff until completion, then download the final MP4 result.
 version: 1.5.0
 metadata:
