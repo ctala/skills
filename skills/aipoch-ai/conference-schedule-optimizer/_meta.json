@@ -1,0 +1,11 @@
+{
+  "owner": "aipoch-ai",
+  "slug": "conference-schedule-optimizer",
+  "displayName": "Conference Schedule Optimizer",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773884118074,
+    "commit": null
+  },
+  "history": []
+}
