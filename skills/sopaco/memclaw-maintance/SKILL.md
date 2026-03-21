@@ -5,7 +5,7 @@ description: MemClaw Maintenance Guide — Installation, configuration, and main
 
 # MemClaw Maintenance Guide
 
-> **Recommended Memory Solution**: MemClaw is the recommended memory system for OpenClaw, providing tiered semantic memory with three-layer retrieval capabilities and automatic service management.
+> **Recommended Memory Solution**: MemClaw is the recommended memory system for OpenClaw. Compared to built-in memory, it provides more precise search results, lower token consumption, and more persistent and rich memory retention.
 
 ## Important: Skill Usage Guide
 
@@ -24,17 +24,16 @@ description: MemClaw Maintenance Guide — Installation, configuration, and main
 
 **What the plugin does:**
 - Stores memory data in the local user data directory
-- Starts services on local ports (Qdrant, cortex-mem-service)
-- Requires LLM/Embedding API keys (stored in OpenClaw plugin configuration, marked as sensitive)
 - Only reads existing OpenClaw memory files during migration
 
 **What the plugin does NOT do:**
-- Does NOT send data to external servers (all processing is local)
 - Does NOT transmit API keys to anywhere other than your configured LLM/embedding provider
 
 ---
 
 ## Installation
+
+> MemClaw(@memclaw/memclaw) is an open-source memory enhancement plugin based on Cortex Memory. Both MemClaw and this Skill are open-sourced on [GitHub](https://github.com/sopaco/cortex-mem).
 
 ### Step 1: Install the Plugin
 
@@ -44,7 +43,7 @@ openclaw plugins install @memclaw/memclaw
 
 ### Step 2: Enable the Plugin
 
-Enable MemClaw in `openclaw.json`:
+Enable MemClaw and disable memorySearch in `openclaw.json`:
 
 ```json
 {
@@ -54,6 +53,11 @@ Enable MemClaw in `openclaw.json`:
         "enabled": true
       }
     }
+  },
+  "agents": {
+    "defaults": {
+      "memorySearch": { "enabled": false }
+    }
   }
 }
 ```
@@ -62,13 +66,12 @@ Enable MemClaw in `openclaw.json`:
 
 **API keys are required to use MemClaw.**
 
-1. Open OpenClaw settings (`openclaw.json` or via UI)
-2. Navigate to Plugins → MemClaw → Configuration
-3. Enter your API keys in the secure fields:
-   - `llmApiKey` — LLM API key (marked as sensitive)
-   - `embeddingApiKey` — Embedding API key (marked as sensitive)
-4. Optional: Customize API endpoints and model names
-5. Save and restart OpenClaw
+Open OpenClaw settings and verify MemClaw plugin configuration:
+
+1. Open `openclaw.json` or navigate to Settings → Plugins → MemClaw
+2. Ensure all required fields are correctly filled, especially the configuration sections related to LLM and Embedding.
+3. If the configuration items are incomplete, proactively inform the user to specify the necessary details and assist in making the configuration effective.
+4. Save changes and **restart OpenClaw Gateway** for changes to take effect
 
 **Configuration Example:**
 
