@@ -3,9 +3,15 @@
   "slug": "wallpaper-claw-skill",
   "displayName": "Wallpaper Claw Skill",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773644851538,
-    "commit": "https://github.com/openclaw/skills/commit/0250953b49dd5144686b0c3d9eaba5aa58f68c07"
+    "version": "1.1.0",
+    "publishedAt": 1773971837830,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773644851538,
+      "commit": "https://github.com/openclaw/skills/commit/0250953b49dd5144686b0c3d9eaba5aa58f68c07"
+    }
+  ]
 }
