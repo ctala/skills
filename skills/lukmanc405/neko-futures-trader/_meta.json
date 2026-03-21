@@ -3,11 +3,16 @@
   "slug": "neko-futures-trader",
   "displayName": "Neko Futures Trader",
   "latest": {
-    "version": "1.0.18",
-    "publishedAt": 1773756316567,
-    "commit": "https://github.com/openclaw/skills/commit/e79f204d03ad79964ebb3abcc0cef6a0fe42320f"
+    "version": "1.0.26",
+    "publishedAt": 1773843797177,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.18",
+      "publishedAt": 1773756316567,
+      "commit": "https://github.com/openclaw/skills/commit/e79f204d03ad79964ebb3abcc0cef6a0fe42320f"
+    },
     {
       "version": "1.0.7",
       "publishedAt": 1773710817897,

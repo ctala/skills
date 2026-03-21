@@ -183,7 +183,7 @@ def get_klines(symbol, interval='1h', limit=100):
     return r.json()
 
 def place_order_with_sl_tp(symbol, side, quantity, sl_price, tp_price):
-    """Place order with auto SL/TP"""
+    """Place order with OCO (One Cancels Other) - both SL and TP at once"""
     ts = int(time.time() * 1000)
     
     # First place the order
@@ -194,34 +194,91 @@ def place_order_with_sl_tp(symbol, side, quantity, sl_price, tp_price):
     r = requests.post(url, headers=headers, timeout=15)
     result = r.json()
     
-    # Then set stop loss - use working price instead of closePosition
-    if sl_price:
-        sl_side = "SELL" if side == "BUY" else "BUY"
-        # Get current price for working price
+    # OCO Orders - place both SL and TP simultaneously
+    if sl_price and tp_price:
+        # Get current price
         r = requests.get(f'https://fapi.binance.com/fapi/v1/ticker/price?symbol={symbol}', timeout=10)
         current_price = float(r.json()['price'])
-        sl_price_adj = current_price * 0.99 if side == "BUY" else current_price * 1.01
         
-        sl_params = "symbol={}&side={}&type=STOP&price={}&stopPrice={}&timeInForce=GTC&quantity={}&timestamp={}".format(
-            symbol, sl_side, round(sl_price_adj, 6), round(sl_price, 6), quantity, int(time.time() * 1000))
+        # Calculate working prices (trigger prices)
+        if side == "BUY":  # LONG
+            # SL triggers when price falls
+            sl_trigger = sl_price
+            sl_working = sl_price * 0.99
+            # TP triggers when price rises  
+            tp_trigger = tp_price
+            tp_working = tp_price * 1.01
+        else:  # SHORT
+            sl_trigger = sl_price
+            sl_working = sl_price * 1.01
+            tp_trigger = tp_price
+            tp_working = tp_price * 0.99
+        
+        # Place STOP Loss order
+        sl_side = "SELL" if side == "BUY" else "BUY"
+        sl_params = "symbol={}&side={}&type=STOP_MARKET&stopPrice={}&workingType=CONTRACT_PRICE&closePosition=true&timestamp={}".format(
+            symbol, sl_side, round(sl_trigger, 6), int(time.time() * 1000))
         sl_sig = get_signature(sl_params)
         sl_url = "https://fapi.binance.com/fapi/v1/order?{}&signature={}".format(sl_params, sl_sig)
-        requests.post(sl_url, headers=headers, timeout=15)
-    
-    # Then set take profit
-    if tp_price:
-        tp_side = "SELL" if side == "BUY" else "BUY"
-        r = requests.get(f'https://fapi.binance.com/fapi/v1/ticker/price?symbol={symbol}', timeout=10)
-        current_price = float(r.json()['price'])
-        tp_price_adj = current_price * 1.01 if side == "BUY" else current_price * 0.99
+        try:
+            requests.post(sl_url, headers=headers, timeout=10)
+        except:
+            pass
         
-        tp_params = "symbol={}&side={}&type=STOP&price={}&stopPrice={}&timeInForce=GTC&quantity={}&timestamp={}".format(
-            symbol, tp_side, round(tp_price_adj, 6), round(tp_price, 6), quantity, int(time.time() * 1000))
+        # Place TAKE PROFIT order
+        tp_side = "SELL" if side == "BUY" else "BUY"
+        tp_params = "symbol={}&side={}&type=TAKE_PROFIT_MARKET&stopPrice={}&workingType=CONTRACT_PRICE&closePosition=true&timestamp={}".format(
+            symbol, tp_side, round(tp_trigger, 6), int(time.time() * 1000))
         tp_sig = get_signature(tp_params)
         tp_url = "https://fapi.binance.com/fapi/v1/order?{}&signature={}".format(tp_params, tp_sig)
-        requests.post(tp_url, headers=headers, timeout=15)
+        try:
+            requests.post(tp_url, headers=headers, timeout=10)
+        except:
+            pass
     
     return result
+
+def check_margin_risk():
+    """Check margin and position risk - don't overtrade"""
+    ts = int(time.time() * 1000)
+    params = f'timestamp={ts}'
+    sig = get_signature(params)
+    r = requests.get(f'https://fapi.binance.com/fapi/v3/account?{params}&signature={sig}', 
+                   headers={'X-MBX-APIKEY': API_KEY}, timeout=15)
+    acc = r.json()
+    
+    balance = float(acc.get('totalMarginBalance', 0))
+    positions = get_positions()
+    notional = sum(abs(float(p.get('positionAmt', 0)) * float(p.get('entryPrice', 0))) for p in positions)
+    margin_used = notional / 10  # 10x leverage
+    
+    margin_pct = (margin_used / balance * 100) if balance > 0 else 0
+    
+    return {
+        'balance': balance,
+        'positions': len(positions),
+        'notional': notional,
+        'margin_used': margin_used,
+        'margin_pct': margin_pct,
+        'safe_to_trade': margin_pct < 40 and len(positions) < 5
+    }
+
+def should_add_trailing_tp(entry, current, tp, side, trailing_percent=1.5):
+    """Check if trailing TP should be activated
+    Activates when price moves 1.5% in profit direction
+    """
+    if side == "LONG":
+        profit_pct = ((current - entry) / entry) * 100
+        if profit_pct >= trailing_percent:
+            # Move TP up by 0.5%
+            new_tp = current * 1.005
+            return new_tp if new_tp > tp else tp
+    else:  # SHORT
+        profit_pct = ((entry - current) / entry) * 100
+        if profit_pct >= trailing_percent:
+            new_tp = current * 0.995
+            return new_tp if new_tp < tp else tp
+    return None
 
 def place_order(symbol, side, quantity):
     ts = int(time.time() * 1000)
@@ -279,10 +336,11 @@ def analyze_symbol(symbol, stats):
     if not candles or len(candles) < 20:
         return None
     
-    closes = [float(c[3]) for c in candles]
-    highs = [float(c[1]) for c in candles]
-    lows = [float(c[2]) for c in candles]
-    volumes = [float(c[5]) for c in candles]
+    closes = [float(c[4]) for c in candles]  # index 4 = close
+    opens = [float(c[1]) for c in candles]     # index 1 = open
+    highs = [float(c[2]) for c in candles]    # index 2 = high
+    lows = [float(c[3]) for c in candles]     # index 3 = low
+    volumes = [float(c[5]) for c in candles] # index 5 = volume
     current = closes[-1]
     
     # === RUNNER CRITERIA ===
@@ -290,6 +348,15 @@ def analyze_symbol(symbol, stats):
     avg_vol = sum(volumes[-24:]) / 24 if len(volumes) >= 24 else sum(volumes) / len(volumes)
     recent_vol = volumes[-1]
     vol_ratio = recent_vol / avg_vol if avg_vol > 0 else 1
+    
+    # Get weekly data
+    r_weekly = requests.get(f'https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval=1w&limit=5', timeout=10)
+    weekly_candles = r_weekly.json()
+    weekly_change = 0
+    if len(weekly_candles) >= 2:
+        weekly_open = float(weekly_candles[-1][1])
+        weekly_close = float(weekly_candles[-1][4])
+        weekly_change = ((weekly_close - weekly_open) / weekly_open) * 100
     
     # 2. 1H Momentum (continuation)
     change_1h = ((closes[-1] - closes[-6]) / closes[-6]) * 100 if len(closes) >= 6 else 0
@@ -302,26 +369,78 @@ def analyze_symbol(symbol, stats):
     breakout = recent_high > prev_high * 1.02  # 2% above for LONG
     breakdown = recent_low < prev_low * 0.98  # 2% below for SHORT
     
-    # 4. Open Interest - use enhanced OI history
+    # 4. Pocket Pivot Detection (price > 50SMA, green candle, vol spike)
+    sma_50 = sum(closes[-50:]) / 50 if len(closes) >= 50 else closes[-1]
+    is_green_candle = closes[-1] > opens[-1] if len(opens) > 0 else True
+    past_10_vol_max = max(volumes[-10:])
+    pocket_pivot = (current > sma_50) and is_green_candle and (recent_vol > past_10_vol_max)
+    
+    # 5. DCR% (Daily Closing Range %)
+    dcr = ((current - lows[-1]) / (highs[-1] - lows[-1])) * 100 if (highs[-1] - lows[-1]) > 0 else 0
+    
+    # 6. VCS - Volatility Contraction Score (based on ATR compression)
+    # Low ATR relative to recent = contraction
+    atr_current = calc_atr(candles, 14) or (current * 0.02)
+    atr_avg = sum(calc_atr(candles[i:i+5], 14) or (closes[i] * 0.02) for i in range(min(10, len(candles)-5))) / min(10, len(candles)-5) if len(candles) > 5 else atr_current
+    vcs_score = 100 - (atr_current / atr_avg * 100) if atr_avg > 0 else 50  # Higher = more contracted
+    vcs = vcs_score > 30  # Contraction detected
+    
+    # 7. Trend Base (price > 50SMA AND 10WMA > 30WMA)
+    wma_10 = sum(closes[-10:]) / 10 if len(closes) >= 10 else closes[-1]
+    wma_30 = sum(closes[-30:]) / 30 if len(closes) >= 30 else closes[-1]
+    trend_base = (current > sma_50) and (wma_10 > wma_30)
+    
+    # 8. PP Count - count pocket pivots in last 30 days
+    pp_count = 0
+    for i in range(20, len(closes)-1):
+        if i >= 50:  # Need 50 EMA
+            vol_high = max(volumes[i-10:i])
+            if volumes[i] > vol_high and closes[i] > sum(closes[i-50:i-40])/10:
+                pp_count += 1
+    
+    # 9. 21EMA position in ATR range
+    ema_21_val = calc_ema(closes, 21) or current
+    ema_position = ((current - (ema_21_val - atr_current)) / (atr_current * 2)) * 100 if atr_current > 0 else 50
+    
+    # Open Interest - use enhanced OI history
     oi_data = get_oi_history(symbol)
     oi = oi_data.get('current', 0)
     oi_change = oi_data.get('change_pct', 0)
     oi_trend = oi_data.get('trend', 'neutral')
     
-    # Runner score
+    # Runner score - updated with new setups
     runner_score = 0
+    
+    # Volume
     if vol_ratio > 3: runner_score += 2
     elif vol_ratio > 2: runner_score += 1
+    
+    # Price changes
     if price_change > 10: runner_score += 2
     elif price_change > 5: runner_score += 1
     if abs(change_1h) > 3: runner_score += 1
+    
+    # Breakout/Breakdown
     if breakout: runner_score += 2
     if breakdown: runner_score += 2
-    # OI spike bonus
+    
+    # OI
     if oi_change > 20: runner_score += 2
     elif oi_change > 10: runner_score += 1
-    if oi_trend == 'up' and price_change > 0: runner_score += 1  # OI + price up = bullish
-    if oi_trend == 'down' and price_change < 0: runner_score += 1  # OI + price down = bearish
+    if oi_trend == 'up' and price_change > 0: runner_score += 1
+    if oi_trend == 'down' and price_change < 0: runner_score += 1
+    
+    # New setups scoring
+    if weekly_change > 20: runner_score += 3  # Weekly 20%+
+    elif weekly_change > 10: runner_score += 2
+    elif weekly_change > 5: runner_score += 1
+    
+    if pocket_pivot: runner_score += 2
+    if trend_base: runner_score += 1
+    if dcr > 20: runner_score += 1  # DCR% >20
+    if vcs: runner_score += 1  # Volatility contraction
+    if pp_count > 1: runner_score += 2  # Multiple pocket pivots
+    if 0 <= ema_position <= 100 and ema_position < 50: runner_score += 1  # Price near 21EMA
     
     # Must have at least score 3 for signal
     if runner_score < 3:
@@ -414,7 +533,16 @@ def analyze_symbol(symbol, stats):
         'runner_score': runner_score,
         'oi': oi,
         'oi_change': oi_change,
-        'oi_trend': oi_trend
+        'oi_trend': oi_trend,
+        # New setups
+        'weekly_change': weekly_change,
+        'pocket_pivot': pocket_pivot,
+        'dcr': dcr,
+        'vcs': vcs,
+        'vcs_score': vcs_score,
+        'trend_base': trend_base,
+        'pp_count': pp_count,
+        'ema_position': ema_position
     }
 
 def fetch_brave_news(query, count=2):
@@ -552,6 +680,14 @@ def format_signal(analysis, stats):
 
 🔊 VOLUME: {'Volume Spike' if s['vol_spike'] else 'Normal'}
 
+📊 NEW SETUPS:
+• Weekly: {s.get('weekly_change', 0):+.1f}%
+• Pocket Pivot: {'✅ Yes' if s.get('pocket_pivot') else '❌ No'}
+• DCR%: {s.get('dcr', 0):.1f}
+• VCS Score: {s.get('vcs_score', 0):.1f}
+• Trend Base: {'✅ Yes' if s.get('trend_base') else '❌ No'}
+• PP Count: {s.get('pp_count', 0)}
+
 📊 STRUCTURE:
 • Support: {s['support']:.6f}
 • Resistance: {s['resistance']:.6f}
@@ -580,8 +716,43 @@ def main():
     positions = get_positions()
     open_count = len(positions)
     
+    # Detect manually closed positions
+    try:
+        positions_file = os.path.join(script_dir, '.positions_sl_tp.json')
+        if os.path.exists(positions_file):
+            with open(positions_file, 'r') as f:
+                saved_positions = json.load(f)
+            
+            current_symbols = {p.get('symbol') for p in positions}
+            
+            for sym in list(saved_positions.keys()):
+                if sym not in current_symbols:
+                    # Position was closed (manually or auto)
+                    print(f"  📝 Detected closed: {sym}")
+                    # Add to recently closed
+                    with open('.recently_closed', 'a') as f:
+                        f.write(f"{sym},{int(time.time())}\n")
+                    # Remove from saved
+                    del saved_positions[sym]
+            
+            # Update saved positions
+            with open(positions_file, 'w') as f:
+                json.dump(saved_positions, f)
+    except Exception as e:
+        print(f"  Warning: Could not check closed positions: {e}")
+    
     print(f"  Balance: ${balance:.2f}")
     print(f"  Open: {open_count}/{MAX_POSITIONS}")
+    
+    # Check margin risk before trading
+    risk = check_margin_risk()
+    print(f"  📊 Risk: {risk['margin_pct']:.1f}% margin used")
+    
+    if not risk['safe_to_trade']:
+        print(f"⚠️ HIGH RISK - Not trading!")
+        print(f"   Margin: {risk['margin_pct']:.1f}% (max 40%)")
+        print(f"   Positions: {risk['positions']}/5")
+        return
     
     if open_count >= MAX_POSITIONS:
         print("⚠️ Max positions reached")
@@ -604,6 +775,22 @@ def main():
     except:
         posted = set()
     
+    # Load recently closed positions (skip re-entry for 24h)
+    recently_closed = set()
+    try:
+        with open('.recently_closed', 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    parts = line.split(',')
+                    if len(parts) >= 2:
+                        symbol, timestamp = parts[0], int(parts[1])
+                        # Skip if closed in last 24 hours
+                        if time.time() - timestamp < 86400:  # 24 hours
+                            recently_closed.add(symbol)
+    except:
+        pass
+    
     # Only check safe coins
     movers_filtered = [(s, p) for s, p in movers if s in SAFE_COINS]
     
@@ -614,6 +801,11 @@ def main():
         
         # Skip if already has position
         if any(p.get('symbol') == symbol for p in positions):
+            continue
+        
+        # Skip if recently closed (avoid re-entry)
+        if symbol in recently_closed:
+            print(f"  Skipping {symbol} - recently closed")
             continue
         
         print(f"  Checking {symbol} ({change:.1f}%)...", end=" ")
@@ -670,9 +862,9 @@ def main():
                                 with open(positions_file, 'r') as f:
                                     positions_data = json.load(f)
                             positions_data[symbol] = {
-                                'entry': entry_price,
-                                'sl': sl_price,
-                                'tp1': tp_price,
+                                'entry': analysis['current'],
+                                'sl': analysis['sl'],
+                                'tp1': analysis['tp1'],
                                 'side': side,
                                 'opened_at': datetime.now().isoformat()
                             }
