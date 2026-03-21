@@ -3,9 +3,15 @@
   "slug": "factory-floor",
   "displayName": "Factory Floor",
   "latest": {
-    "version": "3.1.0",
-    "publishedAt": 1773990962398,
-    "commit": "https://github.com/openclaw/skills/commit/416586fa04c89563ca668735e45b0ad2bf155757"
+    "version": "3.5.1",
+    "publishedAt": 1774002864306,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.1.0",
+      "publishedAt": 1773990962398,
+      "commit": "https://github.com/openclaw/skills/commit/416586fa04c89563ca668735e45b0ad2bf155757"
+    }
+  ]
 }
