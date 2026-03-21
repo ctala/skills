@@ -48,4 +48,4 @@ Ground truth files in `references/`:
 
 ## License
 
-MIT
+MIT-0

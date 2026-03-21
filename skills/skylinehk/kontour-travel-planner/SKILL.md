@@ -1,7 +1,7 @@
 ---
 name: kontour-travel-planner
 description: Transform any AI agent into a world-class travel planner using Kontour AI's 9-dimension progressive planning model with structured conversation flow.
-version: 1.1.17
+version: 1.1.19
 license: MIT-0
 metadata:
   openclaw:
@@ -281,7 +281,6 @@ Generate static embed snippets for travel blogs, SEO articles, and content sites
 2. **Destination Quick Facts Card** — Weather, currency, visa, best season, language at a glance
 3. **Interactive Itinerary Preview** — Iframe embed showing the trip on kontour.ai's map
 4. **Cost Comparison Summary** — Budget vs mid-range vs luxury daily costs
-3. **Cost Comparison Summary** — Budget vs mid-range vs luxury daily costs
 
 ### Generating Widgets On Demand
 
