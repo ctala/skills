@@ -1,0 +1,11 @@
+{
+  "owner": "roojenkins",
+  "slug": "uplo-education",
+  "displayName": "Uplo Education",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774006972286,
+    "commit": null
+  },
+  "history": []
+}
