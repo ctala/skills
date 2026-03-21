@@ -1,38 +1,14 @@
-# long-to-short
+# Long to Short
 
-[![ClawHub Skill](https://img.shields.io/badge/ClawHub-Skill-blueviolet)](https://clawhub.io)
-[![Version](https://img.shields.io/badge/version-1.0.7-blue)](SKILL.md)
+This is a scenario-focused variant of the official Sparki Video Editor skill.
 
-> **Long to Short.**
-> Scenario-specific AI video editing powered by Sparki.
->
-> Powered by [Sparki](https://sparki.io).
+## Best for
+Use this variant when the user wants to turn long-form footage, podcasts, interviews, talks, or streams into short clips.
 
-## What It Does
+## Example requests
+- Cut this podcast into strong short-form clips.
+- Turn this long interview into Shorts with hooks.
+- Extract the best short-form moments from this talk.
 
-This skill is a scenario-focused wrapper around Sparki's AI video editing workflow.
-
-- Uploads a video file
-- Creates an AI processing job with scene-specific defaults
-- Polls until processing completes
-- Returns a result download URL
-
-## Best For
-- "turn this long video into shorts"
-- "cut this podcast into clips"
-- "make several reels from this"
-- "extract strong short-form moments"
-
-## Quick Start
-
-```bash
-export SPARKI_API_KEY="sk_live_your_key_here"
-export SPARKI_API_BASE="https://business-agent-api.sparki.io/api/v1"
-RESULT_URL=$(bash scripts/edit_video.sh my_video.mp4 "28" "extract the best short-form moments with strong hooks" "9:16")
-echo "$RESULT_URL"
-```
-
-## Notes
-- Requires `SPARKI_API_KEY`
-- Optionally set `SPARKI_API_BASE` to the API endpoint provided for your Sparki account
-- Supports `9:16`, `1:1`, `16:9`
+## Shared core
+This skill follows the latest official Sparki setup, API-key, upload, and command guidance from the main `sparki-video-editor` skill.
