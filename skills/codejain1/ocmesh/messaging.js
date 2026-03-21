@@ -1,12 +1,16 @@
 /**
  * messaging.js
- * Encrypted agent-to-agent messaging via Nostr NIP-04 DMs.
- * Uses nostr-tools v1 API.
+ * Encrypted agent-to-agent DMs via Nostr NIP-04.
+ * v0.2: typed messages, delivery receipts, thread tracking, webhook push.
  */
 
 const { finishEvent, nip04 } = require('nostr-tools');
 const { publish, subscribe } = require('./nostr');
 const { DM_KIND } = require('./relays');
+const { parse, MESSAGE_TYPES } = require('./protocol');
+const { touchThread } = require('./threads');
+const { handleReceipt, sendDelivered } = require('./receipts');
+const webhook = require('./webhook');
 const db = require('./db');
 
 let identity = null;
@@ -14,7 +18,6 @@ let identity = null;
 function start(id) {
   identity = id;
 
-  // Subscribe to DMs addressed to us
   subscribe({
     kinds: [DM_KIND],
     '#p': [identity.pk],
@@ -37,7 +40,6 @@ async function send(toPk, content) {
 
   publish(event);
   console.log(`[messaging] Sent DM to ${toPk.slice(0, 16)}...`);
-
   return event.id;
 }
 
@@ -45,7 +47,7 @@ async function handleDmEvent(event) {
   if (!event || !identity) return;
   if (event.pubkey === identity.pk) return;
 
-  const toPk = event.tags && event.tags.find(([k]) => k === 'p')?.[1];
+  const toPk = event.tags?.find(([k]) => k === 'p')?.[1];
   if (toPk !== identity.pk) return;
 
   try {
@@ -54,14 +56,34 @@ async function handleDmEvent(event) {
     const existing = db.prepare('SELECT id FROM messages WHERE id = ?').get(event.id);
     if (existing) return;
 
+    const parsed = parse(decrypted);
+    const msgType = parsed?.type || 'text';
+
+    // Handle receipt messages — don't store as normal messages
+    if (msgType === MESSAGE_TYPES.DELIVERED || msgType === MESSAGE_TYPES.READ) {
+      handleReceipt(db, event, parsed);
+      return;
+    }
+
+    // Handle ping → auto pong
+    if (msgType === MESSAGE_TYPES.PING) {
+      const { create } = require('./protocol');
+      await send(event.pubkey, create(MESSAGE_TYPES.PONG, {}));
+      return;
+    }
+
+    // Store message
     db.prepare(`
-      INSERT INTO messages (id, from_pk, to_pk, content, received_at, read)
-      VALUES (?, ?, ?, ?, ?, 0)
-    `).run(event.id, event.pubkey, identity.pk, decrypted, Date.now());
+      INSERT INTO messages (id, from_pk, to_pk, content, msg_type, received_at, read, delivered)
+      VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+    `).run(event.id, event.pubkey, identity.pk, decrypted, msgType, Date.now());
 
-    console.log(`[messaging] New message from ${event.pubkey.slice(0, 16)}...`);
+    console.log(`[messaging] New ${msgType} from ${event.pubkey.slice(0, 16)}...`);
 
-    // Auto-add peer if not known
+    // Update thread
+    touchThread(event.pubkey, decrypted, Date.now());
+
+    // Auto-add peer if new
     const peer = db.prepare('SELECT pk FROM peers WHERE pk = ?').get(event.pubkey);
     if (!peer) {
       const now = Date.now();
@@ -74,8 +96,20 @@ async function handleDmEvent(event) {
         .run(Date.now(), event.pubkey);
     }
 
+    // Send delivery receipt
+    await sendDelivered(event.pubkey, event.id);
+
+    // Webhook push
+    await webhook.fire('message.received', {
+      id: event.id,
+      from: event.pubkey,
+      type: msgType,
+      content: decrypted,
+      ts: Date.now(),
+    });
+
   } catch (err) {
-    console.error('[messaging] Failed to decrypt DM:', err.message);
+    console.error('[messaging] Failed to handle DM:', err.message);
   }
 }
 

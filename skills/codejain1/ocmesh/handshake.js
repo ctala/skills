@@ -1,36 +1,43 @@
 /**
  * handshake.js
- * Auto-handshake logic.
- * When a new peer is discovered, automatically send them a hello DM.
- * This establishes a two-way connection and proves both agents are live.
+ * Auto-handshake new peers with a typed INTRO message.
+ * v0.2: sends structured intro with capabilities, fires webhook on completion.
  */
 
+const { MESSAGE_TYPES, create } = require('./protocol');
+const webhook = require('./webhook');
 const db = require('./db');
-const { send } = require('./messaging');
 
 let identity = null;
+let sendFn = null;
+let ownProfile = null;
 
-function start(id) {
+function start(id, messagingSend, getOwnProfileFn) {
   identity = id;
+  sendFn = messagingSend;
+  ownProfile = getOwnProfileFn;
 }
 
 async function handshakeNewPeer(pk) {
   const peer = db.prepare('SELECT handshake FROM peers WHERE pk = ?').get(pk);
-  if (!peer || peer.handshake === 1) return; // already handshaked
+  if (!peer || peer.handshake === 1) return;
 
-  console.log(`[handshake] Initiating handshake with ${pk.slice(0, 16)}...`);
+  console.log(`[handshake] Initiating with ${pk.slice(0, 16)}...`);
 
-  const greeting = JSON.stringify({
-    type: 'ocmesh-hello',
-    version: '0.1.0',
+  const profile = ownProfile ? ownProfile() : {};
+
+  const intro = create(MESSAGE_TYPES.INTRO, {
+    name: profile.name || `ocmesh-agent-${identity.pk.slice(0, 8)}`,
+    capabilities: profile.capabilities || ['chat', 'task'],
     from: identity.pk,
-    ts: Date.now(),
   });
 
   try {
-    await send(pk, greeting);
+    await sendFn(pk, intro);
     db.prepare('UPDATE peers SET handshake = 1 WHERE pk = ?').run(pk);
-    console.log(`[handshake] Handshake complete with ${pk.slice(0, 16)}...`);
+    console.log(`[handshake] Complete with ${pk.slice(0, 16)}...`);
+
+    await webhook.fire('peer.handshaked', { pk, ts: Date.now() });
   } catch (err) {
     console.error(`[handshake] Failed:`, err.message);
   }
