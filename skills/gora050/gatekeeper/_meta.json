@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "gatekeeper",
+  "displayName": "Gatekeeper",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774112652560,
+    "commit": null
+  },
+  "history": []
+}
