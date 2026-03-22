@@ -1,0 +1,11 @@
+{
+  "owner": "solomonneas",
+  "slug": "proxmox-create-vm",
+  "displayName": "Proxmox Create Vm",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774051251128,
+    "commit": null
+  },
+  "history": []
+}
