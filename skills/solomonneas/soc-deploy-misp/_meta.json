@@ -1,0 +1,11 @@
+{
+  "owner": "solomonneas",
+  "slug": "soc-deploy-misp",
+  "displayName": "Soc Deploy Misp",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774051271861,
+    "commit": null
+  },
+  "history": []
+}
