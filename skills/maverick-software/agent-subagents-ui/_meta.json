@@ -1,0 +1,11 @@
+{
+  "owner": "maverick-software",
+  "slug": "agent-subagents-ui",
+  "displayName": "Agent Subagents UI",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774189947697,
+    "commit": null
+  },
+  "history": []
+}
