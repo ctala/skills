@@ -5,7 +5,7 @@ license: Apache-2.0
 homepage: https://canlah.ai
 metadata:
   author: Canlah AI
-  version: "1.0.1"
+  version: "1.0.2"
   tags:
     - security
     - cors
@@ -738,3 +738,12 @@ Root cause: cors.ts:8 reflects req.headers.origin without allowlist check
 Fix: Replace with Set(['https://myapp.com']).has(origin) check
 Generated config: Express / nginx / FastAPI / Go / Django available
 ```
+
+---
+
+## Author
+
+**[Canlah AI](https://canlah.ai)** — Run performance marketing without breaking your brand.
+
+- GitHub: [github.com/PHY041](https://github.com/PHY041)
+- All Skills: [clawhub.ai/PHY041](https://clawhub.ai/PHY041)
