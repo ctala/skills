@@ -71,6 +71,111 @@ const VAIBOT_PROVE_MODEL = process.env.VAIBOT_PROVE_MODEL || "vaibot-guard"; // 
 const RUNCTX_DIR = path.join(LOG_DIR, "runctx");
 fs.mkdirSync(RUNCTX_DIR, { recursive: true });
 
+// Persist approvals so humans can approve/deny actions out-of-band (chat commands).
+// Stored under VAIBOT_GUARD_LOG_DIR as: approvals/<approvalId>.json
+const APPROVAL_DIR = path.join(LOG_DIR, "approvals");
+fs.mkdirSync(APPROVAL_DIR, { recursive: true });
+
+const VAIBOT_APPROVAL_TTL_MS = Math.max(30_000, Number(process.env.VAIBOT_APPROVAL_TTL_MS || 5 * 60_000));
+
+function approvalPath(approvalId) {
+  return path.join(APPROVAL_DIR, `${approvalId}.json`);
+}
+
+function writeApproval(rec) {
+  const p = approvalPath(rec.approvalId);
+  const tmp = p + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(rec, null, 2));
+  fs.renameSync(tmp, p);
+}
+
+function readApproval(approvalId) {
+  try {
+    const raw = fs.readFileSync(approvalPath(approvalId), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function listApprovals({ status, sessionId } = {}) {
+  const out = [];
+  for (const ent of fs.readdirSync(APPROVAL_DIR, { withFileTypes: true })) {
+    if (!ent.isFile() || !ent.name.endsWith(".json")) continue;
+    const approvalId = ent.name.slice(0, -5);
+    const rec = readApproval(approvalId);
+    if (!rec) continue;
+
+    // expire pending approvals
+    if (rec.status === "pending" && rec.expiresAt && Date.now() > Date.parse(rec.expiresAt)) {
+      rec.status = "expired";
+      writeApproval(rec);
+    }
+
+    if (status && rec.status !== status) continue;
+    if (sessionId && rec.sessionId !== sessionId) continue;
+    out.push(rec);
+  }
+  // newest first
+  out.sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
+  return out;
+}
+
+function createApproval({ sessionId, kind, reason, request, approvalId: approvalIdIn }) {
+  const approvalId = String(approvalIdIn || `appr_${randomUUID()}`);
+  const createdAt = nowIso();
+  const expiresAt = new Date(Date.now() + VAIBOT_APPROVAL_TTL_MS).toISOString();
+
+  const rec = {
+    schema: "vaibot-guard/approval@0.1",
+    approvalId,
+    sessionId,
+    kind,
+    reason,
+    status: "pending",
+    createdAt,
+    expiresAt,
+    request,
+    usedAt: null,
+    resolvedAt: null,
+  };
+
+  writeApproval(rec);
+  return rec;
+}
+
+function resolveApproval({ approvalId, action }) {
+  const rec = readApproval(approvalId);
+  if (!rec) return { ok: false, error: "Approval not found" };
+
+  // expire pending approvals
+  if (rec.status === "pending" && rec.expiresAt && Date.now() > Date.parse(rec.expiresAt)) {
+    rec.status = "expired";
+    writeApproval(rec);
+  }
+
+  if (rec.status !== "pending") {
+    return { ok: false, error: `Cannot resolve approval in status '${rec.status}'` };
+  }
+
+  if (action === "approve") rec.status = "approved";
+  else if (action === "deny") rec.status = "denied";
+  else return { ok: false, error: "Invalid action" };
+
+  rec.resolvedAt = nowIso();
+  writeApproval(rec);
+
+  return { ok: true, approvalId: rec.approvalId, status: rec.status, expiresAt: rec.expiresAt, reason: rec.reason, request: rec.request };
+}
+
+function markApprovalUsed({ approvalId }) {
+  const rec = readApproval(approvalId);
+  if (!rec) return;
+  rec.status = "used";
+  rec.usedAt = nowIso();
+  writeApproval(rec);
+}
+
 function runCtxPath(runId) {
   return path.join(RUNCTX_DIR, `${runId}.json`);
 }
@@ -244,11 +349,28 @@ function isDeniedPath(p) {
 }
 
 function isDomainAllowlisted(dest) {
-  if (ALLOWLISTED_DOMAINS.length === 0) return true; // no allowlist configured
+  // Tight allowlist semantics:
+  // - If allowlist is empty: allow all (legacy behavior).
+  // - Exact host match is allowed.
+  // - Subdomains are ONLY allowed when the allowlist entry is explicitly wildcarded as "*.example.com".
+  if (ALLOWLISTED_DOMAINS.length === 0) return true;
   try {
     const u = new URL(dest);
     const host = u.hostname.toLowerCase();
-    return ALLOWLISTED_DOMAINS.some((d) => host === d.toLowerCase() || host.endsWith("." + d.toLowerCase()));
+    return ALLOWLISTED_DOMAINS.some((entry0) => {
+      const entry = String(entry0 || "").trim().toLowerCase();
+      if (!entry) return false;
+
+      if (entry.startsWith("*.")) {
+        const base = entry.slice(2);
+        if (!base) return false;
+        // Allow both the base domain and any subdomain.
+        return host === base || host.endsWith("." + base);
+      }
+
+      // Exact only.
+      return host === entry;
+    });
   } catch {
     return false;
   }
@@ -550,6 +672,99 @@ function postVaibotProve({ receipt, idempotencyKey }) {
     });
     req.on("timeout", () => req.destroy(new Error("vaibot /prove timeout")));
     req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+/**
+ * postGovernanceReceipt — Post a canonical governance receipt to VAIBot API v2.
+ * Called best-effort on every finalize (tool or exec).
+ * VAIBOT_API_URL format: https://www.vaibot.io/api  → appends /v2/receipts
+ */
+function postGovernanceReceipt({ runId, sessionId, intent, decision, risk, result, policyVersion }) {
+  if (!VAIBOT_API_URL || !VAIBOT_API_KEY) return Promise.resolve(null);
+
+  const toolName = String(intent?.toolName || intent?.tool || intent?.cmd?.split(" ")[0] || "unknown");
+  const command = String(intent?.cmd || intent?.command || toolName).slice(0, 500);
+  const cwd = String(intent?.workspaceDir || intent?.cwd || "/");
+
+  const guardDecision = String(decision?.decision || "deny");
+  // Map guard decision names to governance receipt decision names
+  const mappedDecision = guardDecision === "approve" ? "approval_required" : guardDecision;
+
+  const riskRaw = String(risk?.risk || "low");
+  const riskLevel = ["low", "medium", "high", "critical"].includes(riskRaw) ? riskRaw : "low";
+
+  const approvalStatus = guardDecision === "approve" ? "pending" : "not_required";
+
+  let outcome = "blocked";
+  if (guardDecision === "allow") {
+    outcome = (result?.ok === false || result?.code !== 0) ? "blocked" : "allowed";
+  } else if (guardDecision === "approve") {
+    outcome = "blocked_until_approved";
+  } else {
+    outcome = "blocked";
+  }
+
+  const agentId = String(sessionId || "unknown-session");
+  const actionVerb = mappedDecision === "deny" ? "blocked from executing" :
+    mappedDecision === "approval_required" ? "paused pending approval for" :
+    "executed";
+
+  const receiptPayload = {
+    run_id: runId,
+    idempotency_key: `${runId}:finalize`,
+    agent: { id: agentId, name: agentId },
+    action: {
+      tool: toolName,
+      summary: `Agent ${actionVerb}: ${command.slice(0, 100)}`,
+      command,
+      cwd,
+    },
+    policy: {
+      risk_level: riskLevel,
+      decision: mappedDecision,
+      reason: String(decision?.reason || risk?.reason || "Policy decision"),
+    },
+    approval: { status: approvalStatus },
+    result: {
+      outcome,
+      summary: String(decision?.reason || outcome),
+    },
+  };
+
+  // VAIBOT_API_URL is e.g. https://www.vaibot.io/api — strip trailing /api and append /api/v2/receipts
+  const baseUrl = VAIBOT_API_URL.replace(/\/api\/?$/, "");
+  const targetUrl = new URL(baseUrl + "/api/v2/receipts");
+  const body = JSON.stringify(receiptPayload);
+
+  const options = {
+    method: "POST",
+    hostname: targetUrl.hostname,
+    port: targetUrl.port || (targetUrl.protocol === "https:" ? 443 : 80),
+    path: targetUrl.pathname,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "content-length": Buffer.byteLength(body),
+      "authorization": `Bearer ${VAIBOT_API_KEY}`,
+    },
+    timeout: 8000,
+  };
+
+  const transport = targetUrl.protocol === "https:" ? https : http;
+
+  return new Promise((resolve) => {
+    const req = transport.request(options, (res) => {
+      let data = "";
+      res.on("data", (c) => (data += c));
+      res.on("end", () => {
+        try { resolve(JSON.parse(data || "{}")); }
+        catch { resolve({ ok: false, raw: data.slice(0, 200) }); }
+      });
+    });
+    req.on("timeout", () => { req.destroy(); resolve({ ok: false, error: "timeout" }); });
+    req.on("error", (e) => resolve({ ok: false, error: e?.message }));
     req.write(body);
     req.end();
   });
@@ -922,6 +1137,54 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // ---------------------------------------------------------------------
+    // Approvals (chat-command UX)
+    // ---------------------------------------------------------------------
+
+    if (req.method === "POST" && req.url === "/v1/approvals/list") {
+      if (!requireAuth(req, res)) return;
+      const raw = await readBody(req);
+      let input;
+      try {
+        input = JSON.parse(raw || "{}");
+      } catch {
+        return json(res, 400, { ok: false, error: "Invalid JSON" });
+      }
+
+      const sessionId = String(input.sessionId || "");
+      const approvals = listApprovals({ status: "pending", sessionId: sessionId || undefined }).map((a) => ({
+        approvalId: a.approvalId,
+        status: a.status,
+        createdAt: a.createdAt,
+        expiresAt: a.expiresAt,
+        reason: a.reason,
+        kind: a.kind,
+        request: a.request,
+      }));
+
+      return json(res, 200, { ok: true, approvals });
+    }
+
+    if (req.method === "POST" && req.url === "/v1/approvals/resolve") {
+      if (!requireAuth(req, res)) return;
+      const raw = await readBody(req);
+      let input;
+      try {
+        input = JSON.parse(raw || "{}");
+      } catch {
+        return json(res, 400, { ok: false, error: "Invalid JSON" });
+      }
+
+      const approvalId = String(input.approvalId || "");
+      const action = String(input.action || "");
+      if (!approvalId) return json(res, 400, { ok: false, error: "Missing approvalId" });
+      if (action !== "approve" && action !== "deny") return json(res, 400, { ok: false, error: "Invalid action" });
+
+      const out = resolveApproval({ approvalId, action });
+      if (!out.ok) return json(res, 400, out);
+      return json(res, 200, out);
+    }
+
     if (req.method === "POST" && req.url === "/v1/decide/exec") {
       if (!requireAuth(req, res)) return;
       const raw = await readBody(req);
@@ -1028,7 +1291,56 @@ const server = http.createServer(async (req, res) => {
       if (!toolName) return json(res, 400, { ok: false, error: "Missing toolName" });
 
       const risk = classifyToolRisk({ toolName, params, workspaceDir });
-      const decision = decideTool({ sessionId, toolName, params, workspaceDir });
+
+      const paramsHash = `sha256:${sha256(stableStringify({ toolName, params }))}`;
+      const approvalId = String(input?.approval?.approvalId || "");
+
+      let decision;
+
+      // Approval redemption path: if caller presents an approvalId, verify it matches this exact request.
+      if (approvalId) {
+        const appr = readApproval(approvalId);
+        if (!appr) {
+          decision = { decision: "deny", reason: "Approval not found" };
+        } else if (appr.kind !== "tool") {
+          decision = { decision: "deny", reason: "Approval kind mismatch" };
+        } else if (appr.status !== "approved") {
+          decision = { decision: "deny", reason: `Approval not approved (status=${appr.status})` };
+        } else if (appr.expiresAt && Date.now() > Date.parse(appr.expiresAt)) {
+          decision = { decision: "deny", reason: "Approval expired" };
+        } else if (appr.request?.paramsHash && appr.request.paramsHash !== paramsHash) {
+          decision = { decision: "deny", reason: "Approval scope mismatch" };
+        } else {
+          decision = { decision: "allow", reason: "Approved by user", approvalId };
+          markApprovalUsed({ approvalId });
+        }
+      } else {
+        decision = decideTool({ sessionId, toolName, params, workspaceDir });
+
+        // If policy requires approval, mint an approval record for chat-command resolution.
+        if (decision && decision.decision === "approve") {
+          const existingId = decision.approvalId;
+          const already = existingId ? readApproval(existingId) : null;
+          const appr = already
+            ? already
+            : createApproval({
+                sessionId,
+                kind: "tool",
+                approvalId: existingId,
+                reason: decision.reason || "Approval required",
+                request: {
+                  toolName,
+                  paramsHash,
+                  paramsPreview: redactIntent(params),
+                },
+              });
+
+          decision.approvalId = appr.approvalId;
+          decision.expiresAt = appr.expiresAt;
+          decision.scope = { paramsHash };
+        }
+      }
+
       const runId = `run_${randomUUID()}`;
 
       const eventId = randomUUID();
@@ -1165,6 +1477,17 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      // Best-effort: post governance receipt to VAIBot API v2 (does not block response)
+      postGovernanceReceipt({
+        runId,
+        sessionId: effectiveSessionId,
+        intent: ctx1?.intent,
+        decision: ctx1?.decision,
+        risk: ctx1?.risk,
+        result,
+        policyVersion: ctx1?.policyVersion,
+      }).catch((e) => console.error(`[vaibot-guard] governance receipt post failed (tool): ${e?.message || e}`));
+
       deleteRunContext(runId);
 
       return json(res, 200, { ok: true, audit, prove });
@@ -1240,6 +1563,17 @@ const server = http.createServer(async (req, res) => {
           return json(res, 500, { ok: false, error: `VAIBOT_PROVE_MODE=required but /api/prove finalize failed: ${proveError || prove?.error || "unknown"}`, audit, prove });
         }
       }
+
+      // Best-effort: post governance receipt to VAIBot API v2 (does not block response)
+      postGovernanceReceipt({
+        runId,
+        sessionId: effectiveSessionId,
+        intent: ctx1?.intent,
+        decision: ctx1?.decision,
+        risk: ctx1?.risk,
+        result,
+        policyVersion: ctx1?.policyVersion,
+      }).catch((e) => console.error(`[vaibot-guard] governance receipt post failed (exec): ${e?.message || e}`));
 
       // Best-effort cleanup of run context.
       deleteRunContext(runId);

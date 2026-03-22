@@ -1,71 +1,63 @@
-# VAIBot Guard — Ship Checklist
+# SHIP.md — OpenClaw Guard Skill v2.1 (Clawhub)
 
-This file tracks what must be true before we call **vaibot-guard** complete and ready to ship.
+## Purpose
+Ship the **OpenClaw Guard Skill v2.1** via Clawhub. This skill provides the UX surface and operational tooling for VAIBot Guard. It is intentionally redundant with the OpenClaw plugin and MCP server; the skill delivers a simple, opinionated interface for configuration, status, and local operator workflows.
 
-## A) Correctness & cryptography (must-have)
+## Release Summary
+- **Product:** OpenClaw Guard Skill (v2.1)
+- **Distribution:** Clawhub
+- **Status:** In progress (pre-publish validation underway)
+- **Scope:** Skill-only distribution (plugin already shipped separately)
 
-- [x] Canonicalize hashing: hash must be deterministic (stable key ordering); do not rely on JS object insertion order.
-- [ ] Domain separation consistency:
-  - [x] Leaf: `sha256("leaf:" + eventHash)`
-  - [x] Node: `sha256("node:" + left + ":" + right)`
-  - [x] Checkpoint hash: domain-separated and canonicalized (`hashCheckpoint("checkpoint:" + stableStringify(checkpointWithoutHash))`).
-- [x] Self-audit tooling: command/script to recompute Merkle roots from stored leaves and verify checkpoint roots.
+## What’s In v2.1
+- Skill wrapper for VAIBot Guard workflows
+- Operator-facing commands / scripts / docs
+- Default policy templates + examples
+- Local testing instructions aligned with v2.1 governance posture
 
-## B) Replay + anchoring behavior (must-have)
+## What’s Out of Scope
+- Plugin enforcement (already shipped)
+- API / MCP server (already shipped)
+- Any data-plane or backend change
 
-- [x] Add `vaibot-guard flush` CLI command to replay pending checkpoints on demand.
-- [x] Support time-based checkpointing (every T seconds) in addition to event-count-based (whichever comes first; configurable via `VAIBOT_MERKLE_CHECKPOINT_EVERY` and `VAIBOT_MERKLE_CHECKPOINT_EVERY_MS`).
-- [x] Clarify required-mode semantics and enforce consistently:
-  - [x] In `VAIBOT_PROVE_MODE=required`, we require `/prove` for:
-    - [x] per-event receipts (precheck/finalize)
-    - [x] checkpoint roots
-    - [x] both
-- [x] In `VAIBOT_PROVE_MODE=required`, the guard service refuses to start unless `VAIBOT_API_URL` and `VAIBOT_API_KEY` are configured.
+## Packaging Checklist
+- [x] Confirm skill contents (no runtime logs)
+- [x] Ensure `SKILL.md` + `scripts/` + `references/` included
+- [x] Confirm systemd templates are **not** in `systemd/*.service` (Clawhub strips them)
+  - [x] Placed under `references/systemd/*.service.txt`
+- [ ] Update changelog section in `SKILL.md` (if applicable)
+- [ ] Verify version number for Clawhub publish
 
-## C) Inclusion proofs (must-have)
+## Build Artifact (.skill)
+From skill directory:
 
-- [x] Service endpoint `POST /api/proof` to generate inclusion proof
-- [x] Add CLI command: `vaibot-guard proof --session_id ... --index ... --checkpoint_seq ...`
-- [x] Add verifier reference snippet (how to recompute root from `{leaf, siblings}` and compare to checkpoint root)
-- [x] Decide MVP performance stance:
-  - [x] Keep O(n) proof generation (document limits; keep checkpoints reasonably sized for interactive use)
-  - [ ] OR optimize by storing per-level nodes per checkpoint window
+```bash
+cd /home/cybercampbell/clawd/vaibot-v2/packages/openclaw-guard-skill
 
-## D) Security posture (must-have)
+# Build .skill bundle (zip archive with .skill extension)
+zip -r -X /home/cybercampbell/clawd/output-skills/openclaw-guard-skill.skill . \
+  -x ".git/*" ".vaibot-guard/*" "tests/*"
+```
 
-- [x] Policy file support (JSON for now): denied patterns, approval-required patterns, sensitive paths, allowlisted domains.
-  - [x] Add a default policy file (`references/policy.default.json`) and schema (`references/policy.schema.json`).
-  - [x] Wire `VAIBOT_POLICY_PATH` into the guard service and use it for deny/approve/domain/path rules.
-- [x] Path boundary hardening (symlinks + realpath edge cases): resolve intent paths against realpath(cwd), treat unresolved paths as outside workspace, and ensure all mutations stay within realpath(workspace).
-- [x] Secret redaction in logs/receipts (policy-driven regex redaction for command/args and network destinations; env_keys redaction via patterns).
-- [x] Guard service auth (localhost token): require `VAIBOT_GUARD_TOKEN` for `/v1/decide/exec`, `/v1/finalize`, `/v1/flush`, `/api/proof`.
+## Publish to Clawhub
+```bash
+cd /home/cybercampbell/clawd/vaibot-v2/packages/openclaw-guard-skill
 
-## E) Operational readiness (must-have)
+clawhub publish . \
+  --slug openclaw-guard-skill \
+  --name "OpenClaw Guard Skill" \
+  --version 2.1.0 \
+  --changelog "Ship v2.1 skill wrapper for VAIBot Guard" \
+  --tags latest
+```
 
-- [x] Provide systemd runbook + templates (user service + system service): see `references/ops-runbook.md` and `systemd/`.
-- [x] Handle EADDRINUSE cleanly (clear error + remediation via `VAIBOT_GUARD_PORT`).
-- [x] Log rotation / retention strategy (time-based cleanup via `VAIBOT_LOG_RETENTION_DAYS`) plus documentation.
+## Post-Ship Validation
+- [ ] `clawhub info openclaw-guard-skill` shows v2.1.0
+- [ ] Install from Clawhub in a clean environment
+- [x] Run unit tests: `node --test tests/guard-service.test.mjs`
+- [ ] Run quick smoke test commands from `SKILL.md`
+- [ ] Confirm any required service/unit templates are accessible via `references/`
 
-## F) Product/API alignment (must-have)
-
-- [x] Receipt schema finalization:
-  - [x] `vaibot-guard/receipt@0.1` fields finalized (single object model with intent+decision+result; see `references/receipt-schema.md`)
-  - [x] `vaibot-guard/checkpoint@0.1` fields finalized (see `references/checkpoint-schema.md`)
-  - [x] compatibility notes for future versions (schemas are versioned via `schema` strings; avoid breaking changes without bump)
-- [x] Confirm `/api/prove` idempotency key strategy (see `references/idempotency.md`).
-- [x] Confirm which `metadata` fields should be indexed on VAIBot side (see `references/metadata-indexing.md`).
-
-## G) Packaging (must-have)
-
-- [x] SKILL.md “Quick Start” is runnable end-to-end.
-- [x] Ensure skill folder stays minimal (docs live under `references/`; templates under `systemd/`).
-- [x] Decide distribution:
-  - [x] repo-only (for now)
-  - [ ] packaged `.skill` artifact
-
----
-
-## Notes / Decisions
-
-- Merkle accumulator + periodic checkpoints are used for enterprise-grade auditability.
-- Append-only JSONL remains the raw source of truth.
+## Notes
+- This skill is intentionally redundant with the plugin and MCP server; it is a **distribution + UX surface** only.
+- Any enforcement logic must remain in the OpenClaw plugin.
