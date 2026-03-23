@@ -1,13 +1,18 @@
 {
   "owner": "1052326311",
   "slug": "session-guardian",
-  "displayName": "Session Guardian",
+  "displayName": "Session Guardian — Never Lose a Conversation Again",
   "latest": {
-    "version": "3.0.0",
-    "publishedAt": 1773279122846,
-    "commit": "https://github.com/openclaw/skills/commit/dd4d51a81f4a67ff870df470dbf980c0561f61fb"
+    "version": "3.1.0",
+    "publishedAt": 1774094566382,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.0",
+      "publishedAt": 1773279122846,
+      "commit": "https://github.com/openclaw/skills/commit/dd4d51a81f4a67ff870df470dbf980c0561f61fb"
+    },
     {
       "version": "2.0.1",
       "publishedAt": 1772778738912,

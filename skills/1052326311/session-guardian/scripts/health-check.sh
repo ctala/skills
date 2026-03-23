@@ -91,19 +91,8 @@ check_agent_config() {
             alert "[$agent] 缺少 defaultModel 配置"
             ((missing_count++))
             
-            # 自动修复（如果配置了默认模型）
-            if [ -n "${DEFAULT_MODEL:-}" ]; then
-                log "  自动添加 defaultModel: $DEFAULT_MODEL"
-                
-                # 备份原配置
-                cp "$config_file" "$config_file.backup.$(date +%Y%m%d_%H%M%S)"
-                
-                # 简单添加 defaultModel（在文件开头插入）
-                echo "{
-  \"defaultModel\": \"$DEFAULT_MODEL\",
-  \"providers\": $(cat "$config_file" | grep -A 9999 '"providers"' || echo '{}')
-}" > "$config_file.tmp" && mv "$config_file.tmp" "$config_file"
-            fi
+            # Report only — do not auto-modify agent configs
+            log "  ℹ️  Add defaultModel to $config_file if needed"
         fi
     done
     
