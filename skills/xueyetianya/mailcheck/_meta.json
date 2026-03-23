@@ -3,9 +3,15 @@
   "slug": "mailcheck",
   "displayName": "Mailcheck",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773808155405,
-    "commit": "https://github.com/openclaw/skills/commit/4d7df94a4e7810db1dda8b64b4e425a6d01b95d2"
+    "version": "2.0.1",
+    "publishedAt": 1774230698153,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773808155405,
+      "commit": "https://github.com/openclaw/skills/commit/4d7df94a4e7810db1dda8b64b4e425a6d01b95d2"
+    }
+  ]
 }
