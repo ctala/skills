@@ -25,8 +25,9 @@ Where `{did}` is your Bluesky Decentralized Identifier (DID), assigned on connec
 
 | Property | Limit | Notes |
 |----------|-------|-------|
-| Text | **300 characters** | Links do NOT count toward limit |
-| Images | Up to **4** × **1 MB** | JPEG, PNG, WebP (max 2000×2000 px) |
+| Text | **300 characters** | ⚠️ Links count toward limit in Publora's validation |
+| Images | Up to **4** × **~976 KB** | All formats accepted; Publora converts everything to JPEG before upload |
+| Image dimensions | Max 2000×2000 px | — |
 | Video | **3 min** / **100 MB** | MP4; email verification required |
 | Video (short) | <60s → 50 MB | Size tiers apply |
 | Text only | ✅ Yes | — |
@@ -92,10 +93,12 @@ with open('photo_compressed.jpg', 'rb') as f:
 
 ## Platform Quirks
 
-- **Links don't count** toward the 300-char limit — great for posts with URLs
-- **Auto-facets**: Publora automatically detects #hashtags, @mentions, and URLs and creates proper Bluesky facets
-- **Image size is strict**: 1 MB hard limit per image. Always compress before upload.
-- **Image dimensions**: Max 2000×2000 pixels
-- **App password required**: Never use your main Bluesky password; create a dedicated app password
-- **Email verification**: Required before you can upload videos (one-time step in Bluesky settings)
+- **Links count in Publora's validation**: Bluesky natively excludes link URLs from the char count, but Publora validates against `content.length` — so links DO consume your 300-char budget. Plan accordingly.
+- **All images → JPEG**: Publora converts ALL uploaded formats (PNG, WebP, GIF, TIFF, BMP) to JPEG via sharp before uploading to Bluesky. No manual conversion needed.
+- **Image size is ~976 KB** (not 1 MB): Publora enforces 976.56 × 1024 bytes. Compress images to 80–85% JPEG quality to stay under.
+- **Auto-facets**: Publora automatically detects #hashtags and URLs and creates proper Bluesky facets with correct byte offsets (handles emojis and multi-byte chars correctly)
+- **`altTexts` silently ignored in API**: The `altTexts` array in `create-post` is NOT currently processed — it will be silently ignored. Alt text is only available through the Publora dashboard.
+- **`test-connection` always fails for Bluesky**: Known bug — the validator checks for `accessToken` but Bluesky uses `password`. Connection still works for posting; ignore this status.
+- **App password required**: Never use your main Bluesky password; create a dedicated app password in Settings → App Passwords
+- **Email verification required** before video uploads (one-time step in Bluesky settings)
 - **DID format**: Platform ID uses the full DID, e.g. `bluesky-did:plc:abc123xyz`
