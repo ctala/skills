@@ -9,7 +9,7 @@ Help patients find suitable doctors based on symptoms, specialty, location, and 
 
 ## Triggers
 
-Activate on: "找医生", "推荐医生", "看什么科", "医院", "专家", "挂号", "病症", doctor search requests.
+Activate on doctor search requests such as finding a doctor, choosing the right specialty, comparing hospitals, booking-related questions, symptom-to-specialty matching, or seeking clinician recommendations.
 
 **Before acting:** Clarify:
 - Symptoms or condition
@@ -77,11 +77,11 @@ For each recommended doctor:
 
 ## Example Interactions
 
-**User:** "我头痛应该看什么科？"
-**Response:** 头痛建议先看神经内科。如果伴随视力问题看眼科，外伤引起看神经外科。
+**User:** "What specialty should I see for my headache?"
+**Response:** For headaches, start with Neurology. If accompanied by vision problems, see Ophthalmology. If caused by injury, see Neurosurgery.
 
-**User:** "帮我找北京看胃病好的医生"
-**Response:** [推荐消化内科医生列表，包含医院、专长、评价等]
+**User:** "Find me a good doctor for stomach issues in Beijing"
+**Response:** [Recommended Gastroenterology doctors list, including hospital, specialty, and ratings]
 
-**User:** "孩子发烧了挂什么号？"
-**Response:** 建议挂儿科。如果高烧不退或精神萎靡，建议直接去儿童医院急诊。
+**User:** "My child has a fever, what department should I go to?"
+**Response:** Recommend Pediatrics. If high fever persists or the child appears lethargic, go directly to the children's hospital emergency room.
