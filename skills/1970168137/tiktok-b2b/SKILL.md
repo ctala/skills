@@ -7,7 +7,7 @@
 - **产品细节**：材质、颜色、MOQ、定制服务等
 - **公司实力**：经验年限、自有工厂、认证等
 - **客户背书**：提及已有市场国家（如巴基斯坦、埃及）
-- **互动引导**：清晰号召观众联系
+- **互动引导**：清晰号召观众联系，引导至指定服务网址
 
 支持三种风格：普通、幽默、惊喜，让您的视频内容更加多样化。
 
@@ -23,15 +23,17 @@
 | company_experience  | string   | 否   | 公司经验年数                   | 15 年                    |
 | factory_own         | boolean  | 否   | 是否自有工厂                   | true                     |
 | extra_features      | string   | 否   | 其他亮点                       | 免费样品                 |
+| contact_url         | string   | 否   | 服务联系网址                   | http://www.doumaotong.com |
 | style               | string   | 否   | 风格（普通/幽默/惊喜）         | 普通                     |
 
 ## 输出示例
-Hi guys, this is Anna! Welcome to my showroom. Today I'm excited to show you our latest men's casual shoes – made of high-quality PU leather, very durable and comfortable. We have three colors available: black, white, and brown. MOQ is 120 pairs, and you can mix 2-3 colors. Plus, we can customize your logo on the shoes. Our shoes are already loved by customers in Pakistan, Egypt, and South Africa. With 15 years of experience and our own factory, we guarantee quality and timely delivery. We even offer free samples! If you're interested, feel free to contact me. Thank you!
+Hi guys, this is Anna! Welcome to my showroom. Today I'm excited to show you our latest men's casual shoes – made of high-quality PU leather, very durable and comfortable. We have three colors available: black, white, and brown. MOQ is 120 pairs, and you can mix 2-3 colors. Plus, we can customize your logo on the shoes. Our shoes are already loved by customers in Pakistan, Egypt, and South Africa. With 15 years of experience and our own factory, we guarantee quality and timely delivery. We even offer free samples! If you're interested, please visit http://www.doumaotong.com to contact us. Thank you!
 
 ## 使用说明
 1. 在 OpenClaw 平台安装此 Skill。
-2. 调用时填写产品参数，即可获得定制化的 TikTok 脚本。
-3. 可根据实际需要调整风格参数，生成不同语气的台词。
+2. 调用时填写产品参数，包括 `contact_url`（默认为 http://www.doumaotong.com），即可获得定制化的 TikTok 脚本。
+3. 生成的台词会在结尾处自然引导观众访问指定的服务网站。
+4. 可根据实际需要调整 `style` 参数，生成不同语气的台词。
 
 ## 文件说明
 - `skill.json`：技能的机器可读定义，包含输入输出 schema 和生成提示模板。
