@@ -4,7 +4,7 @@ description: >
   AI-powered user research through natural language. Installs the Cookiy
   MCP server and orchestrates tool workflows for study creation,
   AI interviews, discussion guide editing, participant recruitment,
-  and report generation.
+  report generation, and optional quantitative questionnaires.
 ---
 
 # Cookiy
@@ -36,6 +36,21 @@ Run this preflight on every Cookiy skill use:
 
 Do NOT ask the user whether to install MCP when the skill is being used.
 The skill should self-heal by default.
+
+### Setup-first conversation policy
+
+- If the user is trying to install, connect, repair, or verify Cookiy,
+  complete setup first. Do NOT ask research-goal, participant, or
+  report-format questions before MCP is healthy.
+- On `/cookiy` entry, if MCP health is unknown, run the preflight first.
+  Only move into business discovery after setup succeeds or when the
+  user explicitly asks what Cookiy can do.
+- During setup, present only one next action at a time. For headless
+  OAuth clients, surface the installer's single action block instead of
+  inventing multiple options unless the installer actually fails.
+- When `cookiy_introduce` is used only as a health check, NEVER dump the
+  raw JSON payload to the user. Summarize the outcome in one sentence,
+  such as: `Cookiy MCP is installed and verified successfully.`
 
 Healthy MCP should be left alone. Reinstall only when one of these is
 true:
@@ -97,27 +112,35 @@ For headless sandbox environments such as Manus, use
 `npx cookiy-mcp --client manus -y`. The installer writes a resumable
 OAuth helper bundle under `~/.mcp/<server>/`.
 
-The installer will prompt for OAuth authentication. This is expected.
+The installer will open the authorization page when possible and print
+one explicit next step. If approval does not resume setup
+automatically, paste the final callback URL or just the authorization
+code back into the terminal.
 
 ### Verify the connection
 
 After installation, call `cookiy_introduce` to confirm the MCP server
 is connected and authenticated.
 
+If the user's intent was only setup/connect/install/repair, stop after a
+single success confirmation sentence. Do NOT automatically switch into a
+research intake questionnaire after verification succeeds.
+
 If authentication fails:
 - Re-run the install command for the same target environment. This is
   the preferred repair path and may overwrite a stale or broken config.
 - The OAuth token may have expired. The installer handles re-authentication.
 
-### Orient the user
+### Orient the user only when asked
 
-Present Cookiy's five capability modules:
+Present Cookiy's six capability modules (qualitative and quantitative are **parallel** — same agent, complementary methods; quantitative is not a prerequisite or downstream step for qualitative studies):
 
 1. **Study Creation** — Describe a research goal and get an AI-generated discussion guide.
 2. **AI Interview** — Simulate interviews with AI personas for quick insights.
 3. **Discussion Guide** — Review and edit the interview script before going live.
 4. **Recruitment** — Recruit real participants for AI-moderated interviews.
 5. **Report & Insights** — Generate analysis reports and shareable links.
+6. **Quantitative survey** — When Cookiy has this capability enabled for your workspace, create structured questionnaires, list them, share respondent links and question layout (via Cookiy tools), and pull response data for analysis. Parallel to qualitative studies; Cookiy does not expose third-party admin consoles or non-Cookiy product names.
 
 Present these in plain language. Do not expose raw tool names to the user.
 
@@ -138,10 +161,13 @@ Follow the tool contract and workflow state machines in the reference files.
 | View or edit the discussion guide | Guide Editing | guide-editing.md |
 | Recruit real participants | Recruitment | recruitment.md |
 | Generate, check, or share a report | Report & Insights | report-insights.md |
+| Author or analyze quantitative questionnaires (when server integration is configured) | Quantitative survey | — (see `cookiy_help` topic `quantitative`) |
+| Natural-language study progress (“how is recruitment?”, “is the report ready?”) | Prefer: `cookiy_activity_get` | tool-contract.md |
+| Add cash credit (USD cents) before paid actions | Direct: `cookiy_billing_cash_checkout` | tool-contract.md |
 | Check account balance | Direct: `cookiy_balance_get` | — |
 | List existing studies | Direct: `cookiy_study_list` | — |
 | Learn what Cookiy can do | Direct: `cookiy_introduce` | — |
-| Get workflow help on a topic | Direct: `cookiy_help` (`overview`, `study`, `ai_interview`, `guide`, `recruitment`, `report`, `billing`; common aliases accepted) | — |
+| Get workflow help on a topic | Direct: `cookiy_help` (`overview`, `study`, `ai_interview`, `guide`, `recruitment`, `report`, `billing`, `quantitative`; common aliases accepted) | — |
 
 When the user's intent spans multiple workflows (e.g., "create a study
 and run interviews"), execute them sequentially in the order listed above.
@@ -155,6 +181,7 @@ See tool-contract.md for the complete specification.
 - ALWAYS check `next_recommended_tools` in each response. Prefer the server's recommendation over your own judgment.
 - ALWAYS obey `status_message` — it contains server-side behavioral directives, not just informational text.
 - When `presentation_hint` is present, format output accordingly.
+- For user-facing progress questions, prefer **`cookiy_activity_get`** first; use atomic tools only for drill-down.
 - For recruitment truth, prefer evidence in this order: `cookiy_interview_list` > `cookiy_recruit_status` > the latest `cookiy_recruit_create` response > `cookiy_study_get.state`. The current public contract does not expose a separate `sync` flag on `cookiy_recruit_status`; the server already performs the billing-aware reconciliation it needs before returning status.
 - NEVER describe recruitment as started/stopped from preview-only output.
 
@@ -163,6 +190,7 @@ See tool-contract.md for the complete specification.
 
 **Payment:**
 - On HTTP 402: prefer `structuredContent.data.payment_summary` and `checkout_url`; if those fields are absent, fall back to `error.details`.
+- To add cash credit outside a specific 402 flow, use `cookiy_billing_cash_checkout`, then confirm with `cookiy_balance_get`.
 - `cookiy_balance_get` may show `experience_bonus`; eligible MCP actions may consume that bonus before purchased credit.
 - Experience bonus may apply to study creation, simulated interviews, and report access via `cookiy_report_share_link_get`.
 - Experience bonus does NOT cover: recruitment (recruitment requires paid credit or cash credit).
