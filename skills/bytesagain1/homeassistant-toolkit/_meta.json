@@ -3,11 +3,16 @@
   "slug": "homeassistant-toolkit",
   "displayName": "Homeassistant Toolkit",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1773830665280,
-    "commit": "https://github.com/openclaw/skills/commit/a890fc1be1e6dfdde9562f6bb91ef4236f74e832"
+    "version": "3.0.1",
+    "publishedAt": 1774312832877,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1773830665280,
+      "commit": "https://github.com/openclaw/skills/commit/a890fc1be1e6dfdde9562f6bb91ef4236f74e832"
+    },
     {
       "version": "2.3.3",
       "publishedAt": 1773666174201,
