@@ -1,84 +1,135 @@
 ---
 name: financial-ai-agent
-description: "查询金融行情数据（股票、黄金、原油等）。当用户提到查询行情、价格、指数、股票时使用。例如：'查询纳斯达克'、'现在金价多少'、'标普最近一周表现'、'设置我的key'、'替换key'。"
-metadata: {"openclaw": {"emoji": "📈", "requires": {"bins": ["node"]}}}
+description: "查询金融行情数据（股票、ETF、虚拟货币等）。当用户提到查询行情、价格、股票代码时使用。例如：'查询SH600519'、'茅台今天收盘价'、'0700.HK最近10天'。"
+metadata: {"openclaw": {"emoji": "📈"}}
 ---
 
 # Financial AI Agent
 
-查询金融行情数据（股票、指数、黄金、原油等）。
+查询金融行情数据（股票、ETF、虚拟货币等），直接调用 API 获取。
 
-## 功能
+## 🚀 快速开始
 
-- 📊 查询实时行情（价格、涨跌幅）
-- 📈 查询历史走势（最近n天）
-- 🔑 用户可自定义 API Key
+### 1. 查询行情
 
-## 对话示例
+直接告诉我股票代码或名称即可查询：
 
-| 用户说 | 执行命令 |
-|--------|---------|
-| 查询纳斯达克 | `faa.cjs 纳斯达克` |
-| 查下黄金价格 | `faa.cjs 黄金` |
-| 标普最近一周表现 | `faa.cjs 标普 --history` |
-| 纳斯达克最近30天 | `faa.cjs 纳斯达克 --history --days 30` |
-| 纳斯达克5分钟走势 | `faa.cjs 纳斯达克 --5min` |
-| 最近20条5分钟数据 | `faa.cjs 纳斯达克 --5min --limit 20` |
+| 用户说 | 我执行 |
+|--------|--------|
+| 查询茅台 | `curl .../quotes/SH600519` |
+| 查腾讯 | `curl .../quotes/0700.HK` |
+| 英伟达最近一周 | `curl .../quotes/NVDA?days=7` |
+| 上证指数 | `curl .../quotes/SH000001` |
 
-## 设置 API Key
+### 2. 配置自己的 Key
 
-### 方式1：直接说（推荐）
+> ⚠️ **提醒**：安装本 skill 后，建议配置自己的 key（默认 key 有并发限制）。
+> 
+> **获取 key**：访问 https://api.financialagent.cc 注册后获取
 
-用户可以直接说：
-- "我的key是 `xxx`" → 自动保存为默认key
-- "替换key为 `xxx`" → 替换已有key
+**用户只需告诉我：**
+- 「我的faa的key是 `XXX`」
+- 或「帮我把faa的key换成 `XXX`」
 
-### 方式2：命令行
+**我帮您存到 OpenClaw 配置文件中（推荐）：**
 
 ```bash
-# 保存 key
-faa.cjs --set-key 你的key
+# 读取现有配置
+config=$(cat ~/.openclaw/openclaw.json)
 
-# 查看当前 key
-faa.cjs --show-key
+# 添加或更新 faa key（使用 jq）
+jq '. + {"custom": {"financial_agent_key": "XXX"}}' ~/.openclaw/openclaw.json > temp.json && mv temp.json ~/.openclaw/openclaw.json
 ```
 
-### 方式3：配置文件
+存好后，调用时读取：
 
-key 保存在用户目录：`~/.faa-key`
+```bash
+# 从 OpenClaw 配置读取 key
+FA_KEY=$(jq -r '.custom.financial_agent_key // "K6lncNNrMAahJccarH63P1ImRMIPCqq7"' ~/.openclaw/openclaw.json)
 
-### 关于 Key
-
-- **内置体验key**：`5v9Zhv8RSqPg6nk3ZlCvyK0weY9FKdTk`（有有效期限制）
-- **自定义key**：可到网站 `api.financialagent.cc` 注册申请
-- 替换key后，下次查询自动使用新key
-
-## 支持的行情
-
-| 中文 | 英文 | Symbol |
-|------|------|--------|
-| 纳斯达克 | Nasdaq | NDX |
-| 道琼斯 | Dow Jones | DJIA |
-| 标普500 | S&P 500 | SPX |
-| 黄金 | Gold | XAU |
-| 白银 | Silver | XAG |
-| 原油 | Oil | CL |
-| 上证指数 | Shanghai | SH000001 |
-| 深证成指 | Shenzhen | SZ399001 |
-| 创业板指 | ChiNext | SZ399006 |
-
-## 执行命令
-
-```
-~/.npm-global/lib/node_modules/openclaw/skills/financial-ai-agent/faa.cjs <标的> [选项]
+# 调用 API
+curl -H "x-api-key: $FA_KEY" "https://api.financialagent.cc/api/v1/quotes/SH600519"
 ```
 
-## 技术说明
+---
 
-- 脚本位置：`~/.npm-global/lib/node_modules/openclaw/skills/financial-ai-agent/faa.cjs`
-- API 地址：`https://api.financialagent.cc`
-- Key 保存位置：`~/.faa-key`
+## API Key 说明
 
-## 联系我们
+### 默认 Key
 
-有问题或建议请联系：pesome@gmail.com
+```
+K6lncNNrMAahJccarH63P1ImRMIPCqq7
+```
+
+（免费体验，有并发限制）
+
+### 自定义 Key
+
+**获取方式：** 访问 https://api.financialagent.cc 注册后获取
+
+配置后调用方式：
+
+```bash
+# 从 OpenClaw 配置读取 key
+FA_KEY=$(jq -r '.custom.financial_agent_key // "K6lncNNrMAahJccarH63P1ImRMIPCqq7"' ~/.openclaw/openclaw.json)
+curl -H "x-api-key: $FA_KEY" "https://api.financialagent.cc/api/v1/quotes/SH600519"
+```
+
+---
+
+## 完整调用示例
+
+### 获取日线数据（默认最近30天）
+
+```bash
+FA_KEY=$(jq -r '.custom.financial_agent_key // "K6lncNNrMAahJccarH63P1ImRMIPCqq7"' ~/.openclaw/openclaw.json)
+curl -H "x-api-key: $FA_KEY" "https://api.financialagent.cc/api/v1/quotes/SH600519"
+```
+
+### 获取指定日期范围
+
+```bash
+FA_KEY=$(jq -r '.custom.financial_agent_key // "K6lncNNrMAahJccarH63P1ImRMIPCqq7"' ~/.openclaw/openclaw.json)
+curl -H "x-api-key: $FA_KEY" "https://api.financialagent.cc/api/v1/quotes/0700.HK?start_date=2026-03-01&end_date=2026-03-20"
+```
+
+### 获取最近N天
+
+```bash
+FA_KEY=$(jq -r '.custom.financial_agent_key // "K6lncNNrMAahJccarH63P1ImRMIPCqq7"' ~/.openclaw/openclaw.json)
+curl -H "x-api-key: $FA_KEY" "https://api.financialagent.cc/api/v1/quotes/AAPL?days=10"
+```
+
+---
+
+## 常用股票代码
+
+| 名称 | 代码 |
+|------|------|
+| 贵州茅台 | SH600519 |
+| 腾讯控股 | 0700.HK |
+| 阿里巴巴 | 9988.HK |
+| 美团 | 3690.HK |
+| 苹果 | AAPL |
+| 微软 | MSFT |
+| 英伟达 | NVDA |
+| 特斯拉 | TSLA |
+| 上证指数 | SH000001 |
+| 深证成指 | SZ399001 |
+
+---
+
+## API 地址
+
+```
+https://api.financialagent.cc/api/v1/quotes/{symbol}
+```
+
+## 参数说明
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| symbol | 股票代码 | SH600519, 0700.HK, AAPL |
+| days | 最近N天 | days=10 |
+| start_date | 开始日期 | start_date=2026-03-01 |
+| end_date | 结束日期 | end_date=2026-03-20 |
