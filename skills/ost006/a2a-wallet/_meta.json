@@ -3,11 +3,16 @@
   "slug": "a2a-wallet",
   "displayName": "a2a-wallet",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773908887804,
-    "commit": "https://github.com/openclaw/skills/commit/898a26a131a96dd74222d4c8a1afb088a5dc57b7"
+    "version": "1.0.6",
+    "publishedAt": 1774329341297,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773908887804,
+      "commit": "https://github.com/openclaw/skills/commit/898a26a131a96dd74222d4c8a1afb088a5dc57b7"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1773645733971,
