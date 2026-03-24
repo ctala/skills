@@ -6,8 +6,21 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+SAFE_URLOPENER = urllib.request.build_opener()
 
 BASE_URL = "https://market.ft.tech"
+
+def safe_urlopen(req_or_url):
+    if isinstance(req_or_url, urllib.request.Request):
+        url = req_or_url.full_url
+    else:
+        url = str(req_or_url)
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.netloc != "market.ft.tech":
+        print(f"Invalid URL for safe_urlopen: {url}", file=sys.stderr)
+        sys.exit(1)
+    return SAFE_URLOPENER.open(req_or_url)
+
 ENDPOINT = "/data/api/v1/market/data/holder/stock-holder-ten"
 
 
@@ -15,7 +28,7 @@ def fetch(stock_code: str) -> dict:
     params = urllib.parse.urlencode({"stock_code": stock_code})
     url = f"{BASE_URL}{ENDPOINT}?{params}"
     try:
-        with urllib.request.urlopen(url) as resp:
+        with safe_urlopen(url) as resp:
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
         body = e.read().decode()

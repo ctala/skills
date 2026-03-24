@@ -6,9 +6,23 @@ import os
 import sys
 import urllib.error
 import urllib.request
+import urllib.parse
 from typing import Optional
+SAFE_URLOPENER = urllib.request.build_opener()
 
 BASE_URL = "https://market.ft.tech"
+
+def safe_urlopen(req_or_url):
+    if isinstance(req_or_url, urllib.request.Request):
+        url = req_or_url.full_url
+    else:
+        url = str(req_or_url)
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.netloc != "market.ft.tech":
+        print(f"Invalid URL for safe_urlopen: {url}", file=sys.stderr)
+        sys.exit(1)
+    return SAFE_URLOPENER.open(req_or_url)
+
 
 
 def _safe_output_path(path: str, base_dir: Optional[str] = None) -> str:
@@ -48,7 +62,7 @@ def main():
     req = urllib.request.Request(url, method="GET")
 
     try:
-        with urllib.request.urlopen(req) as resp:
+        with safe_urlopen(req) as resp:
             data = resp.read()
 
         if args.output is not None:

@@ -6,13 +6,25 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
-from zoneinfo import ZoneInfo
+SAFE_URLOPENER = urllib.request.build_opener()
 
-BEIJING_TZ = ZoneInfo("Asia/Shanghai")
+BEIJING_TZ = timezone(timedelta(hours=8))
 
 BASE_URL = "https://market.ft.tech/app"
+
+def safe_urlopen(req_or_url):
+    if isinstance(req_or_url, urllib.request.Request):
+        url = req_or_url.full_url
+    else:
+        url = str(req_or_url)
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.netloc != "market.ft.tech":
+        print(f"Invalid URL for safe_urlopen: {url}", file=sys.stderr)
+        sys.exit(1)
+    return SAFE_URLOPENER.open(req_or_url)
+
 ENDPOINT = "/api/v2/stocks/{stock}/ohlcs"
 HEADERS = {
     "X-Client-Name": "ft-web",
@@ -51,7 +63,7 @@ def fetch(stock: str, span: str, limit: Optional[int], until_ts_ms: Optional[int
     url = f"{BASE_URL}{ENDPOINT.format(stock=stock)}?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers=HEADERS)
     try:
-        with urllib.request.urlopen(req) as resp:
+        with safe_urlopen(req) as resp:
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
         body = e.read().decode()

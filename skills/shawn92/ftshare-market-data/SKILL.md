@@ -33,6 +33,12 @@ python <RUN_PY> cb-lists
 python <RUN_PY> cb-base-data --symbol_code 110070.SH
 python <RUN_PY> etf-pcfs --date 20260309
 python <RUN_PY> etf-pcf-download --filename pcf_159003_20260309.xml --output pcf.xml
+python <RUN_PY> fund-basicinfo-single-fund --institution-code 000001
+python <RUN_PY> fund-cal-return-single-fund-specific-period --institution-code 159619 --cal-type 1Y
+python <RUN_PY> fund-nav-single-fund-paginated --institution-code 000001 --page 1 --page-size 50
+python <RUN_PY> fund-overview-all-funds-paginated --page 1 --page-size 20
+python <RUN_PY> fund-support-symbols-all-funds-paginated --page 1 --page-size 20
+python <RUN_PY> get-nth-trade-date --n 5
 ```
 
 > `run.py` 内部通过 `__file__` 自定位，无论安装在何处都能正确找到各子 skill 的脚本。
@@ -40,6 +46,10 @@ python <RUN_PY> etf-pcf-download --filename pcf_159003_20260309.xml --output pcf
 ---
 
 ## 能力总览
+
+### 0. 交易日工具
+
+- **`get-nth-trade-date`**：获取当前日期的前 N 个交易日。必填：`--n`（≥1）。用户查「近 N 天」K 线时先调本接口得到 `nth_trade_date`，再按东八区转为毫秒时间戳用于 stock-ohlcs / etf-ohlcs / index-ohlcs / cb-candlesticks 等。
 
 ### 1. 股票数据（A 股）
 
@@ -62,6 +72,16 @@ python <RUN_PY> etf-pcf-download --filename pcf_159003_20260309.xml --output pcf
 - **`cb-base-data`**：单只可转债基础信息（转股价、转股价值、到期日等）。必填：`--symbol_code`（如 110070.SH）。
 - **`etf-pcfs`**：指定日期 ETF PCF 列表。必填：`--date`（YYYYMMDD）；可选 `--page`、`--page_size`。
 - **`etf-pcf-download`**：按文件名下载 PCF XML。必填：`--filename`；可选：`--output`（仅允许当前工作目录下路径）。
+- **`etf-component`**：查询单只 ETF 成份股列表（代码与名称）。必填：`--symbol`（如 510300.XSHG）；接口报错或未找到时将接口返回的错误信息原样输出到 stderr。
+- **`etf-pre-single`**：查询单只 ETF 盘前数据（申购赎回单位、净值、现金差额等）。必填：`--symbol`；可选：`--date`（YYYYMMDD，不传为当日 CST）；接口报错或未找到时将接口返回的错误信息原样输出到 stderr。
+
+### 3. 基金
+
+- **`fund-basicinfo-single-fund`**：查询指定基金基础信息（名称、管理人、经理、类型、投资目标等）。必填：`--institution-code`（6 位基金代码）。
+- **`fund-cal-return-single-fund-specific-period`**：查询指定基金在指定区间的累计收益率时间序列。必填：`--institution-code`、`--cal-type`（1M/3M/6M/1Y/3Y/5Y/YTD）。
+- **`fund-nav-single-fund-paginated`**：查询指定基金净值历史（分页）。必填：`--institution-code`；可选：`--page`、`--page-size`。
+- **`fund-overview-all-funds-paginated`**：查询所有基金概览信息（分页）。可选：`--page`、`--page-size`。
+- **`fund-support-symbols-all-funds-paginated`**：查询所有支持基金的标的列表（分页）。可选：`--page`、`--page-size`。
 
 ---
 
@@ -101,6 +121,14 @@ python <RUN_PY> etf-pcf-download --filename pcf_159003_20260309.xml --output pcf
 | 「某只可转债详情」「转股价/转股价值/到期日」 | `cb-base-data` |
 | 「ETF PCF 列表」「申购赎回清单」「指定日期 PCF」 | `etf-pcfs` |
 | 「下载 PCF 文件」「PCF XML 内容」 | `etf-pcf-download` |
+| 「前 N 个交易日」「近 N 天交易日」「往前推 N 个交易日」（查近几天 K 线时先调再转时间戳） | `get-nth-trade-date` |
+| 「某只 ETF 成份股」「ETF 持仓」「510300 成份」「沪深300ETF 成份列表」 | `etf-component` |
+| 「某只 ETF 盘前」「ETF 申购赎回单位」「净值/现金差额」「510300 盘前」 | `etf-pre-single` |
+| 「基金基本信息」「某只基金详情」「基金管理人/基金经理」「基金类型/投资目标」 | `fund-basicinfo-single-fund` |
+| 「基金累计收益率」「近1年/近3个月收益」「YTD 收益」「基金收益曲线」 | `fund-cal-return-single-fund-specific-period` |
+| 「基金净值」「单位净值/累计净值」「日增长率」「基金净值历史」 | `fund-nav-single-fund-paginated` |
+| 「基金概览」「所有基金信息」「基金列表概况」 | `fund-overview-all-funds-paginated` |
+| 「支持的基金列表」「基金代码清单」「所有基金标的」 | `fund-support-symbols-all-funds-paginated` |
 
 # FT A-share 公告与研报数据 Skills
 
