@@ -1,6 +1,6 @@
 ---
 name: pdf-parser
-description: 使用 MinerU API 解析 PDF 文件（会将你指定的文件上传到 https://mineru.net 进行解析）。
+description: 使用 MinerU API 将 PDF 解析为 Markdown，支持公式、表格、OCR。提供本地文件和在线 URL 两种解析方式。触发条件：(1) 用户说"解析 PDF [路径]"，(2) 用户说"将 PDF 转为 Markdown"，(3) 在 paper-workflow 中自动调用。使用场景：学术论文解析、文档提取、知识库构建。
 homepage: https://mineru.net
 metadata: {"clawdbot":{"emoji":"📄","requires":{"env":["MINERU_TOKEN"]},"primaryCredential":"MINERU_TOKEN"}}
 ---
