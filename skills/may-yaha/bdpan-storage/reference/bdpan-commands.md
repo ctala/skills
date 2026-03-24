@@ -4,11 +4,13 @@
 
 ### login - 登录授权
 
+> **⛔ Agent 必须通过 `bash scripts/login.sh` 脚本执行登录，禁止直接调用 `bdpan login`。**
+
 ```bash
-bdpan login
+bash scripts/login.sh
 ```
 
-桌面环境下（macOS）将自动弹出 WebView 授权窗口，完成登录后自动关闭。无 GUI 环境（如 SSH 远程登录）会自动切换到手动输入模式。
+脚本内置了安全免责声明和完整的 OOB 授权流程。无论 GUI 或非 GUI 环境，统一使用此脚本。
 
 ### logout - 注销登录
 
@@ -17,6 +19,26 @@ bdpan logout
 ```
 
 清除本地存储的认证信息（`~/.config/bdpan/config.json`）。
+
+### uninstall - 完全卸载
+
+```bash
+bash scripts/uninstall.sh
+```
+
+完全卸载 bdpan CLI，自动执行以下操作：
+1. 注销登录并清除授权信息
+2. 删除配置目录（`~/.config/bdpan/`）
+3. 删除 bdpan 二进制文件（`~/.local/bin/bdpan`）
+
+**选项：**
+- `--yes, -y` - 跳过确认提示（自动化场景）
+
+**环境变量：**
+| 环境变量 | 说明 | 默认值 |
+|---------|------|--------|
+| `BDPAN_INSTALL_DIR` | 二进制安装目录 | `~/.local/bin` |
+| `BDPAN_CONFIG_DIR` | 配置文件目录 | `~/.config/bdpan` |
 
 ### whoami - 查看认证状态
 
@@ -210,23 +232,200 @@ bdpan share --json report.pdf
 有效期: 7 天
 ```
 
+### search - 搜索文件
+
+```bash
+bdpan search <关键词> [选项]
+```
+
+| 参数 | 说明 |
+|------|------|
+| `关键词` | 搜索关键词（必填） |
+
+**选项：**
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `--category` | int | `0` | 文件类型筛选：1=视频, 2=音频, 3=图片, 4=文档, 5=应用, 6=其他, 7=种子 |
+| `--page-size` | int | `5` | 每页数量（最大 50） |
+| `--page` | int | `1` | 页码 |
+| `--no-dir` | bool | `false` | 仅显示文件，排除文件夹 |
+| `--dir-only` | bool | `false` | 仅显示文件夹 |
+| `--json` | - | - | JSON 格式输出 |
+
+> `--no-dir` 和 `--dir-only` 互斥，不能同时使用。
+
+**示例：**
+```bash
+# 搜索文件
+bdpan search report
+
+# 搜索图片类型文件
+bdpan search photo --category 3
+
+# 搜索文件，排除文件夹，每页 10 条
+bdpan search data --no-dir --page-size 10
+
+# 翻页
+bdpan search report --page 2
+
+# JSON 输出
+bdpan search report --json
+```
+
+**输出格式：**
+```
+找到 15 个结果（第 1 页，共 3 页）
+
+#   名称              类型    大小      修改时间
+--- ----------------- ------- --------- ----------------
+1   report.pdf        文档    1.5 MB    2026-02-25 15:20
+2   report-draft.docx 文档    256 KB    2026-02-24 09:15
+
+提示: 使用 --page 2 查看下一页
+```
+
+### mv - 移动文件或文件夹
+
+```bash
+bdpan mv <源路径> <目标目录>
+```
+
+| 参数 | 说明 |
+|------|------|
+| `源路径` | 要移动的文件或文件夹路径（相对于 `/apps/bdpan/`） |
+| `目标目录` | 目标目录路径（相对于 `/apps/bdpan/`） |
+
+**示例：**
+```bash
+# 移动文件到子目录
+bdpan mv report.pdf backup
+
+# 移动文件夹
+bdpan mv old-project archive
+
+# JSON 输出
+bdpan mv report.pdf backup --json
+```
+
+**输出格式：**
+```
+已移动 report.pdf -> backup
+```
+
+### cp - 复制文件或文件夹
+
+```bash
+bdpan cp <源路径> <目标目录>
+```
+
+| 参数 | 说明 |
+|------|------|
+| `源路径` | 要复制的文件或文件夹路径（相对于 `/apps/bdpan/`） |
+| `目标目录` | 目标目录路径（相对于 `/apps/bdpan/`） |
+
+**示例：**
+```bash
+# 复制文件到子目录
+bdpan cp report.pdf backup
+
+# 复制文件夹
+bdpan cp project project-copy
+
+# JSON 输出
+bdpan cp report.pdf backup --json
+```
+
+**输出格式：**
+```
+已复制 report.pdf -> backup
+```
+
+### rename - 重命名文件或文件夹
+
+```bash
+bdpan rename <路径> <新名称>
+```
+
+| 参数 | 说明 |
+|------|------|
+| `路径` | 要重命名的文件或文件夹路径（相对于 `/apps/bdpan/`） |
+| `新名称` | 新文件名（仅名称，不含路径） |
+
+**示例：**
+```bash
+# 重命名文件
+bdpan rename old-name.pdf new-name.pdf
+
+# 重命名子目录中的文件
+bdpan rename docs/draft.md final.md
+
+# JSON 输出
+bdpan rename old-name.pdf new-name.pdf --json
+```
+
+**输出格式：**
+```
+已重命名 old-name.pdf -> new-name.pdf
+```
+
+### mkdir - 创建文件夹
+
+```bash
+bdpan mkdir <路径>
+```
+
+| 参数 | 说明 |
+|------|------|
+| `路径` | 要创建的文件夹路径（相对于 `/apps/bdpan/`） |
+
+**示例：**
+```bash
+# 创建文件夹
+bdpan mkdir backup
+
+# 创建多级目录
+bdpan mkdir backup/2026/03
+
+# JSON 输出
+bdpan mkdir backup --json
+```
+
+**输出格式：**
+```
+已创建文件夹: backup
+```
+
 ---
 
 ## 版本管理命令
 
-### update - 检查/更新版本
+### update - 自动更新 Skill
+
+> **使用 `bash scripts/update.sh` 更新 Skill 文件。CLI 更新由 `bdpan` 自身管理。**
 
 ```bash
-# 手动检查更新
-bdpan update check
+# 检查并更新（交互式，需用户确认）
+bash scripts/update.sh
 
-# 自动更新到最新版本
-bdpan update
+# 仅检查更新，不执行
+bash scripts/update.sh --check
+
+# 跳过确认，自动更新（自动化场景）
+bash scripts/update.sh --yes
 ```
 
-**说明：**
-- CLI 启动时会自动检查更新
-- 发现新版本会显示提示
+**功能说明：**
+- 通过百度配置接口获取最新 Skill 版本信息
+- 对比本地 VERSION 文件判断是否需要更新
+- 下载 zip 包并解压覆盖，更新 VERSION 文件
+- 支持 SHA256 完整性校验（如配置中包含 checksum）
+
+**选项：**
+| 选项 | 说明 |
+|------|------|
+| `--check, -c` | 仅检查更新，不执行安装 |
+| `--yes, -y` | 跳过用户确认，自动执行更新 |
+| `--help` | 显示帮助信息 |
 
 ### version - 查看版本信息
 
@@ -280,30 +479,52 @@ PATH 配置建议:
 ```json
 [
   {
-    "Name": "report.pdf",
-    "IsDir": false,
-    "Size": 1536000,
-    "Modified": "2026-02-25T15:20:00Z"
+    "fs_id": 524080722157776,
+    "path": "我的应用数据/report.pdf",
+    "server_filename": "report.pdf",
+    "size": 1536000,
+    "isdir": false,
+    "md5": "a1b2c3d4e5f6...",
+    "server_mtime": "2026-02-25T15:20:00+08:00",
+    "server_ctime": "2026-02-25T14:00:00+08:00"
   },
   {
-    "Name": "documents",
-    "IsDir": true,
-    "Size": 0,
-    "Modified": "2026-02-20T10:30:00Z"
+    "fs_id": 841873986109404,
+    "path": "我的应用数据/documents",
+    "server_filename": "documents",
+    "size": 0,
+    "isdir": true,
+    "md5": "",
+    "server_mtime": "2026-02-20T10:30:00+08:00",
+    "server_ctime": "2026-02-20T09:00:00+08:00"
   }
 ]
 ```
+
+**字段说明：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `fs_id` | number | 文件唯一 ID |
+| `path` | string | 文件路径（中文显示名，如 `我的应用数据/...`） |
+| `server_filename` | string | 文件名 |
+| `size` | number | 文件大小（字节），目录为 0 |
+| `isdir` | boolean | 是否为目录（`true`/`false`，注意是小写布尔值） |
+| `md5` | string | 文件 MD5 值，目录为空字符串 |
+| `server_mtime` | string | 服务端修改时间（ISO 8601 带时区） |
+| `server_ctime` | string | 服务端创建时间（ISO 8601 带时区） |
+
+> **注意：** `path` 字段返回中文显示名（`我的应用数据/...`），不是 API 路径（`/apps/bdpan/...`）。展示给用户时可直接使用此路径。
 
 ### share 命令输出
 
 ```json
 {
   "link": "https://pan.baidu.com/s/1xxxxxxx",
-  "pwd": "abcd",
-  "period": 604800,
-  "short_url": "https://pan.baidu.com/s/1xxxxxxx",
-  "share_id": "xxxxxxx",
-  "path": "/apps/bdpan/report.pdf"
+  "short_url": "xxxxxxx",
+  "share_id": 25747091668,
+  "period": 7,
+  "pwd": "abcd"
 }
 ```
 
@@ -325,6 +546,35 @@ PATH 配置建议:
   "remote_path": "my-folder/shared-file.pdf",
   "share_link": "https://pan.baidu.com/s/1xxxxx",
   "file_count": 1
+}
+```
+
+### search 命令输出
+
+```json
+{
+  "total": 15,
+  "page": 1,
+  "page_size": 5,
+  "results": [
+    {
+      "fs_id": 524080722157776,
+      "path": "我的应用数据/bdpan/report.pdf",
+      "server_filename": "report.pdf",
+      "size": 1536000,
+      "isdir": false,
+      "category": 4,
+      "server_mtime": "2026-02-25T15:20:00+08:00"
+    }
+  ]
+}
+```
+
+### mv/cp/rename/mkdir 命令输出
+
+```json
+{
+  "status": "ok"
 }
 ```
 
@@ -399,12 +649,13 @@ result = subprocess.run(
 | Token expired | Token 过期 | 重新登录 |
 | Path not allowed | 路径不在允许范围 | 使用 /apps/bdpan/ 下的路径 |
 | File not found | 文件不存在 | 检查路径是否正确 |
+| errno=13045 | 自己的分享链接 | 文件已在网盘中，直接使用 `bdpan ls` 查找 |
 
 ---
 
 ## 平台支持
 
-| 功能 | macOS | Linux | Windows |
-|------|-------|-------|---------|
+| 功能 | macOS | Linux | Windows (WSL) |
+|------|-------|-------|---------------|
 | 基础功能 | ✅ | ✅ | ✅ |
-| WebView 登录 | ✅ | - | ✅ |
+| WebView 登录 | ✅ | - | -（WSL 无图形界面，使用 OOB 模式） |

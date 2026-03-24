@@ -149,34 +149,27 @@ bdpan ls --json | jq -e '.[] | select(.Name == "target.txt")'
 
 ## 认证流程
 
-### 示例 10: WebView 登录（GUI 环境）
+### 示例 10: 登录（统一使用 login.sh 脚本）
+
+> **⛔ 禁止直接调用 `bdpan login`，必须使用 `bash scripts/login.sh` 脚本。**
 
 ```
 用户: 帮我登录百度网盘
-AI: [执行 bdpan login]
+AI: [执行 bash scripts/login.sh]
 
-    正在启动授权流程...
-    [WebView 窗口弹出]
+    [展示安全免责声明]
+    已阅读上述安全须知，确认继续登录? [y/N]
 
-    ✓ 登录成功！
-    用户: username@baidu.com
-```
-
-### 示例 11: OOB 登录（非 GUI 环境）
-
-```
-用户: 帮我登录百度网盘
-AI: [执行 bdpan login]
-
-    正在启动授权流程...
+用户: y
+AI: 正在获取授权链接...
 
     请在浏览器中打开以下链接完成授权:
-    https://openapi.baidu.com/oauth/2.0/authorize?response_type=device_code&client_id=xxx&device_code=yyyyy
+    https://openapi.baidu.com/oauth/2.0/authorize?...
 
     授权成功后，浏览器会显示授权码，请复制并粘贴到这里:
     [等待用户输入...]
 
-用户: [粘贴授权码] abc123xyz
+用户: [粘贴授权码] ca0ee3070f75d0246357e5c74d525bda
 AI: [处理授权码]
 
     ✓ 登录成功！
@@ -218,6 +211,91 @@ bdpan transfer "https://pan.baidu.com/s/1xxxxx?pwd=abcd" --json
 #   "share_link": "https://pan.baidu.com/s/1xxxxx",
 #   "file_count": 1
 # }
+```
+
+---
+
+## 搜索文件
+
+### 示例 18: 搜索文件
+
+```
+用户: 在网盘里搜索 report
+AI: [执行 bdpan search report]
+
+    找到 3 个结果（第 1 页，共 1 页）
+
+    #   名称              类型    大小      修改时间
+    --- ----------------- ------- --------- ----------------
+    1   report.pdf        文档    1.5 MB    2026-02-25 15:20
+    2   report-draft.docx 文档    256 KB    2026-02-24 09:15
+    3   report-backup     目录    -         2026-02-20 10:30
+```
+
+### 示例 19: 按类型搜索
+
+```
+用户: 搜索网盘里所有的图片文件
+AI: [执行 bdpan search "" --category 3 --no-dir]
+
+    找到 5 个结果（第 1 页，共 1 页）
+
+    #   名称              类型    大小      修改时间
+    --- ----------------- ------- --------- ----------------
+    1   photo.jpg         图片    3.2 MB    2026-03-15 14:30
+    2   screenshot.png    图片    1.1 MB    2026-03-10 09:20
+    ...
+```
+
+---
+
+## 文件管理（移动/复制/重命名/创建文件夹）
+
+### 示例 20: 移动文件
+
+```
+用户: 把网盘里的 report.pdf 移动到 backup 目录
+AI: [执行 bdpan mv report.pdf backup]
+
+    已移动 report.pdf -> backup
+```
+
+### 示例 21: 复制文件
+
+```
+用户: 复制 report.pdf 到 archive 目录
+AI: [执行 bdpan cp report.pdf archive]
+
+    已复制 report.pdf -> archive
+```
+
+### 示例 22: 重命名文件
+
+```
+用户: 把 draft.pdf 重命名为 final-report.pdf
+AI: [执行 bdpan rename draft.pdf final-report.pdf]
+
+    已重命名 draft.pdf -> final-report.pdf
+```
+
+### 示例 23: 创建文件夹
+
+```
+用户: 在网盘里创建一个 projects 文件夹
+AI: [执行 bdpan mkdir projects]
+
+    已创建文件夹: projects
+```
+
+### 示例 24: 组合操作——创建目录并移动文件
+
+```
+用户: 帮我在网盘里创建一个 archive/2026 目录，然后把 old-report.pdf 移动过去
+AI: [执行 bdpan mkdir archive/2026]
+    已创建文件夹: archive/2026
+
+    [执行 bdpan mv old-report.pdf archive/2026]
+    已移动 old-report.pdf -> archive/2026
 ```
 
 ---

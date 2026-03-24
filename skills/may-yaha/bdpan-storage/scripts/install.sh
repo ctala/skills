@@ -4,8 +4,10 @@
 
 set -e
 
-VERSION="3.2.0"
+# bdpan CLI 安装器版本（与 CDN 发布版本保持同步）
+VERSION="3.6.2"
 CDN_BASE="https://issuecdn.baidupcs.com/issue/netdisk/ai-bdpan/installer/${VERSION}"
+CHECKSUM_URL="${CDN_BASE}/SHA256SUMS"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -128,7 +130,7 @@ main() {
         echo ""
         echo "使用方式:"
         echo "  export BDPAN_BIN=\"$BDPAN_BIN\""
-        echo "  bdpan login"
+        echo "  bash scripts/login.sh"
         echo ""
         exit 0
     fi
@@ -183,6 +185,58 @@ main() {
         chmod +x "${installer_name}"
     fi
 
+    # SHA256 完整性校验（强制）
+    log_info "正在验证安装器完整性..."
+    local checksum_file="SHA256SUMS"
+    local checksum_downloaded="no"
+
+    # 下载 checksum 文件
+    if command -v curl &> /dev/null; then
+        curl -fsSL -o "${checksum_file}" "${CHECKSUM_URL}" 2>/dev/null && checksum_downloaded="yes"
+    elif command -v wget &> /dev/null; then
+        wget -q -O "${checksum_file}" "${CHECKSUM_URL}" 2>/dev/null && checksum_downloaded="yes"
+    fi
+
+    if [ "$checksum_downloaded" != "yes" ] || [ ! -s "${checksum_file}" ]; then
+        log_error "无法下载 SHA256SUMS 校验文件: ${CHECKSUM_URL}"
+        rm -f "${installer_name}" "${checksum_file}"
+        exit 1
+    fi
+
+    # 检查 checksum 文件中是否包含当前安装器的记录
+    if ! grep -qF "${installer_name}" "${checksum_file}"; then
+        log_error "SHA256SUMS 中未找到 ${installer_name} 的记录"
+        rm -f "${installer_name}" "${checksum_file}"
+        exit 1
+    fi
+
+    # 提取期望 hash
+    local expected_hash=$(grep -F "${installer_name}" "${checksum_file}" | awk '{print $1}')
+
+    # 计算实际 hash（兼容 macOS 和 Linux）
+    local actual_hash=""
+    if command -v sha256sum &> /dev/null; then
+        actual_hash=$(sha256sum "${installer_name}" | awk '{print $1}')
+    elif command -v shasum &> /dev/null; then
+        actual_hash=$(shasum -a 256 "${installer_name}" | awk '{print $1}')
+    else
+        log_error "未找到 sha256sum/shasum 工具，无法验证文件完整性"
+        rm -f "${installer_name}" "${checksum_file}"
+        exit 1
+    fi
+
+    if [ "$actual_hash" = "$expected_hash" ]; then
+        log_info "✓ SHA256 校验通过"
+    else
+        log_error "SHA256 校验失败！安装器可能被篡改"
+        log_error "  期望: ${expected_hash}"
+        log_error "  实际: ${actual_hash}"
+        rm -f "${installer_name}" "${checksum_file}"
+        exit 1
+    fi
+
+    rm -f "${checksum_file}"
+
     log_info "安装器下载完成，开始安装..."
 
     # 执行安装器（非交互模式）
@@ -196,6 +250,11 @@ main() {
     if command -v bdpan &> /dev/null; then
         local installed_version=$(bdpan version 2>/dev/null | head -1 || echo "unknown")
         log_info "✓ bdpan CLI 安装成功！(版本: ${installed_version})"
+
+        # 注册到版本管理系统，使 bdpan update 能正常工作
+        log_info "注册到版本管理系统..."
+        bdpan install --force 2>/dev/null || log_warn "版本注册跳过（不影响使用）"
+
         echo ""
 
         # 安全免责声明
@@ -218,7 +277,7 @@ main() {
         echo ""
 
         echo "快速开始:"
-        echo "  1. 执行登录: bdpan login"
+        echo "  1. 执行登录: bash scripts/login.sh"
         echo "  2. 查看帮助: bdpan --help"
         echo ""
     else
