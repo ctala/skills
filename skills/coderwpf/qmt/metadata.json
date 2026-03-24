@@ -1,6 +1,6 @@
 {
   "name": "qmt",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "QMT迅投量化交易终端 - 内置Python策略开发、回测引擎和实盘交易，支持中国证券市场全品种。",
   "author": "BossQuant",
   "tags": [
