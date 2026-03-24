@@ -1,13 +1,13 @@
 /**
- * Xiangqin - 相亲助手
- * 帮助适龄男女高效匹配
+ * Xiangqin - Blind Date Assistant
+ * Help singles efficiently find matches
  */
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-class Xiangqin {
+class BlindDateAssistant {
   constructor() {
     this.dataDir = path.join(os.homedir(), '.openclaw', 'skills-data', 'xiangqin');
     this.ensureDir();
@@ -24,7 +24,7 @@ class Xiangqin {
     }
   }
 
-  // ========== 数据持久化 ==========
+  // ========== Data Persistence ==========
   
   loadProfiles() {
     const file = path.join(this.dataDir, 'profiles.json');
@@ -65,10 +65,10 @@ class Xiangqin {
     fs.writeFileSync(file, JSON.stringify(this.conversations, null, 2));
   }
 
-  // ========== 个人资料管理 ==========
+  // ========== Profile Management ==========
 
   /**
-   * 创建/更新个人资料
+   * Create/Update Profile
    */
   createProfile(userId, profile) {
     const now = new Date().toISOString();
@@ -78,7 +78,7 @@ class Xiangqin {
       createdAt: this.profiles[userId]?.createdAt || now,
       updatedAt: now,
       
-      // 基础信息
+      // Basic Info
       basicInfo: {
         nickname: profile.nickname,
         gender: profile.gender,
@@ -91,10 +91,10 @@ class Xiangqin {
         education: profile.education,
         occupation: profile.occupation,
         income: profile.income,
-        maritalStatus: profile.maritalStatus || '未婚'
+        maritalStatus: profile.maritalStatus || 'single'
       },
       
-      // 个人介绍
+      // About Me
       aboutMe: {
         personality: profile.personality || [],
         hobbies: profile.hobbies || [],
@@ -147,13 +147,13 @@ class Xiangqin {
   }
 
   /**
-   * 计算资料完整度
+   * Calculate Profile Completeness
    */
   calculateCompleteness(profile) {
     let score = 0;
     const maxScore = 100;
     
-    // 基础信息 40分
+    // Basic Info 40分
     if (profile.basicInfo.nickname) score += 5;
     if (profile.basicInfo.gender) score += 5;
     if (profile.basicInfo.birthYear) score += 5;
@@ -163,7 +163,7 @@ class Xiangqin {
     if (profile.basicInfo.occupation) score += 5;
     if (profile.basicInfo.income) score += 5;
     
-    // 个人介绍 30分
+    // About Me 30分
     if (profile.aboutMe.hobbies?.length > 0) score += 10;
     if (profile.aboutMe.selfDescription?.length > 20) score += 10;
     if (profile.aboutMe.values) score += 10;
@@ -192,7 +192,7 @@ class Xiangqin {
   // ========== 智能匹配 ==========
 
   /**
-   * 寻找匹配对象
+   * Find Matches
    */
   findMatches(userId, options = {}) {
     const myProfile = this.profiles[userId];
@@ -208,7 +208,7 @@ class Xiangqin {
       if (otherProfile.status !== 'active') continue;
       if (otherProfile.basicInfo.gender === myProfile.basicInfo.gender) continue;
       
-      // 计算匹配度
+      // Calculate Match Score
       const matchScore = this.calculateMatchScore(myProfile, otherProfile);
       
       // 应用额外筛选
@@ -240,7 +240,7 @@ class Xiangqin {
   }
 
   /**
-   * 计算匹配度评分
+   * Calculate Match Score评分
    */
   calculateMatchScore(profileA, profileB) {
     let totalScore = 0;
@@ -255,12 +255,12 @@ class Xiangqin {
     const ageDiff = Math.abs(basicA.age - basicB.age);
     const ageScore = ageDiff <= 2 ? 20 : ageDiff <= 5 ? 15 : ageDiff <= 8 ? 10 : 5;
     totalScore += ageScore;
-    details.age = { score: ageScore, note: `年龄差${ageDiff}岁` };
+    details.age = { score: ageScore, note: `年龄差${ageDiff}years` };
     
-    // 身高匹配 10分
+    // 身high匹配 10分
     let heightScore = 10;
-    if (basicA.gender === '男' && basicA.height - basicB.height >= 10) heightScore = 10;
-    else if (basicA.gender === '女' && basicB.height - basicA.height >= 10) heightScore = 10;
+    if (basicA.gender === 'male' && basicA.height - basicB.height >= 10) heightScore = 10;
+    else if (basicA.gender === 'female' && basicB.height - basicA.height >= 10) heightScore = 10;
     else heightScore = 5;
     totalScore += heightScore;
     details.height = { score: heightScore };
@@ -274,7 +274,7 @@ class Xiangqin {
     details.location = { score: locationScore, note: basicA.location === basicB.location ? '同城' : '异地' };
     
     // 学历匹配 15分
-    const eduLevels = { '博士': 5, '硕士': 4, '本科': 3, '大专': 2, '高中': 1 };
+    const eduLevels = { 'phd': 5, 'master': 4, 'bachelor': 3, '大专': 2, 'high school': 1 };
     const eduDiff = Math.abs((eduLevels[basicA.education] || 0) - (eduLevels[basicB.education] || 0));
     const eduScore = eduDiff === 0 ? 15 : eduDiff === 1 ? 10 : eduDiff === 2 ? 5 : 0;
     totalScore += eduScore;
@@ -302,7 +302,7 @@ class Xiangqin {
       total: totalScore,
       percentage: Math.round((totalScore / 100) * 100),
       details,
-      level: totalScore >= 80 ? '高度匹配' : totalScore >= 60 ? '比较匹配' : totalScore >= 40 ? '一般匹配' : '匹配度较低'
+      level: totalScore >= 80 ? 'high度匹配' : totalScore >= 60 ? '比较匹配' : totalScore >= 40 ? '一般匹配' : '匹配度较low'
     };
   }
 
@@ -365,7 +365,7 @@ class Xiangqin {
     // 通用开场
     openers.push({
       type: 'general',
-      content: `你好！很高兴认识你，希望我们可以多了解一下彼此。`,
+      content: `你好！很high兴认识你，希望我们可以多了解一下彼此。`,
       score: 60
     });
     
@@ -402,17 +402,17 @@ class Xiangqin {
   suggestTopics(myProfile, theirProfile, stage = 'initial') {
     const topics = {
       initial: [
-        { topic: '工作/学习', questions: ['平时工作忙吗？', '工作中最有成就感的事？'] },
+        { topic: '工作/学习', questions: ['平时工作忙吗？', '工作medium最有成就感的事？'] },
         { topic: '兴趣爱好', questions: ['周末一般怎么安排？', '最近在看什么书/电影？'] },
         { topic: '生活日常', questions: ['平时喜欢吃什么？', '有养宠物吗？'] }
       ],
       middle: [
         { topic: '价值观', questions: ['对未来生活的期待？', '觉得两个人相处最重要的是什么？'] },
         { topic: '家庭', questions: ['家里有几口人？', '和父母关系怎么样？'] },
-        { topic: '未来规划', questions: ['对未来几年的规划？', '理想中的生活状态？'] }
+        { topic: '未来规划', questions: ['对未来几年的规划？', '理想medium的生活状态？'] }
       ],
       advanced: [
-        { topic: '感情观', questions: ['之前为什么单身？', '理想中的另一半是什么样的？'] },
+        { topic: '感情观', questions: ['之前为什么单身？', '理想medium的另一半是什么样的？'] },
         { topic: '生活习惯', questions: ['作息规律吗？', '有什么不能接受的点？'] },
         { topic: '经济观念', questions: ['对理财怎么看？', '消费观念是怎样的？'] }
       ]
@@ -432,7 +432,7 @@ class Xiangqin {
   // ========== 约会规划 ==========
 
   /**
-   * 约会建议
+   * Date Suggestions
    */
   suggestDateIdeas(location, preferences = {}) {
     const ideas = {
@@ -447,9 +447,9 @@ class Xiangqin {
         { type: 'museum', name: '博物馆/展览', pros: ['有内涵', '话题多', '展示品味'], cons: ['可能无趣'] }
       ],
       advanced: [
-        { type: 'outdoor', name: '户外活动', pros: ['亲近自然', '锻炼身体', '共同挑战'], cons: ['体力要求高'] },
+        { type: 'outdoor', name: '户外活动', pros: ['亲近自然', '锻炼身体', '共同挑战'], cons: ['体力要求high'] },
         { type: 'cooking', name: '一起做饭', pros: ['生活气息', '协作互动', '温馨'], cons: ['需要场地'] },
-        { type: 'travel', name: '短途旅行', pros: ['深入了解', '共同经历', '浪漫'], cons: ['时间成本高'] }
+        { type: 'travel', name: '短途旅行', pros: ['深入了解', '共同经历', '浪漫'], cons: ['时间成本high'] }
       ]
     };
     
@@ -468,7 +468,7 @@ class Xiangqin {
   // ========== 进展跟踪 ==========
 
   /**
-   * 记录接触
+   * Record Contact
    */
   recordContact(userId, targetId, contact) {
     const key = `${userId}_${targetId}`;
@@ -500,7 +500,7 @@ class Xiangqin {
   }
 
   /**
-   * 获取接触历史
+   * Get Contact History
    */
   getContactHistory(userId, targetId) {
     const key = `${userId}_${targetId}`;
@@ -530,7 +530,7 @@ class Xiangqin {
     };
   }
 
-  // ========== 安全提醒 ==========
+  // ========== Safety Reminders ==========
 
   getSafetyTips() {
     return {
@@ -564,4 +564,4 @@ class Xiangqin {
   }
 }
 
-module.exports = { Xiangqin };
+module.exports = { BlindDateAssistant };

@@ -2,7 +2,7 @@
 
 ## Storage
 
-- Current version stores data locally in JSON files under `~/.openclaw/skills-data/xiangqin/`.
+- Current version stores data locally in JSON files under `~/.openclaw/skills-data/blind-date-assistant/`.
 - Current version does not implement field-level encryption.
 - Current version does not implement photo watermarking or identity verification.
 

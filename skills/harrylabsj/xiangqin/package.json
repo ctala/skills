@@ -1,27 +1,27 @@
 {
-  "name": "xiangqin",
-  "version": "1.0.0",
-  "description": "相亲辅助 skill：用于资料管理、基础匹配、沟通建议与安全提醒",
+  "name": "blind-date-assistant",
+  "version": "1.0.2",
+  "description": "Blind date assistant skill: for profile management, basic matching, communication advice, and safety reminders",
   "main": "scripts/index.js",
   "scripts": {
     "test": "node test.js",
     "start": "node scripts/cli.js"
   },
-  "keywords": ["相亲", "dating", "匹配", "婚恋", "交友"],
+  "keywords": ["dating", "matchmaking", "blind date", "relationship", "social"],
   "author": "Harry",
   "license": "MIT",
   "openclaw": {
     "skill": {
-      "name": "xiangqin",
-      "displayName": "相亲助手",
-      "description": "用于相亲资料管理、基础匹配推荐、开场白与聊天建议、约会建议、接触记录和安全提醒的本地辅助 skill",
-      "version": "1.0.0",
+      "name": "blind-date-assistant",
+      "displayName": "Blind Date Assistant",
+      "description": "A local assistant skill for dating profile management, basic matching recommendations, conversation starters and chat suggestions, date advice, contact records, and safety reminders",
+      "version": "1.0.2",
       "triggers": [
-        "相亲",
-        "找对象",
-        "匹配",
-        "约会",
-        "脱单"
+        "dating",
+        "find partner",
+        "matchmaking",
+        "blind date",
+        "relationship"
       ]
     }
   }
