@@ -3,11 +3,16 @@
   "slug": "count",
   "displayName": "Count",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1773830358156,
-    "commit": "https://github.com/openclaw/skills/commit/8f74acc28e08c9deeeba11bf20e09c6dbd5d4d7f"
+    "version": "2.0.3",
+    "publishedAt": 1774231091524,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1773830358156,
+      "commit": "https://github.com/openclaw/skills/commit/8f74acc28e08c9deeeba11bf20e09c6dbd5d4d7f"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1773673638156,
