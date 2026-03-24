@@ -1,53 +1,35 @@
 ---
-version: "2.0.0"
-name: Core
-description: "AdonisJS is a TypeScript-first web framework for building web apps and API servers. It comes with su core, typescript, core, framework, mvc-framework, nodejs, nodejs-framework. Use when you need core capabilities. Triggers on: core."
-author: BytesAgain
+name: "core"
+version: "3.0.0"
+description: "core reference tool"
+author: "BytesAgain"
+homepage: "https://bytesagain.com"
+source: "https://github.com/bytesagain/ai-skills"
+tags: [core, reference]
+category: "devtools"
 ---
 
 # Core
 
-AdonisJS is a TypeScript-first web framework for building web apps and API servers. It comes with support for testing, modern tooling, an system of official packages, and more. ## Commands
+core reference tool. No API keys or credentials required — outputs reference documentation only.
 
-- `help` - Help
-- `run` - Run
-- `info` - Info
-- `status` - Status
+## Commands
 
-## Features
+| Command | Description |
+|---------|-------------|
+| `intro` | intro reference |
+| `quickstart` | quickstart reference |
+| `patterns` | patterns reference |
+| `debugging` | debugging reference |
+| `performance` | performance reference |
+| `security` | security reference |
+| `migration` | migration reference |
+| `cheatsheet` | cheatsheet reference |
 
-- Core functionality from adonisjs/core
+## Output Format
 
-## Usage
+All commands output plain-text reference documentation via heredoc. No external API calls, no credentials needed, no network access.
 
-Run any command: `core <command> [args]`
 ---
-💬 Feedback & Feature Requests: https://bytesagain.com/feedback
-Powered by BytesAgain | bytesagain.com
 
-## Examples
-
-```bash
-# Show help
-core help
-
-# Run
-core run
-```
-
-- Run `core help` for all commands
-
-- Run `core help` for all commands
-
-## When to Use
-
-- as part of a larger automation pipeline
-- when you need quick core from the command line
-
-## Output
-
-Returns structured data to stdout. Redirect to a file with `core run > output.txt`.
-
-## Configuration
-
-Set `CORE_DIR` environment variable to change the data directory. Default: `~/.local/share/core/`
+*Powered by BytesAgain | bytesagain.com | hello@bytesagain.com*
