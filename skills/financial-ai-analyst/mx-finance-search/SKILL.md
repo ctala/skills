@@ -58,13 +58,20 @@ metadata:
 ### 2. 配置 Token
 
 ```bash
-# 添加到 ~/.zshrc
+# macOS 添加到 ~/.zshrc，Linux 添加到 ~/.bashrc
 export EM_API_KEY="your_api_key_here"
 ```
 
-然后执行：
+然后根据系统执行对应的命令：
+
+**macOS：**
 ```bash
 source ~/.zshrc
+```
+
+**Linux：**
+```bash
+source ~/.bashrc
 ```
 
 ## 快速开始
@@ -72,7 +79,7 @@ source ~/.zshrc
 ### 1. 命令行调用
 
 ```bash
-python3 -m {baseDir}/scripts/get_data.py "寒武纪 688256 最新研报与公告"
+python3 {baseDir}/scripts/get_data.py "寒武纪 688256 最新研报与公告"
 ```
 
 
