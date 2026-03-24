@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.2.0 (2026-03-22)
+
+### 新增 / New
+
+- **W 龙虾世界模式 / Lobster World Mode** — 叙事化日常巡防，小白主动推送安全事件，用户通过纠正/引导龙虾来学习网安 / Narrative daily-patrol mode; the lobster proactively reports security incidents and users learn by guiding it
+- **H 联网斗虾 / Online Duel (H Mode)** — 跨实例双龙虾/三龙虾对战，对接公网 arena-server，支持裁判/红方/蓝方角色分工与 Squad 一键编排 / Cross-instance dual/tri-lobster combat via public arena-server, with judge/red/blue role assignment and one-command squad orchestration
+- **龙虾安全世界可视化地图 / Security World Map** — RPG 风格的 `world-demo/`，将训练维度具象化为可交互场景地图，支持 LIVE/DEMO 双模式 / RPG-style `world-demo/` that maps training dimensions to interactive scene locations, with LIVE and DEMO modes
+
+### 改进 / Improved
+
+- **B 模式连续训练增强 / B Mode Continuity** — 支持手动推进与 cron 定时推送两种节奏，"停止"即退出训练态，cron 执行需明确授权 / Manual step-through and cron-scheduled push both supported; "stop" exits training state; cron execution requires explicit consent
+- **主菜单与唤醒流程统一 / Wake-up Flow** — `clawdgo` 唤醒后先展示导航菜单，再进入称呼/训练交互，版权页脚随菜单强制显示 / Menu shown before naming/training on wake-up; copyright footer enforced with every menu display
+- **会话身份隔离 / Session Identity Isolation** — 训练态与日常聊天态边界更清晰，降低跨会话人设串扰风险 / Cleaner boundary between training state and normal chat; reduced cross-session persona leakage
+- **H 模式状态可解释性 / Duel Explainability** — 围绕 phase/round/scoreboard 输出中文战报，不再只返回原始 JSON / Phase/round/scoreboard-oriented battle reports in Chinese, not raw JSON only
+
+### 修复 / Fixed
+
+- 首次启动时菜单未展示问题 / Menu not shown on first-time onboarding
+- 身份缺失或为占位符时未提示输入主人称谓 / Owner name not prompted when identity missing or placeholder
+- `clawdgo` 唤醒未先展示菜单直接进入命名流程 / Wake-up bypassed menu and went straight to naming
+
+---
+
 ## v1.1.0 (2026-03-18)
 
 ### 新增训练模式 / New Training Modes

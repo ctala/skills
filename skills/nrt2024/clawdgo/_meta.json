@@ -3,11 +3,16 @@
   "slug": "clawdgo",
   "displayName": "ClawdGo",
   "latest": {
-    "version": "1.1.1",
-    "publishedAt": 1773828097195,
-    "commit": "https://github.com/openclaw/skills/commit/d34464954fa3169a8fb8bc45a3928199096012e7"
+    "version": "1.2.1",
+    "publishedAt": 1774201649575,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.1",
+      "publishedAt": 1773828097195,
+      "commit": "https://github.com/openclaw/skills/commit/d34464954fa3169a8fb8bc45a3928199096012e7"
+    },
     {
       "version": "1.1.0",
       "publishedAt": 1773827094597,

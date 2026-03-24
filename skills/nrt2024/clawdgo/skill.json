@@ -1,7 +1,7 @@
 {
   "name": "clawdgo",
-  "version": "1.1.0",
-  "description": "ClawdGo 龙虾网安训练营：AI Agent 安全意识训练，三层十二维度，七种训练模式，红蓝对抗竞技场，安全口诀系统，跨会话记忆持久化。",
+  "version": "1.2.1",
+  "description": "ClawdGo 龙虾网安训练营：三层十二维度，W+A-H 训练模式，联网斗虾与可解释战报。v1.2.1 采用 local-first 会话态，不依赖 soul.md。",
   "category": "security-training",
   "license": "MIT-0",
   "author": "ClawdGo Team",
@@ -13,32 +13,25 @@
     "bins": []
   },
   "sideEffects": {
-    "fileWrites": [
-      {
-        "path": "soul.md",
-        "scope": "openclaw-workspace",
-        "description": "训练档案和安全口诀写入 soul.md（用户主动触发后执行，仅追加/更新 [ClawdGo ...] 标记区域，不修改其他内容）"
-      },
-      {
-        "path": "~/.openclaw/clawdgo-arena-{room_id}.json",
-        "scope": "user-home",
-        "description": "Arena 双实例对抗模式（v1.1.0-beta，可选功能）：两只独立龙虾通过此文件共享对战状态，仅在用户主动传入 --room 参数时创建",
-        "optional": true
-      }
-    ],
+    "fileWrites": [],
     "autonomousModes": [
       {
         "mode": "B self-train",
-        "description": "自主训练：连续完成全部场景，期间无需用户确认。开场会明确告知用户，用户随时可发送"暂停"/"退出"中断。"
+        "description": "支持手动推进与 cron 定时推送。默认先给命令，duel/cron 子命令在明确指令下可代执行并回传真实结果。"
       },
       {
         "mode": "F arena",
-        "description": "对抗竞技场：5 轮连续运行，期间无需用户确认。用户随时可发送"暂停"/"退出"中断。"
+        "description": "5 轮连续红蓝对抗，可由用户发送暂停/退出中断。"
+      },
+      {
+        "mode": "H duel auto",
+        "description": "支持 auto start/stop/tick 与 squad start 三龙虾编排。"
       }
     ],
-    "cronNote": "SKILL.md 包含 cron 配置示例，仅供参考，Skill 本身不会自动安装任何定时任务。需用户在 OpenClaw 设置中手动配置。"
+    "cronNote": "B/H 模式包含 cron 示例；执行失败必须返回真实错误，不得伪造成功。"
   },
   "capabilities": [
+    "world-mode",
     "guided-training",
     "self-training",
     "exam-mode",
@@ -46,17 +39,30 @@
     "evolve-mode",
     "arena-mode",
     "chant-mode",
-    "soul-md-memory",
-    "multi-role-roleplay",
-    "red-blue-adversarial",
-    "dual-instance-protocol",
+    "h-mode-duel",
+    "arena-server-integration",
+    "duel-auto-polling",
+    "duel-squad-orchestration",
     "12-dimension-scoring"
   ],
   "triggers": [
     "clawdgo",
+    "小白",
+    "龙虾世界",
+    "安全世界",
+    "我的龙虾",
+    "clawdgo world",
+    "小白汇报",
+    "clawdgo world update",
+    "小白你最近怎么样",
     "开始训练",
-    "网安训练",
-    "龙虾训练",
+    "导航",
+    "菜单",
+    "主页",
+    "帮助",
+    "指令",
+    "命令",
+    "help",
     "clawdgo train",
     "clawdgo self-train",
     "自主训练",
@@ -68,11 +74,25 @@
     "clawdgo arena",
     "对抗训练",
     "红蓝对抗",
+    "clawdgo duel",
+    "clawdgo duel squad start",
+    "clawdgo duel auto tick",
+    "clawdgo duel auto start",
+    "clawdgo duel auto stop",
+    "clawdgo duel feishu",
+    "clawdgo h",
+    "对抗竞技场",
+    "斗虾",
+    "双龙虾对战",
+    "飞书斗虾",
+    "三龙虾对战",
     "clawdgo chant",
     "安全口诀",
     "口诀",
     "clawdgo memory",
+    "clawdgo status",
     "clawdgo reset",
+    "clawdgo uninstall",
     "clawdgo version"
   ],
   "keywords": [
@@ -83,10 +103,7 @@
     "red-team",
     "blue-team",
     "adversarial",
-    "mnemonic",
     "openclaw",
-    "clawhub",
-    "qclaw",
-    "autoglm-claw"
+    "clawhub"
   ]
 }

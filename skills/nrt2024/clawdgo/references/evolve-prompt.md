@@ -63,8 +63,8 @@
 ```
 【🧬 场景草稿生成完成】
 
-建议文件名：{维度ID}-{难度}{序号}.md
-建议路径：skills/clawdgo/scenarios/{layer}/{dimension}/
+建议文件名：{维度ID}-{序号:02d}.md
+建议路径：skills/clawdgo/references/scenarios/
 
 --- 以下为文件内容 ---
 
@@ -128,16 +128,16 @@ created: {今日日期}
 ## 场景编号规则
 
 ```
-格式: {维度ID}-{难度缩写}{序号:02d}
+格式: {维度ID}-{序号:02d}
 
 维度ID: S1/S2/S3/S4/O1/O2/O3/O4/E1/E2/E3/E4
-难度缩写: B (basic) / A (advanced) / E (expert)
+
 序号: 从 01 开始，查看现有文件后递增
 
 示例:
-  S1-B01.md → S1 指令免疫，basic，第1个
-  S1-B02.md → S1 指令免疫，basic，第2个（新增时用）
-  E3-A01.md → E3 内部威胁，advanced，第1个
+  S1-03.md → S1 指令免疫，第3个（难度由 YAML difficulty 字段表达）
+  S1-04.md → S1 指令免疫，第4个
+  E3-02.md → E3 内部威胁，第2个
 ```
 
 ---
