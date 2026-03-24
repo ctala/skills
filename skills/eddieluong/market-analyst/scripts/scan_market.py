@@ -1,17 +1,42 @@
 #!/usr/bin/env python3
 """
-VN Market Scanner — finds oversold stocks with good fundamentals
-Usage: python3 scan_market.py [--rsi 40] [--exchange HOSE] [--limit 20]
+Market Scanner — finds oversold stocks with good fundamentals
+Hỗ trợ: HOSE, HNX, UPCOM (VN) + NASDAQ, NYSE, AMEX (US)
+Usage:
+  python3 scan_market.py [--rsi 40] [--exchange HOSE] [--limit 20]
+  python3 scan_market.py --exchange NASDAQ --rsi 35 --limit 30
+  python3 scan_market.py --exchange NYSE --rsi 40
+
+Với crypto, forex, commodities → dùng scan_global.py
 """
 import urllib.request, json, sys, argparse
 
+# Map exchange → TradingView endpoint
+EXCHANGE_ENDPOINTS = {
+    "HOSE": "https://scanner.tradingview.com/vietnam/scan",
+    "HNX": "https://scanner.tradingview.com/vietnam/scan",
+    "UPCOM": "https://scanner.tradingview.com/vietnam/scan",
+    "NASDAQ": "https://scanner.tradingview.com/america/scan",
+    "NYSE": "https://scanner.tradingview.com/america/scan",
+    "AMEX": "https://scanner.tradingview.com/america/scan",
+}
+
 def scan(rsi_threshold=40, exchange="HOSE", limit=20):
+    endpoint = EXCHANGE_ENDPOINTS.get(exchange, "https://scanner.tradingview.com/vietnam/scan")
+    is_us = exchange in ("NASDAQ", "NYSE", "AMEX")
+    min_volume = 1_000_000 if is_us else 500_000
+
+    filters = [
+        {"left": "RSI", "operation": "less", "right": rsi_threshold},
+        {"left": "exchange", "operation": "equal", "right": exchange},
+        {"left": "volume", "operation": "greater", "right": min_volume},
+    ]
+    # US markets: lọc thêm market cap > $2B
+    if is_us:
+        filters.append({"left": "market_cap_basic", "operation": "greater", "right": 2_000_000_000})
+
     payload = {
-        "filter": [
-            {"left": "RSI", "operation": "less", "right": rsi_threshold},
-            {"left": "exchange", "operation": "equal", "right": exchange},
-            {"left": "volume", "operation": "greater", "right": 500000}  # min 500K volume
-        ],
+        "filter": filters,
         "columns": ["name", "close", "change", "volume", "RSI", "EMA20", "EMA50", "EMA200",
                    "MACD.macd", "MACD.signal", "BB.lower", "price_52_week_high", "price_52_week_low"],
         "sort": {"sortBy": "RSI", "sortOrder": "asc"},
@@ -19,7 +44,7 @@ def scan(rsi_threshold=40, exchange="HOSE", limit=20):
     }
 
     req = urllib.request.Request(
-        "https://scanner.tradingview.com/vietnam/scan",
+        endpoint,
         data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
         method="POST"
@@ -69,7 +94,8 @@ def scan(rsi_threshold=40, exchange="HOSE", limit=20):
     # Sort by score
     results.sort(key=lambda x: x["score"], reverse=True)
 
-    print(f"\n🔍 VN Market Scanner — {exchange} | RSI < {rsi_threshold}")
+    market_label = "US" if is_us else "VN"
+    print(f"\n🔍 {market_label} Market Scanner — {exchange} | RSI < {rsi_threshold}")
     print(f"{'Mã':<8} {'Giá':>10} {'%':>7} {'RSI':>6} {'Score':>6} {'Vol(M)':>8}  Tín hiệu")
     print("-" * 90)
 
@@ -83,9 +109,10 @@ def scan(rsi_threshold=40, exchange="HOSE", limit=20):
     return results
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="VN Market Scanner — tìm cổ phiếu oversold")
+    parser = argparse.ArgumentParser(description="Market Scanner — tìm cổ phiếu oversold (VN + US)")
     parser.add_argument("--rsi", type=float, default=40, help="RSI threshold (default: 40)")
-    parser.add_argument("--exchange", default="HOSE", help="Exchange: HOSE, HNX, UPCOM (default: HOSE)")
+    parser.add_argument("--exchange", default="HOSE",
+                       help="Exchange: HOSE, HNX, UPCOM, NASDAQ, NYSE, AMEX (default: HOSE)")
     parser.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
     args = parser.parse_args()
     scan(args.rsi, args.exchange, args.limit)
