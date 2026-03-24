@@ -19,7 +19,7 @@ Field note: the approach has already been exercised in real OpenClaw operating w
 The memory source of truth stays in:
 - `MEMORY.md`
 - `memory/learnings.md` (optional)
-- `memory/20*.md`
+- `memory/YYYY-MM-DD.md`
 
 The index is a derivative artifact in `.memory-index/`.
 

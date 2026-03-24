@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from datetime import date, timedelta
@@ -12,6 +13,7 @@ from typing import Iterable
 
 BASE = Path(__file__).resolve().parent
 RETRIEVE = BASE / 'retrieve.py'
+PY311 = Path(r'D:/Python311/python.exe')
 TOKEN_RE = re.compile(r'[A-Za-z0-9_\-\u4e00-\u9fff]{2,}')
 PHRASE_HINTS = [
     'memory_search', 'memory-retrieval', 'memory retrieval', '记忆搜索', '记忆检索', '主路由', '默认入口',
@@ -43,7 +45,7 @@ def tokenize(text: str) -> list[str]:
 
 
 def run_query(q: str, k: int) -> dict:
-    out = subprocess.check_output(['python3', str(RETRIEVE), q, str(k)], text=True, env=os.environ.copy())
+    out = subprocess.check_output([*python_cmd(), str(RETRIEVE), q, str(k)], text=True, env=os.environ.copy())
     return json.loads(out)
 
 

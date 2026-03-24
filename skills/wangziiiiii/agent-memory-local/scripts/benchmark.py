@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -10,13 +11,25 @@ BASE = Path(__file__).resolve().parent
 CLI = BASE / 'agent_memory_local.py'
 CASES = BASE.parent / 'references' / 'regression-cases.json'
 WORKSPACE = BASE.parent.parent.parent
+PY311 = Path(r'D:/Python311/python.exe')
+
+
+def python_cmd() -> list[str]:
+    if PY311.exists():
+        return [str(PY311)]
+    py = shutil.which('py')
+    if py:
+        return [py, '-3.11']
+    if sys.executable:
+        return [sys.executable]
+    return [shutil.which('python') or 'python']
 
 
 def run_case(case: dict) -> dict:
     mode = case.get('mode', 'smart-query')
     query = case['query']
     top_k = int(case.get('top_k', 5))
-    cmd = ['python3', str(CLI), '--workspace', str(WORKSPACE), mode, query, '-k', str(top_k)]
+    cmd = [*python_cmd(), str(CLI), '--workspace', str(WORKSPACE), mode, query, '-k', str(top_k)]
     payload = json.loads(subprocess.check_output(cmd, text=True))
     results = payload.get('results') or []
     expect_file = [x.lower() for x in case.get('expect_any_file_contains', [])]

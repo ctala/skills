@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -10,10 +11,22 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 RETRIEVE = BASE / 'retrieve.py'
 MEMORY_QUERY = BASE / 'memory_query.py'
+PY311 = Path(r'D:/Python311/python.exe')
+
+
+def python_cmd() -> list[str]:
+    if PY311.exists():
+        return [str(PY311)]
+    py = shutil.which('py')
+    if py:
+        return [py, '-3.11']
+    if sys.executable:
+        return [sys.executable]
+    return [shutil.which('python') or 'python']
 
 
 def run_json(script: Path, query: str, top_k: int) -> dict:
-    out = subprocess.check_output(['python3', str(script), query, str(top_k)], text=True, env=os.environ.copy())
+    out = subprocess.check_output([*python_cmd(), str(script), query, str(top_k)], text=True, env=os.environ.copy())
     return json.loads(out)
 
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -9,10 +10,22 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 CLI = BASE / 'agent_memory_local.py'
 WORKSPACE = BASE.parent.parent.parent
+PY311 = Path(r'D:/Python311/python.exe')
+
+
+def python_cmd() -> list[str]:
+    if PY311.exists():
+        return [str(PY311)]
+    py = shutil.which('py')
+    if py:
+        return [py, '-3.11']
+    if sys.executable:
+        return [sys.executable]
+    return [shutil.which('python') or 'python']
 
 
 def run_json(*args: str) -> dict:
-    out = subprocess.check_output(['python3', str(CLI), *args], text=True)
+    out = subprocess.check_output([*python_cmd(), str(CLI), *args], text=True)
     return json.loads(out)
 
 
@@ -40,7 +53,7 @@ def main() -> int:
     assert_true(len(smart.get('results', [])) >= 1, 'smart-query returned no results')
 
     explain_out = subprocess.check_output([
-        'python3', str(CLI), '--workspace', str(WORKSPACE), 'explain', '飞书昨天为什么断联了', '--smart', '-k', '2'
+        *python_cmd(), str(CLI), '--workspace', str(WORKSPACE), 'explain', '飞书昨天为什么断联了', '--smart', '-k', '2'
     ], text=True)
     explain_payload = json.loads(explain_out)
     assert_true(len(explain_payload.get('results', [])) >= 1, 'explain returned no results')

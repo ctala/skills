@@ -80,7 +80,7 @@ Use a different memory system if you need:
 - Reads from:
   - `MEMORY.md`
   - `memory/learnings.md` (if present)
-  - `memory/20*.md`
+  - `memory/YYYY-MM-DD.md`
 - Splits Markdown into retrieval chunks
 - Builds a lightweight hashed vector index into `.memory-index/` under the workspace root
 - Stores freshness metadata for auto-rebuild checks
@@ -192,7 +192,7 @@ Use `--workspace` when running outside the target repo and you want deterministi
 The index is stored in `.memory-index/` at the resolved workspace root, not inside the skill folder.
 Examples:
 - workspace `/repo/project` → index at `/repo/project/.memory-index/`
-- workspace `/mnt/e/openclaw-data/.openclaw/workspace` → index at `/mnt/e/openclaw-data/.openclaw/workspace/.memory-index/`
+- workspace `E:/openclaw/.openclaw/workspace` → index at `E:/openclaw/.openclaw/workspace/.memory-index/`
 
 ### When to rebuild the index
 Rebuild manually when:

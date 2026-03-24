@@ -3,15 +3,28 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
+PY311 = Path(r'D:/Python311/python.exe')
+
+
+def python_cmd() -> list[str]:
+    if PY311.exists():
+        return [str(PY311)]
+    py = shutil.which('py')
+    if py:
+        return [py, '-3.11']
+    if sys.executable:
+        return [sys.executable]
+    return [shutil.which('python') or 'python']
 
 
 def run(script: str, *args: str, workspace: str = '') -> int:
-    cmd = ['python3', str(BASE / script), *args]
+    cmd = [*python_cmd(), str(BASE / script), *args]
     env = os.environ.copy()
     if workspace:
         env['AGENT_MEMORY_WORKSPACE'] = workspace

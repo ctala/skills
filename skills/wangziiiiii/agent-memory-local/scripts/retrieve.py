@@ -24,7 +24,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List
 
-from common import INDEX_FILE, LEARNINGS_MD, MEMORY_DIR, MEMORY_MD, META_FILE, WORKSPACE
+from common import INDEX_FILE, LEARNINGS_MD, MEMORY_MD, META_FILE, WORKSPACE, list_daily_memory_files
 
 BUILD_SCRIPT = Path(__file__).resolve().parent / 'build_index.py'
 DIM = 512
@@ -188,8 +188,7 @@ def list_source_files() -> List[Path]:
         files.append(MEMORY_MD)
     if LEARNINGS_MD.exists():
         files.append(LEARNINGS_MD)
-    if MEMORY_DIR.exists():
-        files.extend(sorted(MEMORY_DIR.glob('20*.md')))
+    files.extend(list_daily_memory_files())
     return files
 
 
@@ -226,6 +225,17 @@ def auto_rebuild_enabled() -> bool:
     return AUTO_REBUILD_DEFAULT
 
 
+def python_cmd() -> List[str]:
+    if PY311.exists():
+        return [str(PY311)]
+    py = shutil.which('py')
+    if py:
+        return [py, '-3.11']
+    if sys.executable:
+        return [sys.executable]
+    return [shutil.which('python') or 'python']
+
+
 def ensure_index_ready() -> Dict[str, Any]:
     src = source_state()
     state: Dict[str, Any] = {'auto_rebuild': auto_rebuild_enabled(), **src}
@@ -246,7 +256,7 @@ def ensure_index_ready() -> Dict[str, Any]:
         return state
 
     try:
-        proc = subprocess.run(['python3', str(BUILD_SCRIPT)], cwd=str(WORKSPACE), capture_output=True, text=True, timeout=AUTO_REBUILD_TIMEOUT, check=True)
+        proc = subprocess.run([*python_cmd(), str(BUILD_SCRIPT)], cwd=str(WORKSPACE), capture_output=True, text=True, timeout=AUTO_REBUILD_TIMEOUT, check=True)
         rebuilt_meta = load_meta()
         state['status'] = 'rebuilt'
         state['rebuilt'] = True
@@ -523,8 +533,7 @@ def fallback_search(query: str, k: int) -> List[Dict[str, Any]]:
         return []
     q_tokens = set(expand_tokens(tokenize(q)))
     files = [MEMORY_MD, LEARNINGS_MD]
-    if MEMORY_DIR.exists():
-        files.extend(sorted(MEMORY_DIR.glob('20*.md'), reverse=True)[:MAX_FALLBACK_FILES])
+    files.extend(list(reversed(list_daily_memory_files()))[:MAX_FALLBACK_FILES])
     out = []
     seen: set[tuple[str, str]] = set()
     for p in files:

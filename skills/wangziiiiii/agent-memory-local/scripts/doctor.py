@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from common import INDEX_FILE, LEARNINGS_MD, MEMORY_DIR, MEMORY_MD, META_FILE, WORKSPACE
+from common import INDEX_FILE, LEARNINGS_MD, MEMORY_MD, META_FILE, WORKSPACE, list_daily_memory_files
 from retrieve import ensure_index_ready, summarize_index_state
 
 
@@ -15,8 +15,7 @@ def main() -> int:
         files.append(str(MEMORY_MD.relative_to(WORKSPACE)))
     if LEARNINGS_MD.exists():
         files.append(str(LEARNINGS_MD.relative_to(WORKSPACE)))
-    if MEMORY_DIR.exists():
-        files.extend(str(p.relative_to(WORKSPACE)) for p in sorted(MEMORY_DIR.glob('20*.md'))[:20])
+    files.extend(str(p.relative_to(WORKSPACE)) for p in list_daily_memory_files()[:20])
     payload = {
         'workspace': str(WORKSPACE),
         'index_file': str(INDEX_FILE),

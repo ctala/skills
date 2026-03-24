@@ -3,9 +3,15 @@
   "slug": "agent-memory-local",
   "displayName": "Agent Memory Local",
   "latest": {
-    "version": "0.1.7",
-    "publishedAt": 1773684108342,
-    "commit": "https://github.com/openclaw/skills/commit/c9b72d403161fd32a5be8ea5fed92267b351e2b4"
+    "version": "0.1.8",
+    "publishedAt": 1773829933423,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.7",
+      "publishedAt": 1773684108342,
+      "commit": "https://github.com/openclaw/skills/commit/c9b72d403161fd32a5be8ea5fed92267b351e2b4"
+    }
+  ]
 }

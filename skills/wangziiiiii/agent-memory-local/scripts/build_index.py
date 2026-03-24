@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-from common import INDEX_DIR, INDEX_FILE, LEARNINGS_MD, MEMORY_DIR, MEMORY_MD, META_FILE, WORKSPACE
+from common import INDEX_DIR, INDEX_FILE, LEARNINGS_MD, MEMORY_MD, META_FILE, WORKSPACE, list_daily_memory_files
 
 DIM = 512
 TOKEN_RE = re.compile(r"[A-Za-z0-9_\-\u4e00-\u9fff]{2,}")
@@ -36,8 +36,7 @@ def list_source_files() -> List[Path]:
         files.append(MEMORY_MD)
     if LEARNINGS_MD.exists():
         files.append(LEARNINGS_MD)
-    if MEMORY_DIR.exists():
-        files.extend(sorted(MEMORY_DIR.glob('20*.md')))
+    files.extend(list_daily_memory_files())
     return files
 
 

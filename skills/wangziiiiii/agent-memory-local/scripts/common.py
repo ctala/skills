@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 
@@ -36,3 +37,14 @@ META_FILE = INDEX_DIR / 'meta.json'
 MEMORY_DIR = WORKSPACE / 'memory'
 MEMORY_MD = WORKSPACE / 'MEMORY.md'
 LEARNINGS_MD = MEMORY_DIR / 'learnings.md'
+DAILY_MEMORY_RE = re.compile(r'^20\d{2}-\d{2}-\d{2}\.md$')
+
+
+def list_daily_memory_files() -> list[Path]:
+    if not MEMORY_DIR.exists():
+        return []
+    return [
+        p
+        for p in sorted(MEMORY_DIR.iterdir())
+        if p.is_file() and DAILY_MEMORY_RE.fullmatch(p.name)
+    ]
