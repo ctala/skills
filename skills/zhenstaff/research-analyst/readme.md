@@ -83,11 +83,36 @@ python3 scripts/news_monitor_fast.py --no-ai --interval 60 --threshold 4
 ## Quick Start
 
 ### Analyze Stocks
+
+**Supported Markets**: US stocks, Chinese A-shares, Hong Kong stocks, US-listed Chinese stocks (ADR), Crypto
+
 ```bash
+# US stocks
 uv run scripts/stock_analyzer.py AAPL
+
+# Chinese A-shares (Shenzhen/Shanghai)
+uv run scripts/stock_analyzer.py 002168.SZ    # Shenzhen (e.g., *ST Huicheng)
+uv run scripts/stock_analyzer.py 600519.SS    # Shanghai (e.g., Kweichow Moutai)
+
+# Hong Kong stocks
+uv run scripts/stock_analyzer.py 0700.HK      # Tencent Holdings
+
+# US-listed Chinese stocks (ADR)
+uv run scripts/stock_analyzer.py CMCM         # Cheetah Mobile
+
+# Compare multiple
 uv run scripts/stock_analyzer.py AAPL MSFT GOOGL
-uv run scripts/stock_analyzer.py AAPL --fast  # Skip slow analyses
+
+# Fast mode (skips insider trading & breaking news)
+uv run scripts/stock_analyzer.py AAPL --fast
 ```
+
+**Stock Code Formats**:
+- **US**: `AAPL`, `MSFT`, `GOOGL`
+- **A-share (Shenzhen)**: `002168.SZ`, `000001.SZ`
+- **A-share (Shanghai)**: `600519.SS`, `601318.SS`
+- **Hong Kong**: `0700.HK`, `0941.HK`
+- **Crypto**: `BTC-USD`, `ETH-USD`
 
 ### Analyze Crypto
 ```bash
@@ -321,11 +346,36 @@ Built for [OpenClaw](https://openclaw.ai) 🦞 | [ClawHub](https://clawhub.ai)
 ## 快速开始
 
 ### 分析股票
+
+**支持市场**：美股、A股、港股、中概股（ADR）、加密货币
+
 ```bash
+# 美股
 uv run scripts/stock_analyzer.py AAPL
+
+# A股（深交所/上交所）
+uv run scripts/stock_analyzer.py 002168.SZ    # 深市（如：*ST惠程）
+uv run scripts/stock_analyzer.py 600519.SS    # 沪市（如：贵州茅台）
+
+# 港股
+uv run scripts/stock_analyzer.py 0700.HK      # 腾讯控股
+
+# 中概股（美国上市）
+uv run scripts/stock_analyzer.py CMCM         # 猎豹移动
+
+# 比较多个
 uv run scripts/stock_analyzer.py AAPL MSFT GOOGL
-uv run scripts/stock_analyzer.py AAPL --fast  # 跳过慢速分析
+
+# 快速模式（跳过内部交易和突发新闻）
+uv run scripts/stock_analyzer.py AAPL --fast
 ```
+
+**股票代码格式**：
+- **美股**：`AAPL`、`MSFT`、`GOOGL`
+- **A股（深市）**：`002168.SZ`、`000001.SZ`
+- **A股（沪市）**：`600519.SS`、`601318.SS`
+- **港股**：`0700.HK`、`0941.HK`
+- **加密货币**：`BTC-USD`、`ETH-USD`
 
 ### 分析加密货币
 ```bash
