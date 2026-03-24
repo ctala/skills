@@ -1,11 +1,17 @@
 {
   "owner": "jwelten",
   "slug": "pg-setup",
-  "displayName": "ProxyGate Setup",
+  "displayName": "Pg Setup",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773687442466,
-    "commit": "https://github.com/openclaw/skills/commit/3530ad4a9c7f968c01cefaf84a767ded673dd1a8"
+    "version": "0.2.1",
+    "publishedAt": 1774132417134,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773687442466,
+      "commit": "https://github.com/openclaw/skills/commit/3530ad4a9c7f968c01cefaf84a767ded673dd1a8"
+    }
+  ]
 }
