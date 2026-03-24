@@ -62,9 +62,9 @@ def generate_image(
         }
     """
     # Retrieve API key
-    key = os.environ.get("ARK_API_KEY")
+    key = os.environ.get("SEEDREAM_API_KEY")
     if not key:
-        err = {"error": "Require ARK_API_KEY in environment"}
+        err = {"error": "Require SEEDREAM_API_KEY in environment"}
         print("[seedream] error:", json.dumps(err, ensure_ascii=False))
         return err
     
@@ -89,8 +89,8 @@ def generate_image(
         "response_format": response_format
     }, ensure_ascii=False))
 
-    # Always use generations endpoint (supports both T2I and I2I for doubao-seedream-5.0/4.5/4.0)
-    url = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
+    # Use SEEDREAM_BASE_URL if provided, else use default generations endpoint
+    url = os.environ.get("SEEDREAM_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3/images/generations")
 
     payload = {
         "model": model_id,

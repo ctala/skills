@@ -139,13 +139,16 @@ async function generateImage(params) {
         });
     };
 
-    const apiKey = process.env.ARK_API_KEY;
+    const apiKey = process.env.SEEDREAM_API_KEY;
     if (!apiKey) {
-        return { error: "Require ARK_API_KEY in environment" };
+        return { error: "Require SEEDREAM_API_KEY in environment" };
     }
 
+    const baseUrl = process.env.SEEDREAM_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
+    const parsedUrl = new URL(baseUrl);
+
     console.log('[seedream] request:', JSON.stringify({
-        url: 'https://ark.cn-beijing.volces.com/api/v3/images/generations',
+        url: baseUrl,
         payload: {
             ...payload,
             image: payload.image !== undefined ? '<base64_data_redacted>' : undefined
@@ -155,9 +158,9 @@ async function generateImage(params) {
     const dataString = JSON.stringify(payload);
 
     const options = {
-        hostname: 'ark.cn-beijing.volces.com',
-        port: 443,
-        path: '/api/v3/images/generations',
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || 443,
+        path: parsedUrl.pathname + parsedUrl.search,
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${apiKey}`,
