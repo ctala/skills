@@ -3,11 +3,16 @@
   "slug": "recipe-create-expense-tracker",
   "displayName": "Recipe Create Expense Tracker",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773432601639,
-    "commit": "https://github.com/openclaw/skills/commit/e569f0524ea5146e5e83c803f1fbd33a2d81571f"
+    "version": "1.0.2",
+    "publishedAt": 1774300581432,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773432601639,
+      "commit": "https://github.com/openclaw/skills/commit/e569f0524ea5146e5e83c803f1fbd33a2d81571f"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772929593536,
