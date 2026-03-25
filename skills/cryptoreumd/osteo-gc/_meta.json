@@ -1,0 +1,11 @@
+{
+  "owner": "cryptoreumd",
+  "slug": "osteo-gc",
+  "displayName": "OSTEO-GC: Glucocorticoid-Induced Osteoporosis Modeling",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774190716324,
+    "commit": null
+  },
+  "history": []
+}
