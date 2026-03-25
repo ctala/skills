@@ -1,15 +1,15 @@
 ---
 name: wechat-md-publisher
-description: 发布 Markdown 文章到微信公众号，支持草稿管理、多主题、智能图片处理
-version: 0.1.0
+description: 发布 Markdown 文章到微信公众号，支持草稿管理、多主题、智能图片处理、自动封面图。推荐与 news-to-markdown-skill 配合使用实现一键转载。
+version: 0.2.3
 author: Ping Si <sipingme@gmail.com>
 user-invocable: true
 requires:
   - node: ">=18.0.0"
   - npm: ">=8.0.0"
   - env:
-      - WECHAT_APP_ID: "微信公众号 AppID（可选，也可通过命令配置）"
-      - WECHAT_APP_SECRET: "微信公众号 AppSecret（可选，也可通过命令配置）"
+      - WECHAT_APP_ID: "微信公众号 AppID（必需）"
+      - WECHAT_APP_SECRET: "微信公众号 AppSecret（必需）"
 tags:
   - wechat
   - publishing
@@ -21,6 +21,62 @@ repository: https://github.com/sipingme/wechat-md-publisher
 # WeChat Publisher Skill
 
 全功能微信公众号 Markdown 发布工具 - 让 AI 能够直接将内容发布到微信公众号。
+
+## ⚠️ 重要提示
+
+**推荐使用方式**：
+- ✅ **最佳实践**：与 `news-to-markdown-skill` 配合使用，实现一键转载新闻到微信公众号
+- 🌐 **固定公网 IP**：必须有固定公网 IP 并配置到微信公众平台的 IP 白名单
+- 🔑 **必需凭证**：必须配置 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 环境变量或通过命令行配置
+
+**关键要求**：
+1. **固定公网 IP**：微信 API 要求服务器 IP 在白名单中，动态 IP 无法使用
+2. **微信公众号凭证**：需要从微信公众平台获取 AppID 和 AppSecret
+3. **IP 白名单配置**：在微信公众平台「设置与开发」→「基本配置」→「IP 白名单」中添加你的公网 IP
+
+## ⚡ 快速开始
+
+### 安装
+
+```bash
+npm install -g wechat-md-publisher
+```
+
+### 配置账号
+
+```bash
+wechat-pub account add \
+  --name "我的公众号" \
+  --app-id "wx_your_app_id" \
+  --app-secret "your_app_secret" \
+  --default
+```
+
+### 发布文章
+
+```bash
+wechat-pub publish create \
+  --file article.md \
+  --theme orangeheart
+```
+
+### 与 news-to-markdown 配合使用
+
+```bash
+# 一键转载新闻到微信公众号
+# news-to-markdown 会自动提取封面图（og:image 或第一张图片）
+# wechat-md-publisher 会自动使用提取的封面图
+convert-url --url "https://www.toutiao.com/article/123" --output /tmp/article.md
+wechat-pub publish create --file /tmp/article.md --theme orangeheart
+```
+
+**封面图自动处理**：
+- news-to-markdown v1.2.0+ 自动提取最佳封面图
+- 优先级：og:image > twitter:image > 第一张图片
+- wechat-md-publisher 自动上传并使用封面图
+- 无需手动指定，完全自动化
+
+---
 
 ## 🎯 何时使用此 Skill
 
@@ -165,6 +221,7 @@ wechat-pub publish create \
 - `maize` - 柔和舒适
 - `purple` - 简约文艺
 - `phycat` - 薄荷清新
+- `sports` - 运动风（活力动感）
 
 **异常处理**：
 - 图片上传失败：检查图片路径和网络
@@ -463,8 +520,8 @@ cover: ./cover.jpg（可选，封面图路径）
 
 ## 📝 维护说明
 
-- **版本**: 0.1.0
-- **最后更新**: 2026-03-19
+- **版本**: 0.2.2
+- **最后更新**: 2026-03-24
 - **维护者**: Ping Si <sipingme@gmail.com>
 - **许可证**: Apache-2.0
 
@@ -481,3 +538,178 @@ cover: ./cover.jpg（可选，封面图路径）
 - [ ] 在微信公众平台看到文章
 
 如果以上步骤都能顺利完成，说明 Skill 已正确配置！
+
+---
+
+## 🔗 与其他 Skills 配合使用
+
+### 与 news-to-markdown-skill 组合使用
+
+**推荐组合**：`news-to-markdown-skill` + `wechat-md-publisher-skill` = 一键转载新闻到微信公众号
+
+#### 使用场景
+
+将网络上的新闻文章快速转载到微信公众号，实现内容聚合和分发。
+
+#### 完整工作流
+
+**场景 1：转载单篇新闻**
+
+```bash
+# 步骤 1: 使用 news-to-markdown 提取新闻
+convert-url --url "https://www.toutiao.com/article/123" \
+  --output /tmp/article.md \
+  --platform toutiao \
+  --verbose
+
+# 步骤 2: 使用 wechat-md-publisher 发布到微信
+wechat-pub publish create \
+  --file /tmp/article.md \
+  --theme orangeheart
+```
+
+**场景 2：批量转载新闻**
+
+```bash
+# 新闻 URL 列表
+urls=(
+  "https://www.toutiao.com/article/123"
+  "https://mp.weixin.qq.com/s/abc"
+  "https://www.xiaohongshu.com/explore/xyz"
+)
+
+# 批量处理
+for url in "${urls[@]}"; do
+  # 提取新闻
+  convert-url --url "$url" --output "/tmp/$(basename $url).md"
+  
+  # 发布到微信（创建草稿）
+  wechat-pub draft create --file "/tmp/$(basename $url).md" --theme lapis
+  
+  echo "✓ 已处理: $url"
+done
+```
+
+**场景 3：AI 自动化工作流**
+
+用户对 AI 说：
+> "帮我把这篇头条文章转载到我的微信公众号"
+
+AI 执行流程：
+1. 使用 `news-to-markdown-skill` 提取文章内容
+2. 自动检测平台（头条/微信/小红书）
+3. 使用 `wechat-md-publisher-skill` 发布到微信
+4. 返回发布结果和链接
+
+#### 优势
+
+✅ **智能内容提取**
+- 自动识别新闻正文，过滤广告和噪音
+- 保留文章结构和格式
+- 提取标题、作者、发布时间等元数据
+
+✅ **多平台支持**
+- 头条：优化标题层级、列表、代码块
+- 微信：提取 `#js_content` 区域
+- 小红书：处理 `.note-content` 内容
+
+✅ **三层抓取策略**
+- curl → wget → Playwright
+- 确保动态页面也能正确抓取
+
+✅ **精美主题渲染**
+- 8+ 精选主题可选
+- 自动处理图片上传
+- 保持排版美观
+
+#### 最佳实践
+
+**1. 内容审核**
+```bash
+# 先创建草稿，人工审核后再发布
+convert-url --url "$news_url" --output /tmp/article.md
+wechat-pub draft create --file /tmp/article.md --theme default
+
+# 审核通过后发布
+wechat-pub publish submit <media-id>
+```
+
+**2. 添加来源声明**
+```bash
+# 提取时保留元数据
+convert-url --url "$news_url" --output /tmp/article.md
+
+# 元数据会自动包含在 Markdown 中：
+# ---
+# title: 文章标题
+# author: 原作者
+# 来源: https://...
+# ---
+```
+
+**3. 选择合适主题**
+- 科技类文章：`lapis`（清新极简）
+- 情感类文章：`orangeheart`（温暖优雅）
+- 教程类文章：`default`（简洁经典）
+
+#### 示例对话
+
+**用户**：把这篇头条文章转到我的微信公众号
+https://www.toutiao.com/article/7000000000000000000/
+
+**AI**：好的，我来帮你处理：
+
+1. 正在提取文章内容...
+   ```
+   [INFO] 开始抓取: https://www.toutiao.com/article/...
+   [INFO] 检测到平台: toutiao
+   [INFO] 提取成功
+   ```
+
+2. 正在发布到微信公众号...
+   ```
+   ✓ 渲染完成
+   ✓ 图片处理完成
+   ✓ 创建草稿成功
+   ✓ 发布成功
+   ```
+
+✅ **完成！**
+- 文章标题：《xxx》
+- 发布 ID: 2247483647_1
+- 使用主题: orangeheart
+- 你可以在微信公众平台查看
+
+#### 相关资源
+
+- **news-to-markdown-skill**: https://github.com/sipingme/news-to-markdown-skill
+- **news-to-markdown 核心库**: https://github.com/sipingme/news-to-markdown
+- **npm 包**: `npm install -g news-to-markdown`
+
+#### 技术栈
+
+```
+新闻网站
+    ↓
+news-to-markdown (提取 + 转换)
+    ↓
+Markdown 文件
+    ↓
+wechat-md-publisher (渲染 + 发布)
+    ↓
+微信公众号
+```
+
+---
+
+## 💡 更多组合可能
+
+### 与内容管理工具配合
+- 配合 Git 进行版本管理
+- 配合 CI/CD 实现自动发布
+- 配合数据库存储发布记录
+
+### 与 AI 工具配合
+- AI 生成内容 → wechat-md-publisher 发布
+- AI 润色文章 → wechat-md-publisher 发布
+- AI 翻译文章 → wechat-md-publisher 发布

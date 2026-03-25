@@ -1,11 +1,17 @@
 {
   "owner": "sipingme",
   "slug": "wechat-md-publisher-skill",
-  "displayName": "Wechat Md Publisher",
+  "displayName": "Wechat Md Publisher Skill",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773910677071,
-    "commit": "https://github.com/openclaw/skills/commit/31ebc83268b3d1759b1374de6c04421bb0ded7ff"
+    "version": "0.2.3",
+    "publishedAt": 1774418867930,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773910677071,
+      "commit": "https://github.com/openclaw/skills/commit/31ebc83268b3d1759b1374de6c04421bb0ded7ff"
+    }
+  ]
 }
