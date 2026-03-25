@@ -1,0 +1,11 @@
+{
+  "owner": "superworldsavior",
+  "slug": "agent-escalation",
+  "displayName": "Agent Escalation (Webhook)",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774184643833,
+    "commit": null
+  },
+  "history": []
+}
