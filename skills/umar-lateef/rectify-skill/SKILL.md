@@ -38,8 +38,7 @@ Members URL:        https://api.rectify.so/v1/agent-pulse/members
 This skill sends requests to `https://api.rectify.so` only.
 - No credentials are stored outside the user's local environment
 - `RECTIFY_PROJECT_TOKEN` is a user-issued project token from app.rectify.so
-- The token is never logged or exposed in agent output
-- All API calls are documented above — no hidden network requests
+- All API endpoints used by this skill are listed in this file
 
 ---
 
@@ -64,8 +63,7 @@ curl -s "https://api.rectify.so/v1/agent-pulse/ai-tools/invoke" \
 ### List project members (for task assignment)
 ```bash
 curl -s "https://api.rectify.so/v1/agent-pulse/members" \
-  -H "x-api-token: $RECTIFY_PROJECT_TOKEN" \
-  -H "x-agent-name: $AGENT_NAME"
+  -H "x-api-token: $RECTIFY_PROJECT_TOKEN"
 ```
 
 > Returns `{ data: [{ id, name, email, image, role }] }`. Use `id` as `assignedMember` when creating or updating tasks.
