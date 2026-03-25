@@ -6,8 +6,14 @@ metadata:
     "openclaw":
       {
         "emoji": "🍌",
-        "requires": { "bins": ["uv"], "env": ["NANO_API_KEY", "NANO_BASE_URL", "NANO_MODEL"] },
+        "requires": {
+          "bins": ["uv"],
+          "python": ">=3.10",
+          "packages": ["openai>=1.0.0", "pillow>=10.0.0", "requests>=2.28.0"],
+          "env": ["NANO_API_KEY", "NANO_BASE_URL", "NANO_MODEL"]
+        },
         "primaryEnv": "NANO_API_KEY",
+        "configPaths": ["~/.openclaw/openclaw.json", "{skillDir}/config.json"],
       },
   }
 ---
