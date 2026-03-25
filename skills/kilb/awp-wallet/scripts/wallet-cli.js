@@ -262,7 +262,7 @@ cli.command("sign-message")
   .action(async (opts) => {
     try {
       const { requireScope } = await import("./lib/session.js")
-      requireScope(opts.token, "transfer")
+      requireScope(opts.token, "full")
       const { signMessage } = await import("./lib/signing.js")
       json(await signMessage(opts.message))
     } catch (e) { fail(e.message) }
@@ -376,7 +376,7 @@ cli.command("deploy-4337")
       const chain = await resolveChain()
       const { requireScope } = await import("./lib/session.js")
       requireScope(opts.token, "full")
-      json({ status: "deploy", note: "Smart Account is deployed automatically on first gasless transaction.", chain })
+      json({ status: "auto_deploy_on_first_use", note: "Smart Account is deployed automatically on first gasless transaction.", chain })
     } catch (e) { fail(e.message) }
   })
 
@@ -398,9 +398,27 @@ cli.command("sign-typed-data")
   .action(async (opts) => {
     try {
       const { requireScope } = await import("./lib/session.js")
-      requireScope(opts.token, "transfer")
+      requireScope(opts.token, "full")
       const { signTypedData } = await import("./lib/signing.js")
       json(await signTypedData(JSON.parse(opts.data)))
+    } catch (e) { fail(e.message) }
+  })
+
+cli.command("wallets")
+  .description("List all wallet profiles")
+  .action(async () => {
+    try {
+      const { listWallets, walletId } = await import("./lib/paths.js")
+      json({ currentWalletId: walletId, wallets: listWallets() })
+    } catch (e) { fail(e.message) }
+  })
+
+cli.command("wallet-id")
+  .description("Show current wallet ID")
+  .action(async () => {
+    try {
+      const { walletId, WALLET_DIR } = await import("./lib/paths.js")
+      json({ walletId, walletDir: WALLET_DIR })
     } catch (e) { fail(e.message) }
   })
 

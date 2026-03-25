@@ -2,8 +2,7 @@ import { randomBytes, createHmac, timingSafeEqual } from "node:crypto"
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, existsSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { unlockAndCache, clearSignerCache } from "./keystore.js"
-
-const WALLET_DIR = join(process.env.HOME, ".openclaw-wallet")
+import { WALLET_DIR } from "./paths.js"
 const SESSIONS_DIR = join(WALLET_DIR, "sessions")
 const SECRET_PATH = join(WALLET_DIR, ".session-secret")
 
@@ -12,7 +11,7 @@ function getSessionSecret() {
   try { hex = readFileSync(SECRET_PATH, "utf8").trim() }
   catch (err) {
     if (err.code === "ENOENT")
-      throw new Error("Session secret not found. Run 'bash scripts/setup.sh' first.")
+      throw new Error("Session secret not found. Run 'awp-wallet init' first.")
     throw err
   }
   const key = Buffer.from(hex, "hex")
