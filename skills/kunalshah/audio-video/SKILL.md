@@ -1,6 +1,6 @@
 ---
 name: audio-video
-description: "Expert audio/video processing with ffmpeg and ffprobe. Use when the user needs to convert, compress, edit, analyze, stream, or process any audio or video file. Triggers on: transcode, convert video, compress video, extract audio, trim clip, merge files, add subtitles, change bitrate, generate thumbnail, probe media, HLS stream, audio normalization, video filter, codec, fps, resolution, aspect ratio, waveform, spectrogram, ffmpeg, ffprobe."
+description: "Expert audio/video processing with ffmpeg and ffprobe. Use when the user needs to convert, compress, edit, analyze, stream, or process any audio or video file. Triggers on: transcode, convert video, compress video, extract audio, trim clip, merge files, add subtitles, change bitrate, generate thumbnail, probe media, HLS stream, audio normalization, video filter, codec, fps, resolution, aspect ratio, waveform, spectrogram, ffmpeg, ffprobe, stabilize video, video stabilization, shaky footage, 360 video, VR video, equirectangular, cubemap, v360, HDR, tone mapping, HDR to SDR, bt2020, smpte2084, color space, SRT streaming, low latency stream, multi-destination stream, tee muxer, restream, DVR recording, rolling window, repair video, corrupt video, VFR to CFR, variable frame rate, fix sync, metadata, chapter markers, cover art, strip metadata, embed chapters, SMPTE bars, test signal, packet analysis, encoding benchmark."
 metadata:
   tools: ffmpeg, ffprobe
   platforms: macOS, Linux, Windows
@@ -9,6 +9,8 @@ metadata:
 # Audio/Video Processing Skill
 
 You are an expert audio/video engineer with deep mastery of **ffmpeg** and **ffprobe**. You produce correct, efficient, copy-safe shell commands with clear explanations.
+
+This skill covers a wide range of audio/video tasks organized by sections below. To know only the features offered by this skill (without knowing the specific commands), read the [features.md](./assets/features.md) which is also organized by sections. `features.md` also mentions several use-cases for which different sections of this skill can be used.
 
 ---
 
@@ -931,6 +933,503 @@ ffmpeg -i "input.mp4" \
 
 ---
 
+## SECTION M — Video Stabilization
+
+Stabilize shaky footage from handheld cameras, drones, or action cameras. Uses a two-pass approach: pass 1 analyzes motion, pass 2 applies correction.
+
+### Check libvidstab availability
+
+```bash
+ffmpeg -filters 2>&1 | grep vidstab
+# Should show: vidstabdetect, vidstabtransform
+```
+
+**If not available:** Install a full-featured ffmpeg build.
+- macOS: `brew install ffmpeg-full` or `brew install ffmpeg --with-libvidstab`
+- Linux: `sudo apt install ffmpeg` (Ubuntu 20.04+ includes libvidstab)
+- Windows: Download from https://www.gyan.dev/ffmpeg/builds/ (full build includes libvidstab)
+
+### Pass 1 — Detect motion (analyze shakiness)
+```bash
+# shakiness: 1 (low) to 10 (high). accuracy: 1-15, higher = better but slower.
+ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=5:accuracy=15:result=transforms.trf -f null -
+```
+
+### Pass 2 — Apply stabilization
+```bash
+# smoothing: number of frames to average (higher = smoother but more crop). zoom: extra zoom to hide black borders.
+ffmpeg -i input.mp4 \
+  -vf "vidstabtransform=input=transforms.trf:zoom=1:smoothing=30,unsharp=5:5:0.8:3:3:0.4" \
+  -c:v libx264 -crf 18 -c:a copy stabilized.mp4
+```
+
+### One-liner (both passes)
+```bash
+ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=5:accuracy=15:result=transforms.trf -f null - && \
+ffmpeg -i input.mp4 -vf "vidstabtransform=input=transforms.trf:zoom=1:smoothing=30,unsharp=5:5:0.8:3:3:0.4" \
+  -c:v libx264 -crf 18 -c:a copy stabilized.mp4
+```
+
+### Windows (PowerShell)
+```powershell
+ffmpeg -i input.mp4 -vf vidstabdetect=shakiness=5:accuracy=15:result=transforms.trf -f null NUL
+ffmpeg -i input.mp4 -vf "vidstabtransform=input=transforms.trf:zoom=1:smoothing=30,unsharp=5:5:0.8:3:3:0.4" -c:v libx264 -crf 18 -c:a copy stabilized.mp4
+```
+
+### Parameter tuning
+| Goal | Settings |
+|------|----------|
+| Mild stabilization | `shakiness=3:smoothing=10` |
+| Heavy stabilization | `shakiness=8:smoothing=50:zoom=5` |
+| Preserve full frame | `zoom=0` (black borders may appear) |
+| Action cam footage | `shakiness=10:accuracy=15:smoothing=30:zoom=2` |
+
+---
+
+## SECTION N — 360° / VR Video
+
+Handle 360° footage from cameras like GoPro Max, Insta360, Ricoh Theta. Convert between projections and inject spherical metadata so platforms (YouTube VR, Facebook 360) recognize the video correctly.
+
+### Check v360 filter availability
+```bash
+ffmpeg -filters 2>&1 | grep v360
+```
+
+### Convert equirectangular → cubemap (3x2 layout)
+```bash
+# Input must be 2:1 aspect ratio (e.g. 3840x1920)
+ffmpeg -i input_360.mp4 -vf "v360=equirect:c3x2" -c:v libx264 -crf 18 -c:a copy cubemap.mp4
+```
+
+### Convert cubemap → equirectangular
+```bash
+ffmpeg -i cubemap.mp4 -vf "v360=c3x2:equirect" -c:v libx264 -crf 18 -c:a copy equirect.mp4
+```
+
+### Inject spherical metadata (YouTube VR / Facebook 360)
+```bash
+# Inject metadata so platforms recognize as 360° video
+ffmpeg -i input_360.mp4 -c copy \
+  -metadata:s:v:0 spherical-video=equirectangular \
+  output_360.mp4
+```
+
+> **Note:** For full YouTube VR compliance, use Google's [spatial-media tool](https://github.com/google/spatial-media) after encoding to inject the proper XMP metadata atom. FFmpeg metadata injection is a best-effort fallback.
+
+### Reframe / extract a flat view from 360° video
+```bash
+# Extract a flat 1920x1080 view from equirectangular (yaw=0, pitch=0, fov=90)
+ffmpeg -i input_360.mp4 \
+  -vf "v360=equirect:flat:yaw=0:pitch=0:roll=0:h_fov=90:v_fov=90:w=1920:h=1080" \
+  -c:v libx264 -crf 18 -c:a copy flat_view.mp4
+```
+
+### macOS / Linux / Windows
+The `v360` filter works identically on all platforms — no platform-specific flags needed.
+
+---
+
+## SECTION O — HDR / Color Science
+
+Handle HDR10 content from modern phones (iPhone, Android) and cameras. Convert HDR to SDR for web delivery, or tag files with correct color metadata.
+
+### Check color filters availability
+```bash
+ffmpeg -filters 2>&1 | grep -E "zscale|colorspace|tonemap"
+```
+
+> **If zscale is missing:** Install with `--enable-libzimg`. macOS: `brew install ffmpeg-full`. Linux: `sudo apt install ffmpeg` (20.04+). Windows: use full build from gyan.dev.
+
+### HDR10 → SDR tone mapping (real HDR source required)
+```bash
+# Use this when input is a genuine HDR10 file (bt2020/smpte2084 color space)
+# Pass 1: verify input is HDR
+ffprobe -v quiet -select_streams v:0 -show_entries stream=color_space,color_transfer,color_primaries -of default input.mp4
+
+# Pass 2: tone map to SDR
+ffmpeg -i input_hdr10.mp4 \
+  -vf "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p" \
+  -c:v libx264 -crf 18 -c:a copy sdr_output.mp4
+```
+
+### Colorspace conversion (SDR bt2020 → bt709)
+```bash
+# For files tagged bt2020 but not true HDR (common from some Android phones)
+ffmpeg -i input.mp4 \
+  -vf "colorspace=bt709:iall=bt2020:fast=1" \
+  -c:v libx264 -crf 18 -c:a copy bt709_output.mp4
+```
+
+### Encode HDR10 output (for archival/editing)
+```bash
+# Encode to HDR10 with proper metadata
+ffmpeg -i input.mp4 \
+  -vf "format=yuv420p10le" \
+  -c:v libx265 \
+  -x265-params "colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:hdr-opt=1:repeat-headers=1:master-display=G(13250,34500)B(7500,3000)R(34000,16000)WP(15635,16450)L(10000000,1):max-cll=1000,400" \
+  -c:a copy hdr10_output.mp4
+```
+
+### Tag existing file with correct color metadata (no re-encode)
+```bash
+ffmpeg -i input.mp4 -c copy \
+  -color_primaries bt2020 \
+  -color_trc smpte2084 \
+  -colorspace bt2020nc \
+  tagged_hdr10.mp4
+```
+
+### Tone mapping algorithm comparison
+| Algorithm | Description | Best for |
+|-----------|-------------|----------|
+| `hable` | Filmic, preserves highlights | General use |
+| `reinhard` | Simple, global | Fast previews |
+| `mobius` | Smooth, natural | Skin tones |
+| `clip` | Hard clip at white | Technical use |
+
+### Windows / Linux / macOS
+Commands are identical across platforms. Ensure ffmpeg is built with `--enable-libzimg`.
+
+---
+
+## SECTION P — Advanced Streaming
+
+### SRT (Secure Reliable Transport) — low-latency streaming
+
+SRT handles packet loss and network jitter, making it ideal for unstable connections (cellular, satellite, long-distance contribution).
+
+```bash
+# Check SRT support
+ffmpeg -protocols 2>&1 | grep srt
+
+# Send stream via SRT (caller mode)
+ffmpeg -re -i input.mp4 -c:v libx264 -b:v 4000k -c:a aac -b:a 128k \
+  -f mpegts "srt://receiver_ip:port?pkt_size=1316"
+
+# Receive SRT stream and save
+ffmpeg -i "srt://0.0.0.0:port?mode=listener" -c copy output.mp4
+
+# SRT with latency tuning (default 120ms, increase for unreliable links)
+ffmpeg -re -i input.mp4 -c:v libx264 -b:v 4000k -c:a aac \
+  -f mpegts "srt://receiver_ip:port?pkt_size=1316&latency=500000"
+```
+
+> **Windows:** Same commands work in PowerShell. SRT is included in full ffmpeg builds from gyan.dev.
+
+### Multi-endpoint restreaming (tee muxer)
+
+Stream to YouTube, Twitch, and Facebook simultaneously from one ffmpeg process:
+
+```bash
+ffmpeg -re -i input.mp4 \
+  -c:v libx264 -b:v 4500k -maxrate 4500k -bufsize 9000k \
+  -c:a aac -b:a 128k -ar 44100 \
+  -f tee \
+  "[f=flv]rtmp://a.rtmp.youtube.com/live2/YOUR_YOUTUBE_KEY|\
+[f=flv]rtmp://live.twitch.tv/app/YOUR_TWITCH_KEY|\
+[f=flv]rtmps://live-api-s.facebook.com:443/rtmp/YOUR_FB_KEY"
+```
+
+### Rolling window DVR recording
+
+Continuous loop recording — keeps only the last N segments (useful for security cameras, broadcast monitoring):
+
+```bash
+# Record in 60-second segments, keep only last 10 (10 minutes of rolling buffer)
+# segment_wrap=10 means segment_000 through segment_009, then wraps back
+ffmpeg -i input_stream_or_device \
+  -c:v libx264 -b:v 2000k -c:a aac \
+  -f segment \
+  -segment_time 60 \
+  -segment_wrap 10 \
+  -reset_timestamps 1 \
+  dvr_segment_%03d.ts
+
+# macOS screen capture rolling DVR
+ffmpeg -f avfoundation -i "1:0" \
+  -c:v libx264 -b:v 2000k -c:a aac \
+  -f segment -segment_time 60 -segment_wrap 10 -reset_timestamps 1 \
+  dvr_%03d.ts
+
+# Linux screen capture rolling DVR
+ffmpeg -f x11grab -r 30 -i :0.0 -f pulse -i default \
+  -c:v libx264 -b:v 2000k -c:a aac \
+  -f segment -segment_time 60 -segment_wrap 10 -reset_timestamps 1 \
+  dvr_%03d.ts
+
+# Windows screen capture rolling DVR (PowerShell)
+ffmpeg -f gdigrab -framerate 30 -i desktop -f dshow -i audio="Microphone" `
+  -c:v libx264 -b:v 2000k -c:a aac `
+  -f segment -segment_time 60 -segment_wrap 10 -reset_timestamps 1 `
+  dvr_%03d.ts
+```
+
+---
+
+## SECTION Q — Repair & Recovery
+
+### Recover from corrupt or truncated files
+```bash
+# Attempt recovery — ignore errors and discard corrupt packets
+ffmpeg -i corrupt_input.mp4 \
+  -c copy \
+  -err_detect ignore_err \
+  -fflags +discardcorrupt \
+  recovered.mp4
+
+# Increase probe size for files with missing moov atom or bad headers
+ffmpeg -analyzeduration 100M -probesize 100M \
+  -i corrupt_input.mp4 -c copy recovered.mp4
+
+# Fix files that won't open at all (try forcing container format)
+ffmpeg -f mp4 -i corrupt_input.mp4 -c copy recovered.mp4
+# or for MKV:
+ffmpeg -f matroska -i corrupt_input.mkv -c copy recovered.mkv
+```
+
+### VFR → CFR conversion (fix audio sync drift)
+
+Variable frame rate (VFR) footage — common from phones and screen recorders — causes audio sync drift in editing software. Convert to constant frame rate (CFR):
+
+```bash
+# Convert to CFR at 30fps (re-encodes video)
+ffmpeg -i input_vfr.mp4 -vsync cfr -r 30 -c:v libx264 -crf 18 -c:a copy cfr_output.mp4
+
+# Detect if input is VFR first
+ffprobe -v quiet -select_streams v:0 \
+  -show_entries stream=r_frame_rate,avg_frame_rate \
+  -of default input.mp4
+# If r_frame_rate != avg_frame_rate → VFR confirmed
+```
+
+### Fix audio/video sync offset
+```bash
+# Audio is N seconds late (positive = delay audio, negative = advance audio)
+ffmpeg -i input.mp4 -itsoffset 0.5 -i input.mp4 \
+  -map 0:v -map 1:a -c copy sync_fixed.mp4
+
+# Simpler: shift audio stream only
+ffmpeg -i input.mp4 -c:v copy -af "adelay=500|500" sync_fixed.mp4
+# 500 = 500ms delay on both channels
+```
+
+### Rebuild broken index / moov atom
+```bash
+# Re-mux to fix index (fast, no quality loss)
+ffmpeg -i input.mp4 -c copy -movflags +faststart fixed.mp4
+```
+
+### Windows / Linux / macOS
+All recovery commands are platform-independent. On Windows PowerShell, use backtick `` ` `` for line continuation instead of `\`.
+
+---
+
+## SECTION R — Metadata Management
+
+### Embed key/value metadata tags
+```bash
+# Add title, artist, year, comment
+ffmpeg -i input.mp4 \
+  -metadata title="My Video" \
+  -metadata artist="Author Name" \
+  -metadata year="2025" \
+  -metadata comment="Description here" \
+  -c copy tagged.mp4
+
+# Audio files: embed standard ID3-style tags
+ffmpeg -i input.mp3 \
+  -metadata title="Song Title" \
+  -metadata artist="Artist" \
+  -metadata album="Album" \
+  -metadata track="1" \
+  -c copy tagged.mp3
+```
+
+### Strip all metadata (privacy)
+```bash
+# Remove all metadata from file
+ffmpeg -i input.mp4 -map_metadata -1 -c copy stripped.mp4
+
+# Verify metadata is gone
+ffprobe -v quiet -show_format -of json stripped.mp4 | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['format'].get('tags', 'No tags — CLEAN'))"
+```
+
+### Add chapter markers
+```bash
+# Step 1: Create a chapters metadata file (chapters.txt)
+cat > chapters.txt << 'EOF'
+;FFMETADATA1
+[CHAPTER]
+TIMEBASE=1/1000
+START=0
+END=60000
+title=Introduction
+
+[CHAPTER]
+TIMEBASE=1/1000
+START=60000
+END=300000
+title=Main Content
+
+[CHAPTER]
+TIMEBASE=1/1000
+START=300000
+END=600000
+title=Conclusion
+EOF
+
+# Step 2: Embed chapters into the video
+ffmpeg -i input.mp4 -i chapters.txt -map_metadata 1 -c copy chaptered.mp4
+
+# Verify chapters
+ffprobe -v quiet -show_chapters chaptered.mp4
+```
+
+> **Windows (PowerShell):** Write chapters.txt manually with a text editor, then run the ffmpeg step 2 command.
+
+### Embed cover art into audio file (MP3, M4A, AAC)
+```bash
+# Embed cover art into MP3
+ffmpeg -i input.mp3 -i cover.jpg \
+  -map 0 -map 1 \
+  -c copy -id3v2_version 3 \
+  -metadata:s:v title="Album cover" \
+  -metadata:s:v comment="Cover (front)" \
+  output_with_cover.mp3
+
+# Embed cover art into M4A/AAC
+ffmpeg -i input.m4a -i cover.jpg \
+  -map 0 -map 1 \
+  -c copy -disposition:v:0 attached_pic \
+  output_with_cover.m4a
+```
+
+### Multi-language audio/subtitle track management
+```bash
+# Add language tag to existing track
+ffmpeg -i input.mp4 -c copy \
+  -metadata:s:a:0 language=eng \
+  -metadata:s:a:1 language=spa \
+  tagged_lang.mp4
+
+# Extract specific language track
+ffmpeg -i input.mp4 -map 0:a:0 -c copy english_audio.aac
+
+# Remove a specific stream (e.g. remove second audio track)
+ffmpeg -i input.mp4 -map 0 -map -0:a:1 -c copy removed_track.mp4
+```
+
+### Read all metadata
+```bash
+ffprobe -v quiet -show_format -show_streams -of json input.mp4 | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print('=== Format Tags ===')
+for k, v in d['format'].get('tags', {}).items():
+    print(f'  {k}: {v}')
+for i, s in enumerate(d['streams']):
+    print(f'=== Stream {i} ({s[\"codec_type\"]}) Tags ===')
+    for k, v in s.get('tags', {}).items():
+        print(f'  {k}: {v}')
+"
+```
+
+---
+
+## SECTION S — Testing & Debugging
+
+### Generate SMPTE color bars + tone (calibration signal)
+```bash
+# Standard SMPTE color bars with 1kHz test tone — use to verify encoding pipeline
+ffmpeg -f lavfi -i "smptebars=duration=10:size=1920x1080:rate=30" \
+       -f lavfi -i "sine=frequency=1000:duration=10" \
+       -c:v libx264 -crf 18 -c:a aac \
+       smpte_bars.mp4
+
+# SMPTE HDBars (HD version)
+ffmpeg -f lavfi -i "smptehdbars=duration=10:size=1920x1080:rate=30" \
+       -f lavfi -i "sine=frequency=1000:duration=10" \
+       -c:v libx264 -crf 18 -c:a aac \
+       smpte_hdbars.mp4
+
+# Windows PowerShell — identical commands
+```
+
+### Packet-level analysis (find corruption, missing keyframes)
+```bash
+# List all video packets with PTS, DTS, size, flags
+ffprobe -v quiet -select_streams v:0 \
+  -show_packets -of json input.mp4 | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+pkts = d['packets']
+keyframes = [p for p in pkts if p['flags'] in ('K_', 'K')]
+print(f'Total packets : {len(pkts)}')
+print(f'Keyframes     : {len(keyframes)}')
+print(f'Duration span : {pkts[0][\"pts_time\"]}s → {pkts[-1][\"pts_time\"]}s')
+gaps = [(pkts[i]['pts_time'], pkts[i+1]['pts_time']) for i in range(len(pkts)-1)
+        if float(pkts[i+1]['pts_time']) - float(pkts[i]['pts_time']) > 0.1]
+if gaps: print(f'Gaps detected : {gaps[:5]}')
+else: print('No gaps detected')
+"
+
+# Detect corrupt packets
+ffmpeg -v error -i input.mp4 -f null - 2>&1 | grep -E "corrupt|invalid|error"
+
+# Windows PowerShell
+ffmpeg -v error -i input.mp4 -f null NUL 2>&1 | Select-String -Pattern "corrupt|invalid|error"
+```
+
+### Encoding benchmark (compare presets)
+```bash
+# Benchmark H.264 presets — measures encode speed and output size
+python3 - << 'EOF'
+import subprocess, time, os
+
+input_file = "input.mp4"   # change to your file
+presets = ["ultrafast", "fast", "medium", "slow"]
+results = []
+
+for preset in presets:
+    out = f"bench_{preset}.mp4"
+    start = time.time()
+    subprocess.run([
+        "ffmpeg", "-y", "-i", input_file,
+        "-c:v", "libx264", "-preset", preset, "-crf", "23",
+        "-an", out
+    ], capture_output=True)
+    elapsed = time.time() - start
+    size_mb = os.path.getsize(out) / 1024 / 1024
+    results.append((preset, elapsed, size_mb))
+    os.remove(out)
+
+print(f"{'Preset':<12} {'Time (s)':<12} {'Size (MB)':<10}")
+print("-" * 36)
+for preset, t, s in results:
+    print(f"{preset:<12} {t:<12.1f} {s:<10.2f}")
+EOF
+```
+
+### Bit stream filter debugging
+```bash
+# Dump raw H.264 NAL units for inspection
+ffmpeg -i input.mp4 -c:v copy -bsf:v trace_headers -f null - 2>&1 | head -50
+
+# Check if MP4 is streamable (moov atom position)
+ffprobe -v quiet -show_format -of json input.mp4 | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print('Format:', d['format']['format_name'])
+print('Duration:', d['format'].get('duration', 'unknown'), 's')
+print('Bitrate:', int(d['format'].get('bit_rate', 0)) // 1000, 'kbps')
+"
+
+# Measure actual encode speed on your hardware
+ffmpeg -benchmark -i input.mp4 -c:v libx264 -preset medium -an -f null - 2>&1 | grep bench
+```
+
+---
+
 ## STEP 3 — Output Review
 
 After generating any command, always:
@@ -984,3 +1483,4 @@ After generating any command, always:
 - `references/ffmpeg-flags.md` — Complete flag reference with defaults and ranges
 - `assets/platform-presets.md` — Ready-to-use presets for 20+ platforms
 - `assets/quality-checklist.md` — Pre-release quality verification checklist
+- `assets/features.md` — Feature overview and capability descriptions
