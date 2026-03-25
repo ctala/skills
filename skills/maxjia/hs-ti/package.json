@@ -1,7 +1,7 @@
 {
   "name": "hs-ti",
   "displayName": "Hillstone Threat Intelligence",
-  "version": "1.1.9",
+  "version": "2.1.1",
   "description": "云瞻威胁情报查询技能。查询IP地址、域名、URL、文件哈希等是否在云瞻威胁情报库中。支持中英文双语。/ Hillstone Threat Intelligence Skill. Query IP addresses, domains, URLs, and file hashes in the Hillstone threat intelligence database. Supports Chinese/English bilingual.",
   "main": "scripts/hs_ti_plugin.py",
   "scripts": {
@@ -22,6 +22,36 @@
         "type": "string",
         "description": "云瞻威胁情报API地址 / Hillstone Threat Intelligence API URL",
         "default": "https://ti.hillstonenet.com.cn"
+      },
+      "timeout": {
+        "type": "integer",
+        "description": "请求超时时间（秒）/ Request timeout in seconds",
+        "default": 30
+      },
+      "max_retries": {
+        "type": "integer",
+        "description": "最大重试次数 / Maximum retry attempts",
+        "default": 3
+      },
+      "retry_delay": {
+        "type": "integer",
+        "description": "重试延迟（秒）/ Retry delay in seconds",
+        "default": 1
+      },
+      "cache_enabled": {
+        "type": "boolean",
+        "description": "是否启用缓存 / Enable caching",
+        "default": true
+      },
+      "cache_ttl": {
+        "type": "integer",
+        "description": "缓存有效期（秒）/ Cache time-to-live in seconds",
+        "default": 3600
+      },
+      "max_workers": {
+        "type": "integer",
+        "description": "并发查询最大线程数 / Maximum concurrent query threads",
+        "default": 5
       }
     }
   },
@@ -36,7 +66,11 @@
     "hash",
     "ioc",
     "bilingual",
-    "multilingual"
+    "multilingual",
+    "caching",
+    "auto-detection",
+    "export",
+    "logging"
   ],
   "author": "Hillstone",
   "license": "MIT",

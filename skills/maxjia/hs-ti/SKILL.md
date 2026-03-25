@@ -1,5 +1,6 @@
 ---
 name: hs-ti
+version: 2.1.1
 description: 云瞻威胁情报查询技能。查询IP地址、域名、URL、文件哈希等是否在云瞻威胁情报库中。支持中英文双语。/ Hillstone Threat Intelligence Skill. Query IP addresses, domains, URLs, and file hashes in the Hillstone threat intelligence database. Supports Chinese/English bilingual.
 metadata: {"openclaw":{"emoji":"🔍","commands":["/threat-check","/hs-ti","/threat","/hs-ti cn","/hs-ti en"],"aliases":["hs-ti","threat-intel","威胁情报","云瞻"],"title":"Hillstone Threat Intelligence"}}
 ---
@@ -8,6 +9,26 @@ metadata: {"openclaw":{"emoji":"🔍","commands":["/threat-check","/hs-ti","/thr
 
 **功能**：查询IP地址、域名、URL、文件哈希等是否在云瞻威胁情报库中。
 **Features**: Query IP addresses, domains, URLs, and file hashes in the Hillstone threat intelligence database.
+
+## 新功能 / New Features (v2.0.0)
+
+### 中文 / Chinese
+- **IOC类型自动识别**：自动识别IP、域名、URL、哈希等IOC类型
+- **智能缓存**：内置缓存机制，显著提升查询性能
+- **结果格式化**：支持文本、JSON、表格等多种格式
+- **结果导出**：支持导出为CSV、JSON、HTML、Markdown等格式
+- **日志记录**：完整的操作日志记录
+- **错误处理**：完善的错误处理和重试机制
+- **类型提示**：完整的类型提示，提高代码可维护性
+
+### English
+- **Automatic IOC Type Detection**: Automatically detect IP, domain, URL, hash, and other IOC types
+- **Smart Caching**: Built-in caching mechanism for significantly improved query performance
+- **Result Formatting**: Support for text, JSON, table, and other formats
+- **Result Export**: Support for exporting to CSV, JSON, HTML, Markdown, and other formats
+- **Logging**: Complete operation logging
+- **Error Handling**: Comprehensive error handling and retry mechanisms
+- **Type Hints**: Full type annotations for better code maintainability
 
 ## 语言切换 / Language Switching
 
@@ -37,10 +58,23 @@ You need to create a `config.json` file and configure a valid API Key:
 ```json
 {
   "api_key": "your-api-key-here",
-  "api_url": "https://ti.hillstonenet.com.cn"
+  "api_url": "https://ti.hillstonenet.com.cn",
+  "timeout": 30,
+  "max_retries": 3,
+  "retry_delay": 1,
+  "cache_enabled": true,
+  "cache_ttl": 3600
 }
 ```
-```
+
+**配置参数说明 / Configuration Parameters**:
+- `api_key`: 云瞻威胁情报API密钥 / Hillstone Threat Intelligence API Key (必需/required)
+- `api_url`: API地址 / API URL (可选/optional, 默认/default: https://ti.hillstonenet.com.cn)
+- `timeout`: 请求超时时间（秒）/ Request timeout in seconds (可选/optional, 默认/default: 30)
+- `max_retries`: 最大重试次数 / Maximum retry attempts (可选/optional, 默认/default: 3)
+- `retry_delay`: 重试延迟（秒）/ Retry delay in seconds (可选/optional, 默认/default: 1)
+- `cache_enabled`: 是否启用缓存 / Enable cache (可选/optional, 默认/default: true)
+- `cache_ttl`: 缓存有效期（秒）/ Cache time-to-live in seconds (可选/optional, 默认/default: 3600)
 
 ## 使用示例 / Usage Examples
 
@@ -117,12 +151,22 @@ Advanced API provides:
 - **实时响应时间统计**: 显示本次调用的平均、最大、最小、中位数响应时间
 - **累计性能监控**: 跟踪所有历史调用的性能指标
 - **详细威胁信息**: 返回威胁类型、可信度、具体分类等信息
+- **智能缓存**: 内置缓存机制，显著提升查询性能
+- **结果格式化**: 支持文本、JSON、表格等多种格式
+- **结果导出**: 支持导出为CSV、JSON、HTML、Markdown等格式
+- **日志记录**: 完整的操作日志记录
+- **错误处理**: 完善的错误处理和重试机制
 
 ### English
 - **Batch Query**: Support for querying multiple IOCs at once (comma-separated)
 - **Real-time Response Time Statistics**: Display average, max, min, and median response times for current query
 - **Cumulative Performance Monitoring**: Track performance metrics for all historical queries
 - **Detailed Threat Information**: Return threat type, credibility, and specific classification
+- **Smart Caching**: Built-in caching mechanism for significantly improved query performance
+- **Result Formatting**: Support for text, JSON, table, and other formats
+- **Result Export**: Support for exporting to CSV, JSON, HTML, Markdown, and other formats
+- **Logging**: Complete operation logging
+- **Error Handling**: Comprehensive error handling and retry mechanisms
 
 ## 响应时间统计说明 / Response Time Statistics
 
@@ -183,11 +227,13 @@ Each query displays detailed performance statistics:
 ### 中文 / Chinese
 - **API Key无效**: 确保使用有效的云瞻API Key
 - **网络连接问题**: 检查能否访问 `https://ti.hillstonenet.com.cn`
-- **查询超时**: 默认超时30秒，可在代码中调整
+- **查询超时**: 默认超时30秒，可在config.json中调整timeout参数
 - **编码问题**: 确保系统支持UTF-8编码
+- **日志查看**: 日志文件位于 `~/.openclaw/logs/hs_ti.log`
 
 ### English
 - **Invalid API Key**: Ensure you are using a valid Hillstone API Key
 - **Network Connection Issues**: Check if you can access `https://ti.hillstonenet.com.cn`
-- **Query Timeout**: Default timeout is 30 seconds, can be adjusted in code
+- **Query Timeout**: Default timeout is 30 seconds, can be adjusted in config.json
 - **Encoding Issues**: Ensure your system supports UTF-8 encoding
+- **Log Viewing**: Log file is located at `~/.openclaw/logs/hs_ti.log`
