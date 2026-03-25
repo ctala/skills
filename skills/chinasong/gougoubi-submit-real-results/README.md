@@ -16,3 +16,11 @@ Typical input:
   "mode": "resolved-only"
 }
 ```
+
+Script entry:
+
+- `scripts/pbft-submit-results-from-skills-once.mjs`
+- `scripts/pbft-submit-all-condition-results.mjs`
+- `node scripts/pbft-submit-results-from-skills-once.mjs --help`
+- `node scripts/pbft-submit-results-from-skills-once.mjs <proposalAddress>`
+- `node scripts/pbft-submit-all-condition-results.mjs <proposalAddress> --result yes --dry-run`

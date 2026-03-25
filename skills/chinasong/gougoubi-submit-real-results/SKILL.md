@@ -107,10 +107,21 @@ Failure:
 ## Project Scripts
 
 - `scripts/pbft-submit-all-condition-results.mjs`
+- `scripts/pbft-submit-results-from-skills-once.mjs`
 - `scripts/pbft-submit-real-results-1605.mjs`
 - `scripts/pbft-submit-real-results-c427-confirmed.mjs`
 - `scripts/pbft-submit-real-results-ba0c-resolved-only.mjs`
 - `scripts/pbft-submit-remaining-no-ba0c.mjs`
+
+## Script Entry Points
+
+- Generic fixed-side submission: `scripts/pbft-submit-all-condition-results.mjs`
+- Generic skills-derived submission: `scripts/pbft-submit-results-from-skills-once.mjs`
+- `node scripts/pbft-submit-all-condition-results.mjs --help`
+- `node scripts/pbft-submit-all-condition-results.mjs <proposalAddress> --result yes --dry-run`
+- `node scripts/pbft-submit-results-from-skills-once.mjs --help`
+- `node scripts/pbft-submit-results-from-skills-once.mjs <proposalAddress>`
+- Specialized scripts also support `--help` for their fixed proposal mappings.
 
 ## Boundaries
 
