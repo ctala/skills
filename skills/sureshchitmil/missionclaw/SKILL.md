@@ -71,10 +71,41 @@ cp -r missionclaw ~/.openclaw/skills/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/projects` | List all projects |
-| POST | `/api/projects` | Create new project |
+| POST | `/api/projects` | Create new project (full fields) |
 | GET | `/api/system` | System status |
 | GET | `/api/gateway` | OpenClaw Gateway status |
 | GET | `/api/ollama` | Ollama models |
+
+## Create Project (Full Fields)
+
+**POST** `http://localhost:3000/api/projects`
+
+```json
+{
+  "projectName": "The DigiCode Landing Page",
+  "shortDescription": "Modern landing page for digital marketing agency",
+  "tech": "Next.js, React, Tailwind CSS",
+  "author": "Suresh",
+  "fullPRD": "1. Hero section with agency name\n2. Services grid\n3. Portfolio showcase\n4. Contact form\n5. Footer with social links",
+  "projectType": "web development",
+  "priority": "high"
+}
+```
+
+**Example curl:**
+```bash
+curl -X POST http://localhost:3000/api/projects \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectName": "The DigiCode Landing Page",
+    "shortDescription": "Modern landing page for digital marketing agency",
+    "tech": "Next.js, React, Tailwind CSS",
+    "author": "Suresh",
+    "fullPRD": "1. Hero section\n2. Services grid\n3. Portfolio\n4. Contact form\n5. Footer",
+    "projectType": "web development",
+    "priority": "high"
+  }'
+```
 
 ## Team Routing
 

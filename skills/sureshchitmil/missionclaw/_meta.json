@@ -1,11 +1,17 @@
 {
   "owner": "sureshchitmil",
   "slug": "missionclaw",
-  "displayName": "MissionClaw",
+  "displayName": "Missionclaw",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774442510300,
-    "commit": "https://github.com/openclaw/skills/commit/2ca4978c086cf53fb52cb0a3675dcdd5dfba15a2"
+    "version": "1.1.0",
+    "publishedAt": 1774443882708,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774442510300,
+      "commit": "https://github.com/openclaw/skills/commit/2ca4978c086cf53fb52cb0a3675dcdd5dfba15a2"
+    }
+  ]
 }
