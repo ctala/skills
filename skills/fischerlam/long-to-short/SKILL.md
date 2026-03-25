@@ -2,7 +2,7 @@
 name: long-to-short
 description: >
   Scenario-focused Sparki skill for turning long videos into short-form clips while using the latest official Sparki setup, API-key, and upload workflow guidance.
-version: 1.0.11
+version: 1.0.12
 metadata:
   clawdbot:
     requires:
