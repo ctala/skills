@@ -57,3 +57,58 @@ Insert standard Markdown image syntax referencing the generated images into the 
 Body paragraph...
 ```
 Notify the user once all illustrations have been successfully inserted.
+
+## Troubleshooting & Connectivity Issues
+
+Handle failures in the following priority order:
+
+### Issue 1: Unauthenticated Service Unavailable
+
+If the Node.js script fails immediately (non-network error), exits with a non-zero code, or outputs `PLEASE_ASK_USER_FOR_TOKEN`:
+
+**Immediately** tell the user:
+> "免费的无认证图片生成服务当前不可用（速率限制或服务故障）。建议切换到 HuggingFace API。请问您是否有 HuggingFace Token？"
+
+Do not retry the free service. Proceed to Issue 2 for HuggingFace setup.
+
+### Issue 2: Network Connectivity Problems (especially Mainland China)
+
+If the script times out, throws a network/fetch error, or `ECONNREFUSED`/`ENOTFOUND`/`ETIMEDOUT` appears in the output, the user may be experiencing connectivity issues with overseas services.
+
+Ask the user:
+> "检测到网络连接问题。请确认：
+> 1. 您是否能正常访问 https://huggingface.co ？
+> 2. 您是否需要配置 HTTP/HTTPS 代理来访问境外服务？"
+
+**If the user cannot access HuggingFace or needs a proxy**, proceed to Issue 3.
+
+### Issue 3: HTTP Proxy Configuration
+
+If the user confirms they have an HTTP proxy, ask them to provide the proxy address:
+> "请提供您的 HTTP 代理地址（格式如 `http://127.0.0.1:7890`）："
+
+Once the user provides the proxy address, run the script with proxy environment variables:
+
+```bash
+HTTPS_PROXY="<proxy_url>" HTTP_PROXY="<proxy_url>" node /path/to/skills/snap-illustrator/scripts/generate.mjs --prompt "..." --output "..."
+```
+
+**Recording the proxy for future use**: Update this SKILL.md file by appending the user's proxy setting to the frontmatter metadata section, so it can be reused automatically in subsequent runs:
+
+```yaml
+metadata:
+  openclaw:
+    requires:
+      env:
+        - HF_TOKEN
+      bins:
+        - node
+    http_proxy: "http://127.0.0.1:7890"   # ← add proxy here
+```
+
+And in all subsequent script executions within this session, automatically prepend `HTTPS_PROXY="<proxy_url>" HTTP_PROXY="<proxy_url>"` to the command without asking the user again.
+
+### Issue 4: All Services Unavailable
+
+If none of the above resolves the issue, inform the user:
+> "图片生成服务当前无法访问。您可以稍后重试，或手动准备图片后，我可以帮您将图片链接插入到文章中。"
