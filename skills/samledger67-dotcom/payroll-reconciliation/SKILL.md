@@ -6,8 +6,8 @@ description: >
   Reconcile QuickBooks Online payroll GL accounts against payroll provider
   reports (Gusto, ADP, Paychex) across 12 categories. Produces an 8-tab Excel
   workbook covering discrepancies, 941 tax recon, W-2 box verification,
-  headcount, per-employee cost, and CDC logging. Integrates as Check #7 in the
-  PrecisionLedger Month-End Close pipeline.
+  headcount, per-employee cost, and CDC logging. Integrates with
+  the Month-End Close pipeline.
 tags:
   - payroll
   - accounting
@@ -16,7 +16,6 @@ tags:
   - excel
   - 941
   - w2
-  - precisionledger
 negative_boundaries:
   - Bank statement reconciliation → use bank-reconciliation-agent skill
   - Broad P&L variance analysis → use pl-deep-analysis skill
@@ -226,8 +225,7 @@ Examples:
 pip install openpyxl
 ```
 
-Node.js QBO client at `integrations/qbo-client/` (auth token required for GL pull).
-Auth file: `.env.wallet` in workspace root.
+Node.js QBO client (auth token required for GL pull).
 
 ---
 
@@ -244,7 +242,7 @@ Keeps last 24 periods. Delete to reset baseline.
 
 ## Workflow: Monthly Close Integration
 
-This pipeline is **Check #7** in the Month-End Close checklist
+This pipeline integrates with the Month-End Close checklist
 (`scripts/pipelines/month-end-close.py`). Run sequence:
 
 1. Get payroll provider report (CSV export from Gusto/ADP/Paychex)
@@ -279,7 +277,7 @@ Column names are matched case-insensitively. Extra columns are ignored.
 ## Common Issues
 
 **"QBO CLI error (exit 1)"**
-→ Run `cd integrations/qbo-client && node bin/qbo auth CLIENT_SLUG` to refresh token.
+→ Refresh the QBO auth token for this client slug.
 
 **"Payroll file not found"**
 → Verify the path in `--payroll-file`. Use absolute path if needed.
