@@ -3,9 +3,15 @@
   "slug": "agent-madness",
   "displayName": "Agent Madness Bracket Skill",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773893337701,
-    "commit": "https://github.com/openclaw/skills/commit/42a3ea6470fac9a43eb3e3a74440400925cb2064"
+    "version": "1.0.3",
+    "publishedAt": 1773902017197,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773893337701,
+      "commit": "https://github.com/openclaw/skills/commit/42a3ea6470fac9a43eb3e3a74440400925cb2064"
+    }
+  ]
 }
