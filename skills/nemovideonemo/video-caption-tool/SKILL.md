@@ -1,15 +1,18 @@
 ---
+license: MIT-0
 name: video-caption-tool
-version: "1.0.2"
-displayName: "Video Caption Tool - Burn Captions, AI Subtitles and SRT Export"
+version: "1.0.6"
+displayName: "Video Caption Tool - Add and Burn Captions, AI Subtitles and SRT Export"
 description: >
-  Caption burner and subtitle transcription tool — drop a video, get accurate captions with
-  word-level timing, burn hardcoded subtitles directly onto the footage, or export clean SRT
-  and VTT files. Translates captions into 50+ languages for multilingual reach. The caption
-  generator handles the full pipeline: speech-to-text transcription, timing alignment, font
-  and position styling, then hardcode burn or file export. Works as an auto caption tool for
-  accessibility — hearing-impaired captions, closed captions, and platform-ready subtitles
-  for YouTube, TikTok, and Reels. Supports mp4, mov, webm, mkv.
+  Add captions to any video — drop a file, get accurate subtitles with word-level timing,
+  then burn them directly onto the footage or export as SRT and VTT. Works as a subtitle
+  burner for hardcoded captions and a caption generator for clean transcript files.
+  Translates into 50+ languages for multilingual reach. Handles the full workflow:
+  speech-to-text transcription, timing alignment, font and position styling, then export.
+  Built for accessibility captions, closed captions, and platform-ready subtitles for
+  YouTube, TikTok, and Reels. Supports mp4, mov, webm, mkv.
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 metadata: {"openclaw": {"emoji": "💬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
 
