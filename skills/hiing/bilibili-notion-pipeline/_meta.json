@@ -1,0 +1,11 @@
+{
+  "owner": "hiing",
+  "slug": "bilibili-notion-pipeline",
+  "displayName": "Bilibili Notion Pipeline Skill",
+  "latest": {
+    "version": "0.1.2",
+    "publishedAt": 1774191079771,
+    "commit": null
+  },
+  "history": []
+}
