@@ -14,7 +14,7 @@ def sync_run(coroutine):
 
 
 def format_output(result, json_output: bool = False):
-    """格式化输出为JSON或原始格式"""
+    """格式化输出为 JSON 或原始格式"""
     import json
     if json_output:
         typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
@@ -30,7 +30,7 @@ def handle_errors(func):
     
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # 从参数中获取json_output
+        # 从参数中获取 json_output
         json_output = kwargs.get('json_output', False)
         
         try:
@@ -44,10 +44,8 @@ def handle_errors(func):
                     "traceback": traceback.format_exc() if hasattr(e, '__traceback__') else None
                 }
                 typer.echo(json_module.dumps(error_data, ensure_ascii=False, indent=2))
-                # 输出JSON错误后退出，退出码为1
                 raise typer.Exit(code=1)
             else:
-                # 让Typer处理默认错误输出
                 raise
     
     return wrapper
@@ -58,10 +56,10 @@ def handle_errors(func):
 def get_product_uri_by_desc(
     desc: str = typer.Option(..., "-desc", "--description", help="产品描述"),
     limit: int = typer.Option(5, "-limit", "--limit", help="返回数量限制，-1 表示返回所有结果"),
-    json_output: bool = typer.Option(False, "-j", "--json", help="输出JSON格式")
+    json_output: bool = typer.Option(False, "-j", "--json", help="输出 JSON 格式")
 ):
     """
-    通过语义查询，获取产品描述对应的 URI 地址，以及此地址内容描述信息，用来判断是否需要读取完整内容
+    通过语义查询，获取产品描述对应的 URI 地址
 
     示例：shop getproducturibydesc -desc "含量 45% 13-5-27" -limit 5
     """
@@ -82,10 +80,10 @@ def get_product_detail_by_uri(
     uri: str = typer.Option(..., "-uri", "--uri", help="需要读取的 URI 地址"),
     offset: int = typer.Option(0, "-offset", "--offset", help="Starting line number (0-indexed)"),
     limit: int = typer.Option(-1, "-limit", "--limit", help="Number of lines to read, -1 means read to end"),
-    json_output: bool = typer.Option(False, "-j", "--json", help="输出JSON格式")
+    json_output: bool = typer.Option(False, "-j", "--json", help="输出 JSON 格式")
 ):
     """
-    读取 URI 地址对应的完整内容，可以指定读取的行数区间，默认读取到文件结束
+    读取 URI 地址对应的完整内容
 
     示例：shop getproductdetailbyuri -uri "viking://resources/products/xxx.md" -offset 0 -limit -1
     """
@@ -103,7 +101,7 @@ def get_product_detail_by_uri(
 @shop_app.command("getgoodsinfo")
 def get_goods_info(
     product_code: str,
-    json_output: bool = typer.Option(False, "-j", "--json", help="输出JSON格式")
+    json_output: bool = typer.Option(False, "-j", "--json", help="输出 JSON 格式")
 ):
     """
     通过产品编号查询商品信息（排除 AI 幻觉）
@@ -123,15 +121,14 @@ def get_goods_info(
 
 @shop_app.command("getsalercode")
 def get_saler_code(
-    json_output: bool = typer.Option(False, "-j", "--json", help="输出JSON格式")
+    json_output: bool = typer.Option(False, "-j", "--json", help="输出 JSON 格式")
 ):
     """
-    获取下单销售人员信息，包含下单销售人员编号和姓名等信息，编号可以用来获取客户列表
+    获取业务员信息
 
     示例：shop getsalercode
     """
     async def _run():
-        # 使用配置文件中的 token，不需要额外传参
         result = await api_client.get("/protected/user-info")
         return result
 
@@ -141,11 +138,11 @@ def get_saler_code(
 
 @shop_app.command("getdealercode")
 def get_dealer_code(
-    saler_code: str = typer.Argument(..., help="下单销售人员编号"),
-    json_output: bool = typer.Option(False, "-j", "--json", help="输出JSON格式")
+    saler_code: str = typer.Argument(..., help="业务员编号"),
+    json_output: bool = typer.Option(False, "-j", "--json", help="输出 JSON 格式")
 ):
     """
-    通过下单销售人员编号获取客户列表，包含客户编号、姓名、手机号、邮箱等信息，客户编号可以用来查询可购买的产品列表
+    通过业务员编号获取客户编号列表
 
     示例：shop getdealercode "EZB2019063"
     """
@@ -157,28 +154,41 @@ def get_dealer_code(
         return result
 
     result = sync_run(_run())
+    
+    # 过滤字段，只保留有用信息
+    if not json_output and isinstance(result, dict) and 'data' in result and isinstance(result['data'], list):
+        filtered_data = []
+        for dealer in result['data']:
+            filtered_dealer = {
+                'dealerCode': dealer.get('dealerCode', ''),
+                'dealerName': dealer.get('dealerName', ''),
+                'dealerContact': dealer.get('dealerContact', ''),
+                'dealerTel': dealer.get('dealerTel', ''),
+                'dealerAddress': dealer.get('dealerAddress', ''),
+                'balance': dealer.get('balance', '0')
+            }
+            filtered_data.append(filtered_dealer)
+        result['data'] = filtered_data
+    
     format_output(result, json_output)
 
 
 @shop_app.command("getproductlist")
 def get_product_list(
     dealer_code: str = typer.Option(..., "-dealercode", "--dealer-code", help="客户编号"),
-    search_value: str = typer.Option(..., "-search", "--search-value", help="产品编码或搜索关键词"),
-    json_output: bool = typer.Option(False, "-j", "--json", help="输出JSON格式")
+    search_value: str = typer.Option(..., "-search", "--search-value", help="产品编号（验证权限）或空格分隔的关键词（模糊查询，如：\"45% 复合肥\"）"),
+    json_output: bool = typer.Option(False, "-j", "--json", help="输出 JSON 格式")
 ):
     """
-    通过客户编号和产品编号/关键词获取该客户可购买的产品列表
+    通过客户编号和搜索值查询可购买的产品列表
     
-    用法：
-    1. 精确验证：传入产品编码，返回结果表示客户可购买此产品
-    2. 模糊搜索：传入关键词（如"15-15-15"），返回匹配的可购产品列表
+    支持两种模式：
+    1. 精确验证：search_value 传产品编码，验证客户是否有权购买此产品
+    2. 模糊查询：search_value 传空格分隔的关键词，查询符合条件的产品列表
 
     示例：
-    # 精确验证产品可用性
-    shop getproductlist -dealercode "J620522007" -search "Y163U1305276020000"
-    
-    # 模糊搜索可购产品
-    shop getproductlist -dealercode "J620522007" -search "15-15-15"
+      shop getproductlist -dealercode "J620522007" -search "Y163U1305276020000"  # 验证产品权限
+      shop getproductlist -dealercode "J620522007" -search "45% 复合肥"         # 模糊查询
     """
     async def _run():
         result = await api_client.post(
@@ -188,6 +198,21 @@ def get_product_list(
         return result
 
     result = sync_run(_run())
+    
+    # 过滤字段，只保留有用信息
+    if not json_output and isinstance(result, dict) and 'data' in result and isinstance(result['data'], list):
+        filtered_data = []
+        for product in result['data']:
+            filtered_product = {
+                'productCode': product.get('productCode', ''),
+                'productName': product.get('productName', ''),
+                'productNutrient': product.get('productNutrient', ''),
+                'productBagWeight': product.get('productBagWeight', ''),
+                'productBrand': product.get('productBrand', '')
+            }
+            filtered_data.append(filtered_product)
+        result['data'] = filtered_data
+    
     format_output(result, json_output)
 
 
@@ -195,7 +220,7 @@ def get_product_list(
 def get_delivery_base(
     product_code: str = typer.Option(..., "-productcode", "--product-code", help="产品编号"),
     dealer_code: str = typer.Option(..., "-dealercode", "--dealer-code", help="客户编号"),
-    json_output: bool = typer.Option(False, "-j", "--json", help="输出JSON格式")
+    json_output: bool = typer.Option(False, "-j", "--json", help="输出 JSON 格式")
 ):
     """
     通过客户编号和产品编号获取发货基地列表
@@ -210,13 +235,37 @@ def get_delivery_base(
         return result
 
     result = sync_run(_run())
+    
+    # 过滤字段，只保留发货基地列表
+    if not json_output and isinstance(result, dict):
+        # deliveryBaseList 可能在 data 里面
+        base_list = []
+        if 'data' in result and isinstance(result['data'], dict):
+            base_list = result['data'].get('deliveryBaseList', [])
+        elif 'deliveryBaseList' in result:
+            base_list = result.get('deliveryBaseList', [])
+        
+        filtered_bases = []
+        for base in base_list:
+            filtered_bases.append({
+                'dictLabel': base.get('dictLabel', ''),
+                'dictValue': base.get('dictValue', '')
+            })
+        
+        # 返回精简结构
+        result = {
+            'msg': result.get('msg', 'success'),
+            'code': result.get('code', 200),
+            'deliveryBaseList': filtered_bases
+        }
+    
     format_output(result, json_output)
 
 
 @shop_app.command("getdealeraddresses")
 def get_dealer_addresses(
     dealer_code: str = typer.Argument(..., help="客户编号"),
-    json_output: bool = typer.Option(False, "-j", "--json", help="输出JSON格式")
+    json_output: bool = typer.Option(False, "-j", "--json", help="输出 JSON 格式")
 ):
     """
     通过客户编号获取客户设置好的收货地址
@@ -232,4 +281,3 @@ def get_dealer_addresses(
 
     result = sync_run(_run())
     format_output(result, json_output)
-

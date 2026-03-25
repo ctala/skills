@@ -4,7 +4,7 @@
 
 ## 安装
 
-本工具已随 Skill 一起安装。首次使用前执行：
+本工具已随 Skill 一起提供。安装时执行（仅一次）：
 
 ```bash
 cd ~/.qclaw/workspace
@@ -59,16 +59,14 @@ xyfcli config set --base-url http://127.0.0.1:8000 --token gateway_token_xxx
 
 ### Order 命令
 
-| 命令 | 说明 |
-|------|------|
+| 命令      | 说明   |
+| ------- | ---- |
 | `place` | 完成下单 |
-| `full-flow` | 完整下单流程（交互式） |
+
+
 
 **示例：**
 ```bash
-# 交互式下单
-xyfcli order full-flow -desc "含量 45% 13-5-27"
-
 # 手动下单
 xyfcli order place \
   -dealer "J620522007" \

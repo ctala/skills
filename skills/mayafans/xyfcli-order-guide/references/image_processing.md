@@ -66,11 +66,6 @@ OpenClaw具备图片解析能力，可以从产品图片中提取描述信息，
 生成的描述 -> xyfcli命令 -> 产品搜索
 ```
 
-**命令示例**：
-```bash
-# 使用提取的描述搜索产品
-xyfcli order full-flow --description "提取的产品描述" --product-index 0 --json
-```
 
 ## 交互流程示例
 
@@ -157,18 +152,6 @@ xyfcli order full-flow --description "提取的产品描述" --product-index 0 -
 3. **备选方案**：准备退回文本输入选项
 4. **逐步引导**：引导用户提供更好质量的图片
 
-## 技术集成
-
-### 与xyfcli命令的集成
-图片解析结果直接用于xyfcli命令参数：
-
-```bash
-# 从图片提取描述后的标准流程
-xyfcli order full-flow --description "提取的描述" --product-index 0 --json
-
-# 从图片提取条码后的流程
-xyfcli order full-flow --product-codes "提取的条码" --json
-```
 
 ### 处理流程决策
 ```
