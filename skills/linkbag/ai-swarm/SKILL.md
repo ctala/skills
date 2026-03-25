@@ -1,171 +1,150 @@
 ---
 name: ai-swarm
-description: >-
-  AI agent swarm orchestration system for parallel multi-agent coding. Spawns
-  Claude Code, Codex, and Gemini agents in tmux sessions with git worktrees,
-  auto-reviews, auto-integrates branches, and manages a 3-vendor duty table
-  with automatic model rotation. Use when: (1) building features with 2+
-  parallel agents, (2) orchestrating multi-branch development with auto-merge,
-  (3) managing agent duty rotation across Claude/Codex/Gemini, (4) running
-  automated code review and integration pipelines.
-  Requires: tmux, git, python3, bash 4+, and at least one CLI (claude/codex/gemini).
-  Optional: gh (GitHub CLI), openclaw (notifications). Uses git/gh credentials
-  for repo operations and openclaw for configurable notifications (swarm.conf).
-  Creates persistent state (~/.openclaw/workspace/swarm/, cron jobs, tmux sessions).
-  Review setup.sh before use — this orchestrator modifies repos and auto-merges.
+description: Multi-agent AI coding swarm orchestration. Plan parallel tasks, spawn Claude/Codex/Gemini agents in tmux sessions with git worktrees, auto-review, auto-integrate branches, notify via Telegram. Use when you need to break a project into parallel coding tasks and orchestrate multiple AI agents to build, review, and merge them.
 ---
 
-# AI Swarm
+# AI Swarm Orchestration
 
-Multi-agent orchestration system. Spawns parallel coding agents, auto-reviews, auto-integrates, auto-merges.
+Orchestrate parallel AI coding agents with automated review, integration, and notifications.
 
 ## Setup
 
-### Quick Install (any platform)
+### Prerequisites
+- `tmux` — agent sessions run here
+- `git` — worktrees for parallel branches
+- `claude` CLI (Claude Code) — primary agent
+- Telegram bot token + chat ID (optional, for notifications)
+
+### Install scripts
+Copy `scripts/` to your swarm directory (e.g., `~/workspace/swarm/`). Make executable:
 ```bash
-# From ClawHub (if published):
-clawhub install ai-swarm
-
-# Or from GitHub:
-git clone https://github.com/linkbag/ai-swarm.git
-cd ai-swarm
-bash scripts/setup.sh
+chmod +x ~/workspace/swarm/*.sh
 ```
 
-### macOS Users
-macOS ships with bash 3.2 — AI Swarm needs bash 4+:
+### Initialize state files
 ```bash
-brew install bash tmux python3
-/opt/homebrew/bin/bash scripts/setup.sh
+mkdir -p ~/workspace/swarm/{logs,endorsements}
+echo '[]' > ~/workspace/swarm/active-tasks.json
+echo '' > ~/workspace/swarm/pending-notifications.txt
 ```
 
-### Linux / WSL Users
-```bash
-sudo apt install tmux python3    # if not installed
-bash scripts/setup.sh
-```
-
-### After Setup
-```bash
-bash ~/.openclaw/workspace/swarm/assess-models.sh
-```
-Tests which agents (Claude/Codex/Gemini) are available and configures the duty table.
-
-Default install: `~/.openclaw/workspace/swarm/`. Creates directories, config files, cron jobs, and role files. Safe to re-run — never overwrites existing state.
-
-## Configuration
-
-`setup.sh` generates `~/.openclaw/workspace/swarm/swarm.conf`. Edit to configure:
-
-```bash
-SWARM_NOTIFY_TARGET=""       # Telegram/Discord user ID for notifications (leave blank to disable)
-SWARM_NOTIFY_CHANNEL="telegram"  # telegram | discord | slack
-OBSIDIAN_BASE=""             # Path to Obsidian vaults root (optional)
-ROUTER_DUTY=""               # Path to router duty table (optional)
-```
-
-All settings can also be set as environment variables. The config file is sourced at the start of each script.
-
-## Architecture
-
-```
-swarm/
-├── scripts/         ← 17 core scripts (spawn, monitor, integrate, assess)
-├── swarm.conf       ← User configuration (notifications, Obsidian path, etc.)
-├── duty-table.json  ← Model assignments (auto-rotated every 6h)
-├── active-tasks.json← Task registry
-├── endorsements/    ← Approval files (one per task)
-├── logs/            ← Per-agent logs, integration logs
-└── templates/       ← EOR template
-```
-
-### Duty Table (3-vendor pipeline)
-
-| Role | Default | Purpose |
-|------|---------|---------|
-| Architect | Claude Opus | Complex design, architecture decisions |
-| Workhorse | Codex/Claude Sonnet | Standard feature building |
-| Reviewer | Gemini Pro/Claude Sonnet | Code review + fix |
-| Speedster | Claude Sonnet | Quick fixes, integration |
-
-Auto-assessed every 6 hours via cron. If a vendor hits quota limits, auto-rotates to another. See `references/ROLE.md` for full workflow.
+### Duty table
+Copy `references/duty-table-template.json` to `~/workspace/swarm/duty-table.json`. Configure model assignments.
 
 ## Core Workflow
 
-### spawn-batch.sh (primary tool for parallel work)
+### Phase 1: PLAN (present to human, STOP, wait for approval)
+
+⛔ **CRITICAL GATE**: Present the plan table to the human. Then **STOP**. Do NOT write prompts or spawn agents until the human explicitly approves.
+
+The plan message and the spawn action **must be in DIFFERENT turns**. Never combine them.
+
+```
+🐝 Swarm Plan: [batch description]
+
+| # | Task ID | Description | Agent | Model |
+|---|---------|-------------|-------|-------|
+| 1 | fix-xyz | Fix the freeze bug | claude | sonnet |
+| 2 | add-feat | Add feature X | claude | sonnet |
+
+Dependencies: None (all parallel)
+Estimated time: ~15-20 min
+
+Proceed? 👍/👎
+```
+
+**Wait for human reply.** Only after "yes"/"go"/👍 → proceed to Phase 2.
+
+### Phase 2: BUILD (write prompts, spawn agents)
+
+Write task prompts to `/tmp/prompt-<task-id>.md`, create batch JSON, then spawn:
 
 ```bash
-# 1. Write prompts
-cat > /tmp/prompt-task1.md << 'EOF'
-Your task description...
-
-When finished, run:
-openclaw system event --text "Done: task-1 — summary" --mode now
-EOF
-
-# 2. Create tasks JSON
-cat > /tmp/tasks.json << 'EOF'
+cat > /tmp/batch-tasks.json << 'EOF'
 [
   {"id": "task-1", "description": "/tmp/prompt-task1.md", "agent": "claude", "model": "claude-sonnet-4-6"},
-  {"id": "task-2", "description": "/tmp/prompt-task2.md", "agent": "codex", "model": "gpt-5.3-codex"}
+  {"id": "task-2", "description": "/tmp/prompt-task2.md", "agent": "claude", "model": "claude-sonnet-4-6"}
 ]
 EOF
 
-# 3. Spawn batch (auto-endorses + auto-starts integration watcher)
-bash ~/workspace/swarm/spawn-batch.sh "/path/to/project" "batch-id" "Description" /tmp/tasks.json
+cd ~/workspace/swarm
+bash spawn-batch.sh "/path/to/project" "batch-id" "Batch description" /tmp/batch-tasks.json
 ```
 
-This single command: auto-creates endorsement files (for batch convenience — the human endorsement gate is at Step 4 BEFORE calling spawn-batch), creates worktrees, spawns tmux sessions, starts per-agent watchers, starts integration watcher, registers tasks, logs usage.
+`spawn-batch.sh` handles everything automatically:
+- Creates git worktrees + feature branches
+- Launches agents in tmux sessions
+- Starts per-agent completion watchers (auto-review + Telegram notification)
+- Starts integration watcher (auto-merge when all done)
 
-### spawn-agent.sh (single task only)
+For single tasks: `bash spawn-agent.sh "/path/to/project" "task-id" "/tmp/prompt.md" "claude" "claude-sonnet-4-6"`
+
+### Phase 3: SHIP (automatic)
+
+The scripts handle this automatically:
+1. `notify-on-complete.sh` detects each agent finishing → spawns reviewer → sends Telegram
+2. `integration-watcher.sh` detects ALL agents done → spawns Opus integration agent → merges branches → resolves conflicts → verifies builds → sends Telegram
+
+## Prompt Template
+
+Write clear, self-contained prompts for each agent. Include:
+- Project path and stack
+- Specific files to modify
+- What to do (detailed steps)
+- Verification commands (`tsc --noEmit`, `npm run build`, etc.)
+
+**Do NOT** include `openclaw system event` in prompts — `notify-on-complete.sh` handles notifications automatically.
+
+## Monitoring
 
 ```bash
-bash ~/workspace/swarm/spawn-agent.sh "/path/to/project" "task-id" "/tmp/prompt.md" claude claude-sonnet-4-6
+tmux ls                              # List active agent sessions
+bash check-agents.sh                 # Health check all agents
+bash pulse-check.sh                  # Detect stuck agents (auto-kills)
+cat pending-notifications.txt        # Check pending notifications
 ```
-
-Creates worktree + branch, spawns in tmux, starts completion watcher. Does NOT start integration watcher — use `start-integration.sh` manually if needed.
 
 ## Script Reference
 
 | Script | Purpose |
 |--------|---------|
-| `spawn-batch.sh` | **Primary** — spawn N agents + auto-integration |
-| `spawn-agent.sh` | Spawn single agent with worktree + watcher |
+| `spawn-batch.sh` | Spawn N agents + auto-integration watcher |
+| `spawn-agent.sh` | Spawn single agent with completion watcher |
+| `integration-watcher.sh` | Poll agents, auto-merge when all done |
 | `start-integration.sh` | Manual integration watcher start |
-| `integration-watcher.sh` | Poll subteams, auto-merge when all done |
-| `notify-on-complete.sh` | Per-agent watcher, chains reviewer |
-| `assess-models.sh` | Test all agents, update duty table |
-| `duty-cycle.sh` | 6-hourly assessment + quota-based rotation |
-| `fallback-swap.sh` | Auto-fallback when agent hits limits |
-| `check-agents.sh` | Quick tmux session status |
-| `check-completions.sh` | Cron: check for completed agents |
-| `pulse-check.sh` | Stuck detection (auth prompts, stalls) |
+| `notify-on-complete.sh` | Per-agent watcher: detect done → review → notify |
+| `pulse-check.sh` | Detect and kill stuck agents |
+| `check-agents.sh` | Quick status check |
 | `endorse-task.sh` | Create endorsement file for a task |
-| `esr-log.sh` | Update project ESR after completion |
-| `eor-log.sh` | End-of-run logging |
-| `deploy-notify.sh` | Notify on deployment |
-| `try-model.sh` | Quick model availability test |
-| `monitor-and-notify.sh` | General monitoring helper |
+| `esr-log.sh` | Update project ESR docs |
+| `eor-log.sh` | Write agent end-of-run log |
+| `fallback-swap.sh` | Model selection with fallback |
+| `assess-models.sh` | Weekly model benchmark |
+| `deploy-notify.sh` | CI/CD notification |
 
-## Role Files
+## Hard Rules
 
-Install to `roles/swarm-lead/` (done automatically by `setup.sh`):
-- `ROLE.md` — Full 11-step workflow, rules, lessons learned. Read `references/ROLE.md`.
-- `TOOLS.md` — CLI commands, conflict resolution patterns. Read `references/TOOLS.md`.
-- `HEARTBEAT.md` — Periodic checks for stuck agents. Read `references/HEARTBEAT.md`.
+### ALWAYS
+- Present plan → **STOP** → wait for human approval → THEN spawn (separate turns!)
+- Use `spawn-batch.sh` for 2+ tasks, `spawn-agent.sh` for single tasks
+- Let scripts handle tmux, notifications, review, integration — don't bypass
 
-## Key Rules
+### NEVER
+- Spawn agents without human endorsement
+- Present plan and spawn in the same message/turn
+- Write prompts before receiving endorsement
+- Use bare `claude --print` or background exec (bypasses entire pipeline)
+- Spawn agents in the orchestrator's workspace directory
 
-1. **Plan first** — present task breakdown to user before spawning
-2. **Use spawn-batch.sh** for 2+ parallel tasks (never individual spawn-agent.sh for batch work)
-3. **Reviewer = Fixer** — no separate fixer agent, avoids context loss
-4. **Work logs flow** — `/tmp/worklog-{session}.md` from builder → reviewer → integrator
-5. **Auto-merge** — merge after review+tests pass, only flag user on unresolvable conflicts
-6. **Never overwrite state** — setup.sh preserves existing duty-table.json, active-tasks.json
+## Heartbeat Checks
 
-## Security Notes
+Read `references/HEARTBEAT.md` for periodic checks:
+1. Read `pending-notifications.txt` → send to human → clear
+2. Run `pulse-check.sh` for stuck agents
+3. Check `tmux ls` for completed agents
+4. Report brief status if agents are running
 
-- Scripts use `--permission-mode bypassPermissions` (Claude) and `--full-auto` (Codex) for non-interactive execution — these are the supported, documented flags for unattended operation
-- Notification target IDs are stored in `swarm.conf` (not hardcoded) — configure via `SWARM_NOTIFY_TARGET`
-- Obsidian sync is optional and disabled by default — enable via `OBSIDIAN_BASE` in `swarm.conf`
-- Scripts work with whatever API keys are already in the environment — no keys are set or unset
+## Further Reading
+
+- `references/ROLE.md` — Full role definition with lessons learned
+- `references/TOOLS.md` — Detailed script usage and prompt patterns
