@@ -1,0 +1,11 @@
+{
+  "owner": "jeweis",
+  "slug": "aliyun-log-query",
+  "displayName": "阿里云日志查询",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774181441595,
+    "commit": null
+  },
+  "history": []
+}
