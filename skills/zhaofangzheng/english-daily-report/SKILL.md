@@ -239,12 +239,12 @@ openclaw cron add \
   --cron "0 30 9 * * *" \
   --tz "Asia/Shanghai" \
   --session "isolated" \
-  --message "为用户 <USER_ID> 生成英语每日报告：
+  --message "调用 english-daily-report skill 为用户生成每日英语报告：
 
 1. 获取今日英语新闻
 2. 创建约 100 词的摘要，包含标题、内容、中文翻译、5-8 个词汇
-3. 生成 PDF：scripts/generate-pdf-html.sh \"DATE\" \"TITLE\" \"CONTENT\" \"TRANSLATION\" \"word1:meaning1\" ...
-4. 生成音频：使用 TTS 工具处理英语摘要
+3. 生成 PDF（使用 generate-pdf-html.sh 脚本）
+4. 生成音频（使用 TTS 工具）
 5. 发送文本 + 音频 + PDF 给用户
 
 文件保存到 uploads/english-daily-DATE.pdf 和 uploads/english-daily-DATE.mp3"
