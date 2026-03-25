@@ -80,6 +80,7 @@ Use the template from SKILL.md. Fill each field:
 🧴 Stale: [X] | Dupes: [X] | Contradictions: [X] | Savings: ~[X] tokens
 🛡️ 🟢[X] 🟡[X] 🔴[X]
 🍵 Injections: [X] | Suspicious: [X]
+🦴 Contradictions: [X] | At-risk: [X] | Automate: [X] | Stale: [X]
 🧹 Active: [X] | Idle: [X] | Dormant: [X] | Remove: [X]
 💆 1. [urgent] 2. [second] 3. [third]
 ═══════════════════════════════════════
