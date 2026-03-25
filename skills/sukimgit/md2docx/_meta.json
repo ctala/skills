@@ -1,13 +1,18 @@
 {
   "owner": "sukimgit",
   "slug": "md2docx",
-  "displayName": "Md2docx",
+  "displayName": "Md2docx V1.0.4",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1774085102810,
-    "commit": "https://github.com/openclaw/skills/commit/4b5bebd145e09f3d4cc8f74fa767b68e8f7b39f4"
+    "version": "1.0.5",
+    "publishedAt": 1774321282097,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1774085102810,
+      "commit": "https://github.com/openclaw/skills/commit/4b5bebd145e09f3d4cc8f74fa767b68e8f7b39f4"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773745745658,

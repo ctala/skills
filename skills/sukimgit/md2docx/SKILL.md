@@ -1,7 +1,7 @@
 ---
 name: "md2docx"
-description: "Markdown 转 Word 文档（标准公文格式）。使用 Pandoc 自动转换，支持目录/页眉页脚/自动排版。"
-version: "1.0.2"
+description: "Markdown 转 Word 文档（标准公文格式）。使用 Pandoc 自动转换，支持目录/宋体排版、表格自动修复。"
+version: "1.0.5"
 ---
 
 # md2docx - Markdown 转 Word 文档
@@ -88,6 +88,6 @@ python tools/md2docx.py "D:\OpenClawDocs\projects\*.md" -o "D:\OpenClawDocs\outp
 
 **输出：** Word 文档（.docx），可直接用 Word/WPS 打开编辑。
 
-**作者：** 高万峰（GWF）  
-**版本：** 1.0.0  
-**日期：** 2026-03-17
+**作者：** 小莫  
+**版本：** 1.0.3  
+**日期：** 2026-03-21
