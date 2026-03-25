@@ -3,9 +3,15 @@
   "slug": "license",
   "displayName": "License",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773808116959,
-    "commit": "https://github.com/openclaw/skills/commit/610d0678891aacc6cb9659eeda417d2e5f517fde"
+    "version": "2.0.3",
+    "publishedAt": 1774312982489,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773808116959,
+      "commit": "https://github.com/openclaw/skills/commit/610d0678891aacc6cb9659eeda417d2e5f517fde"
+    }
+  ]
 }
