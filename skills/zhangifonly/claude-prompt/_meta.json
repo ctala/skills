@@ -1,0 +1,11 @@
+{
+  "owner": "zhangifonly",
+  "slug": "claude-prompt",
+  "displayName": "Claude Prompt",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774181648220,
+    "commit": null
+  },
+  "history": []
+}
