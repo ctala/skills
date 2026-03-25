@@ -7,6 +7,30 @@ description: Generate images or videos using the Nova Video OpenAPI with a singl
 
 Generate images and videos via the Nova Video OpenAPI using `curl` commands.
 
+> **Free tier**: Every user gets **60 free text-to-image generations per month** at no cost. No credit card required to get started.
+
+## Install this skill
+
+### Option 1 — Direct install (works in any AI agent)
+
+Paste the following into your AI agent (Claude, Cursor, Codex, etc.):
+
+```
+Read https://nova-video.onesolo.app/SKILL.md and follow the instructions
+```
+
+The agent will fetch this file and activate the Nova Video skill automatically.
+
+### Option 2 — Install via OpenClaw
+
+If your agent supports the [OpenClaw](https://clawhub.ai) skill registry, run:
+
+```
+Read https://nova-video.onesolo.app/SKILL.md and follow the instructions
+```
+
+---
+
 ## Setup
 
 Set your API key and base URL before starting:

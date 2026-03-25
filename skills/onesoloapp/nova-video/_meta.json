@@ -3,9 +3,15 @@
   "slug": "nova-video",
   "displayName": "NovaVideo",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773838620313,
-    "commit": "https://github.com/openclaw/skills/commit/baa452bc646d637a48b51ceabd52a8884c9329ea"
+    "version": "1.0.1",
+    "publishedAt": 1773844503933,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773838620313,
+      "commit": "https://github.com/openclaw/skills/commit/baa452bc646d637a48b51ceabd52a8884c9329ea"
+    }
+  ]
 }
