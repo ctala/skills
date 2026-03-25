@@ -1,14 +1,14 @@
 # AWP Subnet Commands
 
-**API Base URL**: `{API_BASE}/api` (deployment-specific — do not hardcode)
+**API Base URL**: `{API_BASE}/api` (default `https://tapi.awp.sh/api`, override via `AWP_API_URL` env var)
 
-> **Note**: On-chain command templates below use `cast` (Foundry) for calldata encoding.
-> For gasless operations, use the bundled scripts instead — they require only curl+jq+python3.
-> If `cast` is not available, pre-compute the 4-byte function selectors and use python3 for ABI encoding.
+> **IMPORTANT**: Always use the bundled `scripts/*.py` files for write operations — they handle ABI encoding natively in Python, require only python3, and work without Foundry or curl/jq.
+> The `cast calldata` examples below are for reference only; do NOT run them directly.
 
-## Setup (run once per session)
+## Setup (reference only — bundled scripts handle this automatically)
 
 ```bash
+# 以下为参考说明，实际操作使用 scripts/*.py 自动完成
 REGISTRY=$(curl -s {API_BASE}/api/registry)
 AWP_REGISTRY=$(echo $REGISTRY | jq -r '.awpRegistry')
 AWP_TOKEN=$(echo $REGISTRY | jq -r '.awpToken')
@@ -16,7 +16,7 @@ STAKE_NFT=$(echo $REGISTRY | jq -r '.stakeNFT')
 SUBNET_NFT=$(echo $REGISTRY | jq -r '.subnetNFT')
 DAO_ADDR=$(echo $REGISTRY | jq -r '.dao')
 
-WALLET_ADDR=$(awp-wallet status --token {T} | jq -r '.address')
+WALLET_ADDR=$(awp-wallet receive | jq -r '.eoaAddress')
 ```
 
 ---
@@ -136,17 +136,8 @@ GET /vanity/salts/count
 ### Complete Command Templates
 
 ```bash
-# Optional: get vanity salt first
-VANITY=$(curl -s -X POST {API_BASE}/api/vanity/compute-salt)
-SALT=$(echo $VANITY | jq -r '.salt')  # or use 0x0000...0000 for auto-salt
-
-# Step 1: Approve AWP to AWPRegistry for LP cost
-awp-wallet approve --token {T} --asset $AWP_TOKEN --spender $AWP_REGISTRY --amount {lpCostHuman} --chain base
-
-# Step 2: Register subnet (SubnetParams encoded as tuple)
-# params: (name, symbol, subnetManager, salt, minStake, skillsUri)
-# subnetManager = 0x0000...0000 for auto-deploy SubnetManager proxy
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "registerSubnet((string,string,address,bytes32,uint128,string))" "({name},{symbol},0x0000000000000000000000000000000000000000,$SALT,{minStakeWei},{skillsUri})") --chain base
+# Gasless registration (recommended — no ETH needed, AWP only):
+python3 scripts/relay-register-subnet.py --token {T} --name "MySubnet" --symbol "MSUB" --skills-uri "ipfs://QmHash"
 ```
 
 ### Gasless Subnet Registration — EIP-712 Template
@@ -155,8 +146,16 @@ For fully gasless registration via `POST /relay/register-subnet`, the user signs
 
 **1. ERC-2612 Permit signature** (authorizes AWPRegistry to spend AWP):
 ```bash
-# Get permit nonce
-PERMIT_NONCE=$(cast call $AWP_TOKEN "nonces(address)" $WALLET_ADDR --rpc-url $RPC_URL | cast --to-dec)
+# Get permit nonce from AWPToken contract via RPC (NOT from /api/nonce — that returns the registry nonce)
+# nonces(address) selector = 0x7ecebe00
+PERMIT_NONCE=$(python3 -c "
+import json, urllib.request
+addr = '$WALLET_ADDR'.lower().replace('0x','').zfill(64)
+payload = json.dumps({'jsonrpc':'2.0','method':'eth_call','params':[{'to':'$AWP_TOKEN','data':'0x7ecebe00'+addr},'latest'],'id':1}).encode()
+req = urllib.request.Request('$RPC_URL', data=payload, headers={'Content-Type':'application/json'})
+r = json.loads(urllib.request.urlopen(req).read())
+print(int(r['result'],16))
+")
 DEADLINE=$(date -d '+1 hour' +%s)
 
 awp-wallet sign-typed-data --token {T} --data '{
@@ -179,7 +178,7 @@ awp-wallet sign-typed-data --token {T} --data '{
   "domain": {
     "name": "AWP Token",
     "version": "1",
-    "chainId": '$CHAIN_ID',
+    "chainId": 8453,
     "verifyingContract": "'$AWP_TOKEN'"
   },
   "message": {
@@ -194,8 +193,8 @@ awp-wallet sign-typed-data --token {T} --data '{
 
 **2. EIP-712 RegisterSubnet signature** (authorizes registration parameters):
 ```bash
-# Get AWPRegistry nonce
-NONCE=$(cast call $AWP_REGISTRY "nonces(address)" $WALLET_ADDR --rpc-url $RPC_URL | cast --to-dec)
+# Get AWPRegistry nonce (from API, no Foundry needed)
+NONCE=$(curl -s {API_BASE}/api/nonce/$WALLET_ADDR | python3 -c "import sys,json; print(json.load(sys.stdin).get('nonce',0))")
 
 awp-wallet sign-typed-data --token {T} --data '{
   "types": {
@@ -221,7 +220,7 @@ awp-wallet sign-typed-data --token {T} --data '{
   "domain": {
     "name": "AWPRegistry",
     "version": "1",
-    "chainId": '$CHAIN_ID',
+    "chainId": 8453,
     "verifyingContract": "'$AWP_REGISTRY'"
   },
   "message": {
@@ -231,7 +230,7 @@ awp-wallet sign-typed-data --token {T} --data '{
     "subnetManager": "0x0000000000000000000000000000000000000000",
     "salt": "'$SALT'",
     "minStake": {minStakeWei},
-    "skillsURI": "{skillsUri}",
+    "skillsURI": "{skillsURI}",
     "nonce": '$NONCE',
     "deadline": '$DEADLINE'
   }
@@ -247,7 +246,7 @@ curl -X POST {API_BASE}/api/relay/register-subnet \
     "name": "{subnetName}", "symbol": "{subnetSymbol}",
     "subnetManager": "0x0000000000000000000000000000000000000000",
     "salt": "'$SALT'", "minStake": "{minStakeWei}",
-    "skillsUri": "{skillsUri}",
+    "skillsURI": "{skillsURI}",
     "deadline": '$DEADLINE',
     "permitSignature": "{permitSigHex}",
     "registerSignature": "{registerSigHex}"
@@ -309,9 +308,9 @@ Always check current status via `GET /subnets/{id}` before calling.
 ### Complete Command Templates
 
 ```bash
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "activateSubnet(uint256)" {subnetId}) --chain base
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "pauseSubnet(uint256)" {subnetId}) --chain base
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "resumeSubnet(uint256)" {subnetId}) --chain base
+python3 scripts/onchain-subnet-lifecycle.py --token {T} --subnet {subnetId} --action activate
+python3 scripts/onchain-subnet-lifecycle.py --token {T} --subnet {subnetId} --action pause
+python3 scripts/onchain-subnet-lifecycle.py --token {T} --subnet {subnetId} --action resume
 ```
 
 ---
@@ -321,17 +320,16 @@ awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "resumeSub
 ### Contract Call
 
 ```solidity
-function setSkillsURI(uint256 tokenId, string skillsURI)   // on SubnetNFT
+function setSkillsURI(uint256 subnetId, string skillsURI)   // on SubnetNFT
 // NFT owner only
-// Emits SkillsURIUpdated(tokenId, skillsURI)
-// tokenId = subnetId (SubnetNFT tokenId corresponds to subnet ID)
+// Emits SkillsURIUpdated(subnetId, skillsURI)
+// subnetId = SubnetNFT tokenId (they correspond 1:1)
 ```
 
 ### Complete Command Template
 
 ```bash
-# SUBNET_NFT from GET /registry -> subnetNFT
-awp-wallet send --token {T} --to $SUBNET_NFT --data $(cast calldata "setSkillsURI(uint256,string)" {subnetId} "{skillsURI}") --chain base
+python3 scripts/onchain-subnet-update.py --token {T} --subnet {subnetId} --skills-uri "{skillsURI}"
 ```
 
 ---
@@ -341,15 +339,14 @@ awp-wallet send --token {T} --to $SUBNET_NFT --data $(cast calldata "setSkillsUR
 ### Contract Call
 
 ```solidity
-function setMinStake(uint256 tokenId, uint128 minStake)   // on SubnetNFT
+function setMinStake(uint256 subnetId, uint128 minStake)   // on SubnetNFT
 // NFT owner only
 // minStake in wei (0 = no minimum)
-// Emits MinStakeUpdated(tokenId, minStake)
+// Emits MinStakeUpdated(subnetId, minStake)
 ```
 
 ### Complete Command Template
 
 ```bash
-# SUBNET_NFT from GET /registry -> subnetNFT
-awp-wallet send --token {T} --to $SUBNET_NFT --data $(cast calldata "setMinStake(uint256,uint128)" {subnetId} {minStakeWei}) --chain base
+python3 scripts/onchain-subnet-update.py --token {T} --subnet {subnetId} --min-stake {minStakeWei}
 ```

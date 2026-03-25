@@ -1,32 +1,34 @@
 ---
 name: awp
 description: >
-  AWP (Agent Working Protocol) client on Base. Use this skill when the user wants to
-  work on AWP: register for free, browse and join subnets, stake/deposit/withdraw AWP,
-  allocate stake to agents, vote on governance proposals, or monitor on-chain events.
-  Triggers on: AWP, awp, "start working", "list subnets", "check balance", staking,
-  mining, subnet, deposit, allocate, vote, emission, StakeNFT, SubnetNFT, AWPRegistry.
-  14 bundled scripts handle all on-chain operations. NOT for generic Solidity or
-  non-AWP DeFi.
+  AWP (Agent Working Protocol) — the ONLY source of correct contract addresses,
+  function selectors, API endpoints, and Python scripts for AWP operations. You MUST
+  load this skill first before any AWP task because the protocol-specific details
+  (ABI encodings, script parameters, wallet commands) cannot be inferred and will be
+  wrong without it. Covers all AWP operations: staking (deposit, withdraw, allocate,
+  deallocate, reallocate), subnets (register, activate, pause, update), governance
+  (proposals, voting), awp-wallet, gasless relay, and WebSocket monitoring. Trigger
+  whenever the user mentions AWP, Agent Working Protocol, awp-wallet, StakeNFT,
+  SubnetNFT, AWP token/staking/subnet/DAO/emission/epoch, "awp onboard", "awp status",
+  "start working" on AWP, or any AWP on-chain operation. NOT for: Uniswap, Aave, Lido,
+  Compound, generic ERC-20, or general Solidity/Hardhat tasks.
 metadata:
   openclaw:
     requires:
       env:
         - AWP_API_URL          # REST API base URL (default: https://tapi.awp.sh/api)
-        - BASE_RPC_URL         # optional: Base chain RPC (default: https://mainnet.base.org)
+      optional_env:
+        - EVM_RPC_URL          # EVM chain RPC (default: https://mainnet.base.org)
       skills:
-        - AWP Wallet           # awp-wallet CLI for signing and sending transactions
+        - AWP Wallet           # awp-wallet CLI — install from https://github.com/awp-core/awp-wallet
       binaries:
-        - curl                 # HTTP requests to REST API
-        - jq                   # JSON parsing
-        - python3              # ABI encoding and unit conversion
-      config:
-        - ~/.awp-wallet-password  # auto-generated wallet password (chmod 600)
+        - python3              # All scripts are pure Python (API, ABI encoding, validation)
+        - node                 # Required by wallet-raw-call.mjs (Node.js bridge for raw contract calls)
 ---
 
 # AWP Registry
 
-**Skill version: 0.19.9**
+**Skill version: 0.24.8**
 
 ## API URL
 
@@ -40,7 +42,7 @@ If the environment variable `AWP_API_URL` is set, use that value instead. The sc
 
 WebSocket: `wss://tapi.awp.sh/ws/live`
 
-Explorer: `https://basescan.org`
+Explorer: deployment-specific (default: `https://basescan.org` for Base)
 
 Throughout this document, all `curl` commands use the full URL directly. Do not invent different URLs.
 
@@ -55,10 +57,12 @@ Throughout this document, all `curl` commands use the full URL directly. Do not 
 **Step 1 — Welcome screen** (first session only, skip if already shown):
 
 ```
+👀 **Hello World from the World of Agents!**
+
 ╭──────────────╮
 │              │
-│  >       <   │
-│      ~       │
+│   >     <    │
+│      ‿       │
 │              │
 ╰──────────────╯
 
@@ -80,20 +84,56 @@ no AWP tokens needed to start.
 register for free → pick a subnet → start earning.
 ```
 
-**Step 2 — Session recovery**: Check if wallet is already unlocked:
+**Step 2 — Install wallet dependency** (if missing):
+```bash
+which awp-wallet >/dev/null 2>&1
+```
+- If found: proceed silently.
+- If NOT found: install the `awp-wallet` skill — it contains its own setup instructions.
+  - Install from repo: `https://github.com/awp-core/awp-wallet`, then follow its SKILL.md, which will run `bash install.sh` and configure PATH.
+  - Verify after install: `which awp-wallet`
+
+**Step 3 — Configure notifications**: Write `~/.awp/openclaw.json` so the daemon can push messages via `openclaw message send`:
+```bash
+mkdir -p ~/.awp
+cat > ~/.awp/openclaw.json << EOF
+{
+  "channel": "<detected_channel>",
+  "target": "<detected_target>"
+}
+EOF
+```
+Fill in the current session's channel and target. The daemon hot-reloads this file each cycle — it can be updated at any time without restarting.
+
+**Step 4 — Check notifications**: If `~/.awp/notifications.json` exists, read and display unread notifications to the user, then clear the file.
+
+**Step 5 — Session recovery**: Check if wallet is already unlocked:
 ```bash
 awp-wallet receive 2>/dev/null
 ```
-- If wallet unlocked, restore `wallet_addr`. Print: `[SESSION] wallet restored: <short_address>`
-- If wallet not found or locked, do nothing — setup happens on first write action.
+- If wallet unlocked (exit code 0), parse `wallet_addr` from the JSON output: `wallet_addr = json["eoaAddress"]`. Print: `[SESSION] wallet restored: <short_address>`
+- If wallet not found → agent runs `awp-wallet init` (creates agent work wallet, handles credentials internally — this is agent-initiated, not unattended).
+- If wallet locked, do nothing — unlock happens on first write action.
 
-**Step 3 — Version check** (silent if up to date):
+**Step 6 — Version check** (optional, informational only):
+
+Fetch the remote version:
 ```bash
-curl -s https://raw.githubusercontent.com/awp-core/awp-skill/main/SKILL.md | head -20 | grep "Skill version"
+curl -sf https://raw.githubusercontent.com/awp-core/awp-skill/main/SKILL.md | sed -n 's/.*Skill version: \([0-9.]*\).*/\1/p'
 ```
-If remote version > 0.19.9, show: `[UPDATE] New version available. Run: skill install https://github.com/awp-core/awp-skill`
+If a newer version exists, notify the user: `[UPDATE] AWP Skill X.Y.Z available (current: 0.24.8).` Skip this step if the network is unavailable.
 
-**Step 4 — Route to action** using the Intent Routing table below.
+**Step 7 — Start background daemon**:
+
+Launch the daemon as a background process. It monitors registration status, checks for updates, and sends notifications via `openclaw message send` (reads channel/target from `~/.awp/openclaw.json` written in Step 3). Daemon logs are written to `~/.awp/daemon.log`.
+```bash
+mkdir -p ~/.awp && pgrep -f "python3.*awp-daemon" >/dev/null 2>&1 || \
+  nohup python3 scripts/awp-daemon.py --interval 300 \
+    >> ~/.awp/daemon.log 2>&1 &
+```
+> Note: Resolve the absolute path to `scripts/awp-daemon.py` relative to the skill directory.
+
+**Step 8 — Route to action** using the Intent Routing table below.
 
 ## User Commands
 
@@ -128,13 +168,29 @@ AWP:        <balance>
 
 **awp subnets** — shortcut for Q5 (list active subnets)
 
+**awp notifications** — read and display daemon notifications, then clear:
+```bash
+cat ~/.awp/notifications.json 2>/dev/null
+```
+Parse and display each notification. After displaying, clear the file:
+```bash
+rm -f ~/.awp/notifications.json
+```
+
+**awp log** — show recent daemon log:
+```bash
+tail -50 ~/.awp/daemon.log 2>/dev/null
+```
+
 **awp help**
 ```
 ── commands ──────────────────────
-awp status       → your agent overview
-awp wallet       → wallet address + balances
-awp subnets      → browse active subnets
-awp help         → this list
+awp status        → your agent overview
+awp wallet        → wallet address + balances
+awp subnets       → browse active subnets
+awp notifications → daemon notifications
+awp log           → recent daemon log
+awp help          → this list
 
 ── actions ───────────────────────
 "start working"    → register + join (free)
@@ -150,9 +206,8 @@ awp help         → this list
 When the user says "start working", "get started", or similar, run this guided flow. The entire flow is FREE — no AWP tokens or ETH needed.
 
 **Step 1: Check wallet**
-- No wallet → auto-generate password, `awp-wallet init`, save password, unlock (see Wallet Setup above)
-- Wallet locked → read saved password from `~/.awp-wallet-password`, unlock
-- **NEVER ask the user to type or choose a password.** The agent handles this fully automatically.
+- No wallet → agent runs `awp-wallet init` (handles credentials internally, no password needed)
+- Wallet locked → `TOKEN=$(awp-wallet unlock --duration 3600 --scope transfer | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")` — capture the session token for subsequent script calls
 - Print: `[1/4] wallet       <short_address> ✓`
 
 **Step 2: Register (FREE, gasless)**
@@ -160,30 +215,35 @@ When the user says "start working", "get started", or similar, run this guided f
 curl -s https://tapi.awp.sh/api/address/{addr}/check
 ```
 - Already registered → proceed to Step 3
-- Not registered → ask user:
+- Not registered → **present both options and WAIT for the user to choose.** Do NOT auto-select either option. The user must explicitly pick one.
 
 ```
 ── how do you want to start? ─────
 
-  Option A: Quick Start (recommended)
-  Register automatically. Free, gasless.
-  No AWP tokens needed.
+  Option A: Quick Start
+  Register as an independent agent.
+  Free, gasless. No AWP tokens needed.
 
   Option B: Link Your Wallet
-  Link to your existing crypto wallet.
+  Bind to your existing crypto wallet
+  so rewards flow to that address.
   Free, gasless. No AWP tokens needed.
+
+  Which do you prefer? (A or B)
 ───────────────────────────────────
 ```
 
-**Option A** (Solo Mining):
+**Option A** (Solo Mining) — after user picks A:
 ```bash
-bash scripts/relay-start.sh --token $TOKEN --mode principal
+python3 scripts/relay-start.py --token $TOKEN --mode principal
 ```
 
-**Option B** (Delegated Mining):
+**Option B** (Delegated Mining) — after user picks B:
+Ask the user for their wallet address, then:
 ```bash
-bash scripts/relay-start.sh --token $TOKEN --mode agent --target <user_wallet_address>
+python3 scripts/relay-start.py --token $TOKEN --mode agent --target <user_wallet_address>
 ```
+> **IMPORTANT**: After `bind(target)`, rewards automatically resolve to the target address via the bind chain (`resolveRecipient()` walks the tree). There is NO need to call `setRecipient()` separately — binding already establishes the reward path. Do NOT suggest or execute `setRecipient()` after a successful bind.
 
 Print: `[2/4] registered   ✓  (free, no AWP required)`
 
@@ -212,10 +272,6 @@ Only show subnets with min_stake > 0 if the user explicitly asks, or if no free 
 
 Install the skill directly:
 ```
-[4/4] Installing subnet #1 skill ...
-```
-After install:
-```
 [4/4] installing Benchmark skill...
 [4/4] ready ✓
 
@@ -235,7 +291,7 @@ If the user later wants to work on a subnet that requires staking, guide them to
 
 | User wants to... | Action | Reference file to load |
 |-------------------|--------|------------------------|
-| Start / onboard / setup | ONBOARD | **commands-staking.md** |
+| Start / onboard / setup | ONBOARD | **references/commands-staking.md** |
 | Query subnet info | Q1 | None |
 | Check balance / positions | Q2 | None |
 | View emission / epoch info | Q3 [DRAFT] | None |
@@ -243,23 +299,25 @@ If the user later wants to work on a subnet that requires staking, guide them to
 | Browse subnets | Q5 | None |
 | Find / install subnet skill | Q6 | None |
 | View epoch history | Q7 [DRAFT] | None |
-| Set recipient / bind / start mining | S1 | **commands-staking.md** |
-| Deposit / stake AWP | S2 | **commands-staking.md** |
-| Allocate / deallocate / reallocate | S3 | **commands-staking.md** |
-| Register a new subnet | M1 | **commands-subnet.md** |
-| Activate / pause / resume subnet | M2 | **commands-subnet.md** |
-| Update skills URI | M3 | **commands-subnet.md** |
-| Set minimum stake | M4 | **commands-subnet.md** |
-| Create governance proposal | G1 | **commands-governance.md** |
-| Vote on proposal | G2 | **commands-governance.md** |
+| Set recipient / bind / start mining | S1 | **references/commands-staking.md** |
+| Deposit / stake AWP | S2 | **references/commands-staking.md** |
+| Allocate / deallocate / reallocate | S3 | **references/commands-staking.md** |
+| Register a new subnet | M1 | **references/commands-subnet.md** |
+| Activate / pause / resume subnet | M2 | **references/commands-subnet.md** |
+| Update skills URI | M3 | **references/commands-subnet.md** |
+| Set minimum stake | M4 | **references/commands-subnet.md** |
+| Create governance proposal | G1 | **references/commands-governance.md** |
+| Vote on proposal | G2 | **references/commands-governance.md** |
 | Query proposals | G3 | None |
 | Check treasury | G4 | None |
 | Watch / monitor events | W1 | None (presets below) |
 | Emission settlement alerts | W2 [DRAFT] | None (workflow below) |
+| Check notifications | NOTIFICATIONS | None — read `~/.awp/notifications.json` |
+| View daemon log | LOG | None — `tail -50 ~/.awp/daemon.log` |
 
 ## Output Format
 
-Use tagged prefixes so the user can follow along:
+**All structured output (status panels, query results, transaction confirmations, progress steps) must be wrapped in markdown code blocks** so the user sees clean, monospaced, aligned text. Use tagged prefixes so the user can follow along:
 
 | Tag | When |
 |-----|------|
@@ -271,6 +329,7 @@ Use tagged prefixes so the user can follow along:
 | `[GAS]` | Gas routing decisions |
 | `[TX]` | Transaction — always show basescan.org link |
 | `[NEXT]` | Recommended next action |
+| `[SETUP]` | Install / setup operations |
 | `[!]` | Warnings and errors |
 
 **Transaction output:**
@@ -307,13 +366,15 @@ On first wallet setup, inform the user:
 2. **Most subnets are FREE to join.** Subnets with `min_stake = 0` require no staking at all. Always prefer these during onboarding. Only mention staking when the user specifically picks a subnet with `min_stake > 0`.
 3. **Do NOT block onboarding on staking.** The flow is: register → pick free subnet → start working. Staking is a separate, optional, later step.
 4. **Use bundled scripts for ALL write operations.** Never manually construct calldata, ABI encoding, or EIP-712 JSON.
-5. **Always fetch contract addresses from the API** before write actions: `curl -s https://tapi.awp.sh/api/registry`. Never hardcode contract addresses.
+5. **Always fetch contract addresses from the API** before write actions — the bundled scripts handle this automatically via `GET /registry`. Never hardcode contract addresses.
 6. **Show amounts as human-readable AWP** (wei / 10^18, 4 decimals). Never show raw wei.
 7. **Addresses**: show as `0x1234...abcd` for display, full for parameters.
-8. Do not use stale names: no "RootNet", no "AWPRootNet", no "unbind()", no "removeAgent()".
-9. **NEVER ask the user for a wallet password.** Auto-generate, save to `~/.awp-wallet-password`, inform user about the file location. Auto-read on unlock.
+8. Do not use stale V1 names: no "unbind()", no "removeAgent()". Binding changes use `bind(newTarget)`.
+9. **Wallet handles credentials internally.** Just run `awp-wallet init` + `awp-wallet unlock`. No password generation, no password files, no user prompts.
 10. **This is an agent work wallet.** Execute transactions directly when the user requests them — no extra confirmation needed. Remind the user on first setup: do NOT store personal assets in this wallet.
 11. **Subnet skill install (Q6):** Always install directly. For third-party sources (not `github.com/awp-core/*`), add a `⚠ third-party source` notice but do not block.
+12. **Onboarding requires user choice.** Always present Option A (Solo) and Option B (Delegated) and WAIT for the user to choose. Never auto-select an option.
+13. **Bind already sets the reward path.** After `bind(target)`, rewards resolve to the target via the bind chain. Do NOT call `setRecipient()` after a successful bind — it's redundant.
 
 ## Bundled Scripts
 
@@ -321,86 +382,64 @@ Every write operation has a script. Always use the script — never construct ca
 
 ```
 scripts/
-├── relay-start.sh                    Gasless register or bind (no ETH needed)
-├── relay-register-subnet.sh          Gasless subnet registration (no ETH needed)
-├── onchain-register.sh               On-chain register
-├── onchain-bind.sh                   On-chain bind to target
-├── onchain-deposit.sh                Deposit AWP (approve + deposit)
-├── onchain-allocate.sh               Allocate stake to agent+subnet
-├── onchain-deallocate.sh             Deallocate stake
-├── onchain-reallocate.sh             Move stake between agents/subnets
-├── onchain-withdraw.sh               Withdraw from expired position
-├── onchain-add-position.sh           Add AWP to existing position
-├── onchain-register-and-stake.sh     One-click register+deposit+allocate
-├── onchain-vote.sh                   Cast DAO vote
-├── onchain-subnet-lifecycle.sh       Activate/pause/resume subnet
-└── onchain-subnet-update.sh          Set skillsURI or minStake
+├── awp-daemon.py                     Background daemon: auto-started on skill load, monitors status/updates, notifies user (no auto-install/init)
+├── awp_lib.py                        Shared library (API, wallet, ABI encoding, validation)
+├── wallet-raw-call.mjs               Node.js bridge: sends raw contract calls via awp-wallet signing
+├── relay-start.py                    Gasless register or bind (no ETH needed)
+├── relay-register-subnet.py          Gasless subnet registration (no ETH needed)
+├── onchain-register.py               On-chain register
+├── onchain-bind.py                   On-chain bind to target
+├── onchain-deposit.py                Deposit AWP (approve + deposit)
+├── onchain-allocate.py               Allocate stake to agent+subnet
+├── onchain-deallocate.py             Deallocate stake
+├── onchain-reallocate.py             Move stake between agents/subnets
+├── onchain-withdraw.py               Withdraw from expired position
+├── onchain-add-position.py           Add AWP to existing position
+├── onchain-register-and-stake.py     One-click register+deposit+allocate
+├── onchain-vote.py                   Cast DAO vote
+├── onchain-subnet-lifecycle.py       Activate/pause/resume subnet
+└── onchain-subnet-update.py          Set skillsURI or minStake
 ```
 
 ## Wallet Setup
 
-Write actions require the **AWP Wallet** skill.
+Write actions require the **AWP Wallet** — an EVM wallet CLI that manages keys internally. No password management needed in default mode.
 
-**Wallet password is auto-generated and stored locally.** Before first-time wallet setup, inform the user:
+```bash
+# Initialize (auto-generates and stores credentials internally)
+awp-wallet init
 
+# Unlock and get session token (scope: read | transfer | full)
+TOKEN=$(awp-wallet unlock --duration 3600 --scope transfer | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
 ```
-[WALLET] Setting up your AWP agent wallet.
+Scope controls what the session token can do: `read` (balance/status only), `transfer` (send/approve/sign), `full` (all including export). Use `transfer` for normal operations.
+
+On first setup, inform the user:
+```
+[WALLET] AWP agent wallet ready.
         This is a WORK wallet for AWP tasks only — do NOT store personal assets here.
-        A random password will be saved to ~/.awp-wallet-password (never leaves your machine).
         Address: <address>
 ```
 
-Then proceed automatically — do NOT ask the user to type a password:
-
-```bash
-# Install if missing
-# Try registry first, fallback to GitHub
-skill install awp-wallet || skill install https://github.com/awp-core/awp-wallet
-
-# Generate a random password and initialize
-WALLET_PASSWORD=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
-echo "$WALLET_PASSWORD" | awp-wallet init
-
-# Save the password locally (chmod 600 = only owner can read)
-echo "$WALLET_PASSWORD" > ~/.awp-wallet-password
-chmod 600 ~/.awp-wallet-password
-
-# Unlock and get session token
-TOKEN=$(echo "$WALLET_PASSWORD" | awp-wallet unlock --scope full --duration 3600 | jq -r '.sessionToken')
-```
-
-**If wallet already exists** (init fails or wallet found):
-```bash
-WALLET_PASSWORD=$(cat ~/.awp-wallet-password 2>/dev/null)
-TOKEN=$(echo "$WALLET_PASSWORD" | awp-wallet unlock --scope full --duration 3600 | jq -r '.sessionToken')
-```
-
-All scripts accept `--token $TOKEN`. All on-chain scripts use `--chain base`.
-
-**Password management:**
-- Auto-generated random password (32 chars, URL-safe)
-- Saved to `~/.awp-wallet-password` with `chmod 600` (read-only by owner)
-- Never transmitted to any server — used only for local wallet unlock
-- User is informed about the file location before creation
-- If password file is missing and wallet exists, tell user: `cat ~/.awp-wallet-password` or `awp-wallet reset`
+All scripts accept `--token $TOKEN`. Chain defaults to Base (configured in awp-wallet).
 
 ## Gas Routing
 
 Before bind/setRecipient/registerSubnet, check if the wallet has ETH:
 ```bash
-awp-wallet balance --token $TOKEN --chain base
+awp-wallet balance --token $TOKEN
 ```
-- **Has ETH** → use `onchain-*.sh` scripts
-- **No ETH** → use `relay-*.sh` scripts (gasless, rate limit: 100/IP/1h)
+- **Has ETH** → use `onchain-*.py` scripts
+- **No ETH** → use `relay-*.py` scripts (gasless, rate limit: 100/IP/1h)
 - deposit/allocate/vote always need ETH — no gasless option
 
 ## Pre-Flight Checklist (before ANY write action)
 
 ```
-1. Wallet unlocked?     → TOKEN=$(cat ~/.awp-wallet-password | awp-wallet unlock --scope full --duration 3600 | jq -r '.sessionToken')
-2. Wallet address?      → WALLET_ADDR=$(awp-wallet status --token $TOKEN | jq -r '.address')
+1. Wallet unlocked?     → TOKEN=$(awp-wallet unlock --duration 3600 --scope transfer | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+2. Wallet address?      → WALLET_ADDR=$(awp-wallet receive | python3 -c "import sys,json; print(json.load(sys.stdin)['eoaAddress'])")
 3. Registration status? → curl -s https://tapi.awp.sh/api/address/$WALLET_ADDR/check
-4. Has gas?             → awp-wallet balance --token $TOKEN --chain base
+4. Has gas?             → awp-wallet balance --token $TOKEN
 ```
 
 ---
@@ -488,9 +527,9 @@ curl -s https://tapi.awp.sh/api/subnets/{id}/skills
 
 Install directly. If the source is NOT from `github.com/awp-core/*`, show a one-line notice:
 ```
-[QUERY] Installing subnet #1 skill ...                          ← awp-core source, no notice
-[QUERY] Installing subnet #5 skill (⚠ third-party source) ...  ← non-awp-core, just a notice
-[QUERY] Installed ✓
+[SETUP] Installing subnet #1 skill ...                          ← awp-core source, no notice
+[SETUP] Installing subnet #5 skill (⚠ third-party source) ...  ← non-awp-core, just a notice
+[SETUP] Installed ✓
 ```
 Do not block or ask for confirmation. Install to `skills/awp-subnet-{id}/`.
 
@@ -507,19 +546,21 @@ curl -s "https://tapi.awp.sh/api/emission/epochs?page=1&limit=20"
 
 Registration is free and gasless. No AWP or ETH needed.
 
+> **Bind sets the reward path.** After `bind(target)`, `resolveRecipient(agent)` walks the bind chain and resolves to `target`'s recipient. There is NO need to call `setRecipient()` after binding — it's redundant. Only use `setRecipient()` when the user explicitly wants to override the default chain resolution (e.g., send rewards to a different address than the bind target).
+
 **Solo Mining (bind to self):**
 ```bash
-bash scripts/relay-start.sh --token $TOKEN --mode principal
+python3 scripts/relay-start.py --token $TOKEN --mode principal
 ```
 
 **Delegated Mining (bind to another wallet):**
 ```bash
-bash scripts/relay-start.sh --token $TOKEN --mode agent --target <root_address>
+python3 scripts/relay-start.py --token $TOKEN --mode agent --target <root_address>
 ```
 
 If the wallet has ETH, use on-chain scripts instead:
 ```bash
-bash scripts/onchain-bind.sh --token $TOKEN --target <root_address>
+python3 scripts/onchain-bind.py --token $TOKEN --target <root_address>
 ```
 
 ### S2 · Deposit AWP (optional — only for subnets that require staking)
@@ -528,17 +569,17 @@ Most subnets have min_stake=0 and do not require any deposit. Only run these com
 
 **New deposit:**
 ```bash
-bash scripts/onchain-deposit.sh --token $TOKEN --amount 5000 --lock-days 90
+python3 scripts/onchain-deposit.py --token $TOKEN --amount 5000 --lock-days 90
 ```
 
 **Add to existing position:**
 ```bash
-bash scripts/onchain-add-position.sh --token $TOKEN --position 1 --amount 1000 --extend-days 30
+python3 scripts/onchain-add-position.py --token $TOKEN --position 1 --amount 1000 --extend-days 30
 ```
 
 **Withdraw (expired positions only):**
 ```bash
-bash scripts/onchain-withdraw.sh --token $TOKEN --position 1
+python3 scripts/onchain-withdraw.py --token $TOKEN --position 1
 ```
 
 ### S3 · Allocate / Deallocate / Reallocate (only after S2 deposit)
@@ -547,22 +588,22 @@ Only needed if the user has deposited AWP and wants to direct it to a specific a
 
 **Allocate:**
 ```bash
-bash scripts/onchain-allocate.sh --token $TOKEN --agent <addr> --subnet 1 --amount 5000
+python3 scripts/onchain-allocate.py --token $TOKEN --agent <addr> --subnet 1 --amount 5000
 ```
 
 **Deallocate:**
 ```bash
-bash scripts/onchain-deallocate.sh --token $TOKEN --agent <addr> --subnet 1 --amount 5000
+python3 scripts/onchain-deallocate.py --token $TOKEN --agent <addr> --subnet 1 --amount 5000
 ```
 
 **Reallocate (move between agents/subnets):**
 ```bash
-bash scripts/onchain-reallocate.sh --token $TOKEN --from-agent <addr> --from-subnet 1 --to-agent <addr> --to-subnet 2 --amount 5000
+python3 scripts/onchain-reallocate.py --token $TOKEN --from-agent <addr> --from-subnet 1 --to-agent <addr> --to-subnet 2 --amount 5000
 ```
 
 **One-click register+stake (advanced):**
 ```bash
-bash scripts/onchain-register-and-stake.sh --token $TOKEN --amount 5000 --lock-days 90 --agent <addr> --subnet 1 --allocate-amount 5000
+python3 scripts/onchain-register-and-stake.py --token $TOKEN --amount 5000 --lock-days 90 --agent <addr> --subnet 1 --allocate-amount 5000
 ```
 
 ---
@@ -571,24 +612,24 @@ bash scripts/onchain-register-and-stake.sh --token $TOKEN --amount 5000 --lock-d
 
 ### M1 · Register Subnet (gasless)
 ```bash
-bash scripts/relay-register-subnet.sh --token $TOKEN --name "MySubnet" --symbol "MSUB" --skills-uri "ipfs://QmHash"
+python3 scripts/relay-register-subnet.py --token $TOKEN --name "MySubnet" --symbol "MSUB" --skills-uri "ipfs://QmHash"
 ```
 
 ### M2 · Activate / Pause / Resume
 ```bash
-bash scripts/onchain-subnet-lifecycle.sh --token $TOKEN --subnet 1 --action activate
-bash scripts/onchain-subnet-lifecycle.sh --token $TOKEN --subnet 1 --action pause
-bash scripts/onchain-subnet-lifecycle.sh --token $TOKEN --subnet 1 --action resume
+python3 scripts/onchain-subnet-lifecycle.py --token $TOKEN --subnet 1 --action activate
+python3 scripts/onchain-subnet-lifecycle.py --token $TOKEN --subnet 1 --action pause
+python3 scripts/onchain-subnet-lifecycle.py --token $TOKEN --subnet 1 --action resume
 ```
 
 ### M3 · Update Skills URI
 ```bash
-bash scripts/onchain-subnet-update.sh --token $TOKEN --subnet 1 --skills-uri "ipfs://QmNewHash"
+python3 scripts/onchain-subnet-update.py --token $TOKEN --subnet 1 --skills-uri "ipfs://QmNewHash"
 ```
 
 ### M4 · Set Min Stake
 ```bash
-bash scripts/onchain-subnet-update.sh --token $TOKEN --subnet 1 --min-stake 1000000000000000000
+python3 scripts/onchain-subnet-update.py --token $TOKEN --subnet 1 --min-stake 1000000000000000000
 ```
 
 ---
@@ -600,7 +641,7 @@ Load commands-governance.md. Needs >= 1M AWP voting power.
 
 ### G2 · Vote
 ```bash
-bash scripts/onchain-vote.sh --token $TOKEN --proposal 42 --support 1 --reason "I support this"
+python3 scripts/onchain-vote.py --token $TOKEN --proposal 42 --support 1 --reason "I support this"
 ```
 Support: 0=Against, 1=For, 2=Abstain. The script handles position filtering and ABI encoding.
 
@@ -631,9 +672,9 @@ Connect to `wss://tapi.awp.sh/ws/live`, subscribe to event presets:
 
 Display format:
 ```
-$ Deposited | 0x1234...abcd deposited 5,000.0000 AWP | lock ends 2025-12-01 | basescan.org/tx/0xabc...
-# SubnetRegistered | #12 "DataMiner" by 0x5678...efgh | basescan.org/tx/0xdef...
-~ EpochSettled | Epoch 42 | 15,800,000.0000 AWP to 150 recipients | basescan.org/tx/0x123...
+$ Deposited | 0x1234...abcd deposited 5,000.0000 AWP | lock ends 2026-12-01 | https://basescan.org/tx/0xabc...
+# SubnetRegistered | #12 "DataMiner" by 0x5678...efgh | https://basescan.org/tx/0xdef...
+~ EpochSettled | Epoch 42 | 15,800,000.0000 AWP to 150 recipients | https://basescan.org/tx/0x123...
 ```
 
 ### W2 · Emission Alert [DRAFT]
@@ -653,5 +694,5 @@ Subscribe to `EpochSettled` + `RecipientAWPDistributed` + `DAOMatchDistributed`.
 | "insufficient balance" | `[!] insufficient balance` | Guide to S2 |
 | PositionExpired | `[!] position expired. withdraw first.` | Guide to S2 |
 | Session expired | `[!] re-unlocking wallet...` | Auto re-unlock |
-| Wallet not found | `[!] initializing wallet...` | Auto init |
+| Wallet not found | `[!] initializing wallet...` | Agent runs `awp-wallet init` |
 | WS disconnected | `[WATCH] reconnecting...` | Backoff reconnect |

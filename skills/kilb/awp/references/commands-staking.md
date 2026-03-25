@@ -1,14 +1,14 @@
 # AWP Staking Commands
 
-**API Base URL**: `{API_BASE}/api` (deployment-specific — do not hardcode)
+**API Base URL**: `{API_BASE}/api` (default `https://tapi.awp.sh/api`, override via `AWP_API_URL` env var)
 
-> **Note**: On-chain command templates below use `cast` (Foundry) for calldata encoding.
-> For gasless operations, use the bundled scripts instead — they require only curl+jq+python3.
-> If `cast` is not available, pre-compute the 4-byte function selectors and use python3 for ABI encoding.
+> **IMPORTANT**: Always use the bundled `scripts/*.py` files for write operations — they handle ABI encoding natively in Python, require only python3, and work without Foundry or curl/jq.
+> The `cast calldata` examples below are for reference only; do NOT run them directly.
 
-## Setup (run once per session)
+## Setup (reference only — bundled scripts handle this automatically)
 
 ```bash
+# 以下为参考说明，实际操作使用 scripts/*.py 自动完成
 REGISTRY=$(curl -s {API_BASE}/api/registry)
 AWP_REGISTRY=$(echo $REGISTRY | jq -r '.awpRegistry')
 AWP_TOKEN=$(echo $REGISTRY | jq -r '.awpToken')
@@ -16,31 +16,30 @@ STAKE_NFT=$(echo $REGISTRY | jq -r '.stakeNFT')
 SUBNET_NFT=$(echo $REGISTRY | jq -r '.subnetNFT')
 DAO_ADDR=$(echo $REGISTRY | jq -r '.dao')
 
-WALLET_ADDR=$(awp-wallet status --token {T} | jq -r '.address')
+WALLET_ADDR=$(awp-wallet receive | jq -r '.eoaAddress')
 ```
 
 ## Wallet CLI Reference
 
 ### Key Parameters
 
-- `--token {T}` = wallet session token from `awp-wallet unlock`
+- `--token {T}` = wallet session token from `awp-wallet unlock --scope transfer`
 - `--asset` = token **contract address** (e.g. awpTokenAddr from `/registry`), NOT a symbol like "AWP"
-- `--chain base` = always use Base for AWP
+- Chain defaults to Base (configured in awp-wallet config). `--chain` is a global option if needed.
 
 ### Approve Pattern (used by S1, S2)
 
 ```bash
 # Approve AWP spending — spender varies by action (see each section)
 # --asset must be the AWP token contract address from GET /registry -> awpToken
-awp-wallet approve --token {T} --asset {awpTokenAddr} --spender {targetAddr} --amount {humanAmount} --chain base
-# -> {"txHash": "0x...", "status": "confirmed"}
+awp-wallet approve --token {T} --asset {awpTokenAddr} --spender {targetAddr} --amount {humanAmount} # -> {"txHash": "0x...", "status": "confirmed"}
 ```
 
 ### Balance Check
 
 ```bash
 # Check AWP balance in wallet (supplements REST API staking balance)
-awp-wallet balance --token {T} --chain base --asset {awpTokenAddr}
+awp-wallet balance --token {T} --asset {awpTokenAddr}
 ```
 
 ### EIP-712 Signing (for gasless bindFor / setRecipientFor)
@@ -167,17 +166,17 @@ POST /relay/set-recipient
 **Step 1: Get nonce and EIP-712 domain**
 ```bash
 # Get nonce from REST API
-NONCE=$(curl -s https://tapi.awp.sh/api/nonce/$WALLET_ADDR | jq -r '.nonce')
+NONCE=$(curl -s {API_BASE}/api/nonce/$WALLET_ADDR | jq -r '.nonce')
 
 # Get EIP-712 domain from registry
-REGISTRY=$(curl -s https://tapi.awp.sh/api/registry)
+REGISTRY=$(curl -s {API_BASE}/api/registry)
 EIP712_DOMAIN=$(echo $REGISTRY | jq '.eip712Domain')
 # → {"name": "AWPRegistry", "version": "1", "chainId": 8453, "verifyingContract": "0x..."}
 ```
 
 **On-chain bind (has ETH gas):**
 ```bash
-bash scripts/onchain-bind.sh --token {T} --target {targetAddress}
+python3 scripts/onchain-bind.py --token {T} --target {targetAddress}
 ```
 
 **Gasless bind (no ETH) — EIP-712 signature flow:**
@@ -217,7 +216,7 @@ awp-wallet sign-typed-data --token {T} --data '{
 }'
 
 # 4. Submit to relay:
-curl -X POST https://tapi.awp.sh/api/relay/bind \
+curl -X POST {API_BASE}/api/relay/bind \
   -H "Content-Type: application/json" \
   -d '{"agent": "'$WALLET_ADDR'", "target": "'$TARGET'", "deadline": '$DEADLINE', "signature": "{signatureHex}"}'
 ```
@@ -248,7 +247,7 @@ awp-wallet sign-typed-data --token {T} --data '{
   "domain": {
     "name": "AWPRegistry",
     "version": "1",
-    "chainId": '$CHAIN_ID',
+    "chainId": 8453,
     "verifyingContract": "'$AWP_REGISTRY'"
   },
   "message": {
@@ -264,16 +263,18 @@ curl -X POST {API_BASE}/api/relay/set-recipient \
   -d '{"user": "'$WALLET_ADDR'", "recipient": "'$RECIPIENT'", "deadline": '$DEADLINE', "signature": "{signatureHex}"}'
 ```
 
-**Delegation management:**
+**Delegation management** (use bundled scripts — `awp-wallet send` does NOT support raw calldata):
 ```bash
-# Grant delegate
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "grantDelegate(address)" {delegateAddr}) --chain base
+# For gasless binding, use relay-start.py:
+python3 scripts/relay-start.py --token {T} --mode agent --target {targetAddress}
 
-# Revoke delegate
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "revokeDelegate(address)" {delegateAddr}) --chain base
+# For on-chain binding:
+python3 scripts/onchain-bind.py --token {T} --target {targetAddress}
 
-# Set reward recipient (on-chain)
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "setRecipient(address)" {recipientAddr}) --chain base
+# grantDelegate/revokeDelegate/setRecipient: no bundled Python scripts exist for these.
+# Use wallet-raw-call.mjs directly to send raw contract calls. Example:
+#   node scripts/wallet-raw-call.mjs --token {T} --to {awpRegistryAddr} \
+#     --data $(cast calldata "grantDelegate(address)" {delegateAddr})
 ```
 
 ---
@@ -317,21 +318,20 @@ function getPositionForVoting(uint256 tokenId) view returns (address owner, uint
 
 ### Complete Command Templates
 
-```bash
-# Step 1: Approve AWP to StakeNFT
-awp-wallet approve --token {T} --asset $AWP_TOKEN --spender $STAKE_NFT --amount {humanAmount} --chain base
-# Wait for {"status": "confirmed"}
+Always use the bundled Python scripts (they handle approve + ABI encoding + raw call via `wallet-raw-call.mjs`):
 
-# Step 2: Deposit (lockDuration in seconds, e.g. 182 days = 15724800)
-awp-wallet send --token {T} --to $STAKE_NFT --data $(cast calldata "deposit(uint256,uint64)" {amountWei} {lockDurationSeconds}) --chain base
+```bash
+# Deposit (approve + deposit in one script)
+python3 scripts/onchain-deposit.py --token {T} --amount 5000 --lock-days 90
 
 # Withdraw (after lock expires)
-awp-wallet send --token {T} --to $STAKE_NFT --data $(cast calldata "withdraw(uint256)" {tokenId}) --chain base
+python3 scripts/onchain-withdraw.py --token {T} --position {tokenId}
 
-# Add to position (approve first, then addToPosition — check remainingTime > 0 first!)
-awp-wallet approve --token {T} --asset $AWP_TOKEN --spender $STAKE_NFT --amount {addAmountHuman} --chain base
-awp-wallet send --token {T} --to $STAKE_NFT --data $(cast calldata "addToPosition(uint256,uint256,uint64)" {tokenId} {addAmountWei} {newLockEndTimestamp}) --chain base
+# Add to existing position
+python3 scripts/onchain-add-position.py --token {T} --position {tokenId} --amount 1000 --extend-days 30
 ```
+
+> **Note**: `awp-wallet send` only supports token transfers (--to, --amount, --asset). It does NOT support raw calldata. All contract calls go through `wallet-raw-call.mjs` which the Python scripts call internally.
 
 ---
 
@@ -353,7 +353,6 @@ function reallocate(address staker, address fromAgent, uint256 fromSubnetId, add
 ```solidity
 function userTotalAllocated(address staker) view returns (uint256)
 function getAgentStake(address staker, address agent, uint256 subnetId) view returns (uint256)
-function subnetTotalStake(uint256 subnetId) view returns (uint256)
 function getSubnetTotalStake(uint256 subnetId) view returns (uint256)
 function getAgentSubnets(address staker, address agent) view returns (uint256[])
 ```
@@ -369,12 +368,12 @@ Verify `unallocated >= amount` before allocating.
 ### Complete Command Templates
 
 ```bash
-# Allocate (staker = WALLET_ADDR for self-allocation)
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "allocate(address,address,uint256,uint256)" $WALLET_ADDR {agentAddr} {subnetId} {amountWei}) --chain base
+# Allocate
+python3 scripts/onchain-allocate.py --token {T} --agent {agentAddr} --subnet {subnetId} --amount 5000
 
 # Deallocate
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "deallocate(address,address,uint256,uint256)" $WALLET_ADDR {agentAddr} {subnetId} {amountWei}) --chain base
+python3 scripts/onchain-deallocate.py --token {T} --agent {agentAddr} --subnet {subnetId} --amount 5000
 
 # Reallocate (immediate, no cooldown)
-awp-wallet send --token {T} --to $AWP_REGISTRY --data $(cast calldata "reallocate(address,address,uint256,address,uint256,uint256)" $WALLET_ADDR {fromAgent} {fromSubnetId} {toAgent} {toSubnetId} {amountWei}) --chain base
+python3 scripts/onchain-reallocate.py --token {T} --from-agent {fromAgent} --from-subnet {fromSubnetId} --to-agent {toAgent} --to-subnet {toSubnetId} --amount 5000
 ```
