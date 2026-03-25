@@ -1,0 +1,11 @@
+{
+  "owner": "goofyfht-blip",
+  "slug": "clawfeed-push",
+  "displayName": "ClawFeed 新闻推送",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773976167989,
+    "commit": null
+  },
+  "history": []
+}
