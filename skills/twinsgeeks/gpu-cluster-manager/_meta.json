@@ -1,0 +1,11 @@
+{
+  "owner": "twinsgeeks",
+  "slug": "gpu-cluster-manager",
+  "displayName": "Gpu Cluster Manager",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1774298910337,
+    "commit": null
+  },
+  "history": []
+}
