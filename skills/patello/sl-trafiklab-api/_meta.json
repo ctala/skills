@@ -1,0 +1,11 @@
+{
+  "owner": "patello",
+  "slug": "sl-trafiklab-api",
+  "displayName": "Stockholm Public Traffic Planner",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774299549686,
+    "commit": null
+  },
+  "history": []
+}
