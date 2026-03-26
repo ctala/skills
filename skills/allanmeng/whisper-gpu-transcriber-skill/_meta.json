@@ -1,0 +1,11 @@
+{
+  "owner": "allanmeng",
+  "slug": "whisper-gpu-transcriber-skill",
+  "displayName": "Whisper GPU Audio Transcriber",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1774404966580,
+    "commit": null
+  },
+  "history": []
+}
