@@ -1,0 +1,11 @@
+{
+  "owner": "ai-warden",
+  "slug": "ai-warden-setup",
+  "displayName": "AI-Warden — Prompt Injection Protection",
+  "latest": {
+    "version": "1.3.0",
+    "publishedAt": 1774461815063,
+    "commit": null
+  },
+  "history": []
+}
