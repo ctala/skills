@@ -3,11 +3,16 @@
   "slug": "persona-team-lead",
   "displayName": "Persona Team Lead",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1774540756475,
-    "commit": "https://github.com/openclaw/skills/commit/52d626d6d47df075fcaef9ee6a888bbcd926ead7"
+    "version": "1.0.10",
+    "publishedAt": 1774551095943,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1774540756475,
+      "commit": "https://github.com/openclaw/skills/commit/52d626d6d47df075fcaef9ee6a888bbcd926ead7"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774300552667,
