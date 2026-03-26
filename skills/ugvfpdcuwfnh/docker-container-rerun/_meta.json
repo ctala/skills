@@ -1,0 +1,11 @@
+{
+  "owner": "ugvfpdcuwfnh",
+  "slug": "docker-container-rerun",
+  "displayName": "Docker Container Rerun",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774455129314,
+    "commit": null
+  },
+  "history": []
+}
