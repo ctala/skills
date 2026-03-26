@@ -1,0 +1,11 @@
+{
+  "owner": "achals-iglu",
+  "slug": "dokploy-api",
+  "displayName": "Dokploy API",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774457952917,
+    "commit": null
+  },
+  "history": []
+}
