@@ -1,0 +1,11 @@
+{
+  "owner": "mohamed-hammane",
+  "slug": "imap-smtp-mail",
+  "displayName": "IMAP SMTP Email",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1774258529012,
+    "commit": null
+  },
+  "history": []
+}
