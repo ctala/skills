@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain",
+  "slug": "syslog",
+  "displayName": "Syslog",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774336647194,
+    "commit": null
+  },
+  "history": []
+}
