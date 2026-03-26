@@ -1,0 +1,11 @@
+{
+  "owner": "tomgranot",
+  "slug": "enrich-company-name",
+  "displayName": "Enrich Company Name",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774550521164,
+    "commit": null
+  },
+  "history": []
+}
