@@ -1,6 +1,6 @@
 ---
 name: gstack
-description: YC CEO Garry Tan 的虚拟工程团队 —— 8 个核心角色帮你做产品、审代码、发版本
+description: 世界顶级思维合集 —— Google Staff Engineer代码审查 + Martin Fowler/Kent Beck/Jeff Dean工程思维 + Paul Graham/Sam Altman创业思维 + Elon Musk创新思维。v1.0.0 Review角色深度融合Google工程实践：CR黄金法则、知识传递文化、安全/性能/可维护性审查清单、Staff Engineer CR原则。
 metadata:
   {
     "openclaw":

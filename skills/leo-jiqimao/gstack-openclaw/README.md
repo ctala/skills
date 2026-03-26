@@ -31,6 +31,13 @@
 | `gstack:browse` | 浏览器测试 | 网页抓取、功能验证、UI 检查 |
 | `gstack:retro` | 复盘师 | 项目复盘、经验总结、改进建议 |
 | `gstack:office` | 办公室时间 | 需求澄清、方向校准、头脑风暴 |
+| `gstack:docs` | 技术文档工程师 | 自动生成 README、API 文档 |
+| `gstack:test` | 测试工程师 | 生成测试用例和测试代码 |
+| `gstack:deploy` | DevOps 工程师 | 生成部署脚本和 CI/CD 配置 |
+| `gstack:init` | 项目初始化 | 自动创建 GSTACK.md 和项目骨架 |
+| `gstack:status` | 项目状态追踪 | 查看进度和下一步行动 |
+| `gstack:github` | GitHub 集成 | PR 检查、CI 监控、发布说明 |
+| `gstack:notify` | 消息通知 | 飞书/Discord 多渠道通知 |
 
 ---
 
