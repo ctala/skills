@@ -1,0 +1,11 @@
+{
+  "owner": "jisuapi",
+  "slug": "baidu-top",
+  "displayName": "Baidu Top - 百度热搜榜单",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774436185922,
+    "commit": null
+  },
+  "history": []
+}
