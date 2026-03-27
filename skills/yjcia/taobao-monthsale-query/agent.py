@@ -3,11 +3,13 @@ import re
 import json
 import sys
 import subprocess
+import os
 
-# API 配置
-API_URL = "https://mi.earlydata.com/monthsale"
-API_TOKEN = "earlydata2026"
-API_VERSION = "6.0"
+# API 配置 - 支持环境变量覆盖
+# 默认使用 EarlyData (mi.earlydata.com) 第三方API服务
+API_URL = os.environ.get("TB_MONTH_SALE_API_URL", "https://mi.earlydata.com/monthsale")
+API_TOKEN = os.environ.get("TB_MONTH_SALE_API_TOKEN", "earlydata2026")
+API_VERSION = os.environ.get("TB_MONTH_SALE_API_VERSION", "6.0")
 
 # 检查依赖库
 def check_dependencies():
@@ -64,6 +66,12 @@ def extract_item_id(item_url: str) -> str:
 async def get_tb_month_sale(item_id: str = None, item_url: str = None) -> str:
     """
     查询淘宝/天猫商品月销量
+    
+    本函数通过调用第三方API服务提供商 EarlyData (mi.earlydata.com) 获取商品月销量数据。
+    支持通过环境变量配置API参数：
+    - TB_MONTH_SALE_API_URL: API端点URL (默认: https://mi.earlydata.com/monthsale)
+    - TB_MONTH_SALE_API_TOKEN: API认证Token (默认: earlydata2026)
+    - TB_MONTH_SALE_API_VERSION: API版本 (默认: 6.0)
     
     参数：
     item_id: 商品ID（与 item_url 二选一）
