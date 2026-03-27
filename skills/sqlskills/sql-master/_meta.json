@@ -1,0 +1,11 @@
+{
+  "owner": "sqlskills",
+  "slug": "sql-master",
+  "displayName": "SQL Master",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1774607491453,
+    "commit": null
+  },
+  "history": []
+}
