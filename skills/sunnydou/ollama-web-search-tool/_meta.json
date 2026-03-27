@@ -1,0 +1,11 @@
+{
+  "owner": "sunnydou",
+  "slug": "ollama-web-search-tool",
+  "displayName": "Ollama Web Search",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1774514677141,
+    "commit": null
+  },
+  "history": []
+}
