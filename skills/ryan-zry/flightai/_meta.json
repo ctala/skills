@@ -1,0 +1,11 @@
+{
+  "owner": "ryan-zry",
+  "slug": "flightai",
+  "displayName": "AI机票预订助手",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774496985670,
+    "commit": null
+  },
+  "history": []
+}
