@@ -42,6 +42,7 @@ import type { EmbedProvider, LLMProvider } from "./providers/types.js";
 import { EmbedFallback } from "./embed-fallback.js";
 import { ObservationManager } from "./observations.js";
 import { FactClusterManager } from "./fact-clusters.js";
+import { FeedbackManager } from "./feedback.js";
 import { AnthropicLLM } from "./providers/anthropic.js";
 
 // ─── Config ───
@@ -190,11 +191,18 @@ NE PAS STOCKER — seulement le jetable:
 ❌ Narration sans résultat ("je lis le fichier", "je regarde") — MAIS stocker si un RÉSULTAT suit ("j'ai testé X → résultat Y")
 ❌ Évidences triviales ("Node.js est installé") sauf si c'était un problème résolu
 ❌ Statuts binaires sans info ("test passé ✅", "ça marche") — stocker plutôt les CHIFFRES et CONCLUSIONS
+❌ MÉTA-FAITS qui parlent DU PROCESSUS de stockage lui-même ("le nouveau fait complète l'info précédente", "ce fait a été ajouté", "la migration vers Memoria inclut des liens") — stocker le CONTENU, pas le commentaire sur le contenu
+❌ Faits VAGUES sans nom propre, chiffre, commande ou date concrète ("des informations supplémentaires ont été fournies", "la configuration a été mise à jour") — ÊTRE SPÉCIFIQUE : quel outil, quelle version, quelle commande, quel chiffre ?
 
 PRIORITÉ D'EXTRACTION — ce qui compte le plus:
 🥇 Apprentissages = ce qu'on a APPRIS en faisant (conclusions, règles découvertes)
 🥈 Résultats mesurés = chiffres, métriques, comparaisons avant/après
 🥉 Faits durables = configs, architectures, états des systèmes
+
+QUALITÉ OBLIGATOIRE — chaque fait DOIT respecter ces critères:
+⚠️ Contenir au moins UN élément concret: nom propre (Ollama, Sol, Neto), OU chiffre (2.8s, 616 faits), OU commande (clawhub install), OU version (v3.4.1), OU date (26/03)
+⚠️ Être AUTONOME = compréhensible par quelqu'un qui lit ce fait seul, sans contexte
+⚠️ Ne JAMAIS commencer par "Le nouveau fait..." ou "Ce fait..." ou "L'information..." — commencer par le SUJET réel
 
 Règles:
 - Chaque fait = phrase(s) complète(s) et autonome(s) (compréhensible sans contexte)
@@ -427,6 +435,25 @@ export function register(api: OpenClawPluginApi): void {
   });
 
   const clusterMgr = new FactClusterManager(db, chain);
+  const feedbackMgr = new FeedbackManager(db);
+
+  // Cross-layer: when selective supersedes a fact, cascade to ALL layers
+  selective.onSupersede = (supersededId, _newId) => {
+    try {
+      const parts: string[] = [];
+      const obsAffected = observationMgr.onFactSuperseded(supersededId);
+      if (obsAffected > 0) parts.push(`${obsAffected} obs`);
+      const graphAffected = graph.onFactSuperseded(supersededId);
+      if (graphAffected > 0) parts.push(`${graphAffected} graph`);
+      const topicAffected = topicMgr.onFactSuperseded(supersededId);
+      if (topicAffected > 0) parts.push(`${topicAffected} topics`);
+      const embRemoved = embeddingMgr.onFactSuperseded(supersededId);
+      if (embRemoved) parts.push("1 embed");
+      if (parts.length > 0) {
+        api.logger.debug?.(`memoria: supersede cascade for ${supersededId} — ${parts.join(", ")}`);
+      }
+    } catch { /* non-critical */ }
+  };
 
   // Ensure sync column exists
   mdSync.ensureSchema(db);
@@ -444,7 +471,9 @@ export function register(api: OpenClawPluginApi): void {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
     pluginVersion = pkg.version || pluginVersion;
   } catch { /* fallback to hardcoded */ }
-  api.logger.info?.(`memoria: v${pluginVersion} registered (${stats.active} facts, ${cStats.total} clusters, ${oStats.total} observations, ${embCount} embedded, ${gStats.entities} entities, ${gStats.relations} relations, ${tStats.totalTopics} topics, fallback: ${chain.providerNames.join(" → ")})`);
+  const fbStats = feedbackMgr.getStats();
+  const fbNote = fbStats.totalWithFeedback > 0 ? `, feedback: ${fbStats.totalWithFeedback} tracked (avg ${fbStats.avgUsefulness.toFixed(1)})` : "";
+  api.logger.info?.(`memoria: v${pluginVersion} registered (${stats.active} facts, ${cStats.total} clusters, ${oStats.total} observations, ${embCount} embedded, ${gStats.entities} entities, ${gStats.relations} relations, ${tStats.totalTopics} topics${fbNote}, fallback: ${chain.providerNames.join(" → ")})`);
   
   // Log .md file sizes
   const fileSizes = mdRegen.fileSizes();
@@ -543,13 +572,13 @@ export function register(api: OpenClawPluginApi): void {
       }
     } catch { /* non-critical */ }
 
-    // 7. Auto md-regen: check if .md files are getting too large
+    // 7. Auto md-regen: smart trigger (captures count OR stale OR file size)
     try {
-      const sizes = mdRegen.fileSizes();
-      const needsRegen = Object.values(sizes).some(s => s.lines > 200);
-      if (needsRegen) {
+      mdRegen.recordCapture();
+      const regenReason = mdRegen.shouldAutoRegen();
+      if (regenReason) {
         const regenResult = mdRegen.regenerate();
-        api.logger.info?.(`memoria: [${source}] auto md-regen triggered — ${regenResult.files} files regenerated, ${regenResult.archivedFacts} archived`);
+        api.logger.info?.(`memoria: [${source}] auto md-regen triggered (${regenReason}) — ${regenResult.files} files, ${regenResult.recentFacts} recent, ${regenResult.archivedFacts} archived`);
       }
     } catch { /* non-critical */ }
   }
@@ -564,13 +593,30 @@ export function register(api: OpenClawPluginApi): void {
         const prompt = typeof event.prompt === "string" ? event.prompt : "";
         if (!prompt || prompt.length < 3) return undefined;
 
+        // ── User signal detection (correction / frustration) ──
+        // Analyze the user message BEFORE recall so we can penalize
+        // facts from the PREVIOUS recall that led to a bad response.
+        try {
+          const signal = feedbackMgr.analyzeUserMessage(prompt);
+          if (signal.isCorrection || signal.isFrustration) {
+            const penalized = feedbackMgr.applyUserSignal(signal.penalty);
+            const parts: string[] = [];
+            if (signal.isCorrection) parts.push("correction detected");
+            if (signal.isFrustration) parts.push("frustration detected");
+            if (penalized.length > 0) {
+              api.logger.info?.(`memoria: user signal (${parts.join(" + ")}) → ${penalized.length} facts penalized by ${signal.penalty}`);
+            }
+          }
+        } catch { /* non-critical — don't block recall */ }
+
         // Adaptive budget: compute how many facts to inject based on context usage
         const messageCount = (event as any).messageCount || (event as any).messages?.length || 0;
         const tokenEstimate = AdaptiveBudget.estimateTokens(messageCount);
         const budgetResult = budget.compute(tokenEstimate);
         const recallLimit = budgetResult.limit;
 
-        api.logger.debug?.(`memoria: budget ${budgetResult.zone} (${(budgetResult.usage * 100).toFixed(0)}% used) → ${recallLimit} facts`);
+        const penaltyLog = budget.penalty > 0 ? `, penalty -${budget.penalty}` : "";
+        api.logger.debug?.(`memoria: budget ${budgetResult.zone} (${(budgetResult.usage * 100).toFixed(0)}% used${penaltyLog}) → ${recallLimit} facts`);
 
         // Hot tier: always-injected facts (frequently accessed, like a phone number you know by heart)
         const hotFactsRaw = db.hotFacts(HOT_TIER_CONFIG.minAccessCount, HOT_TIER_CONFIG.staleAfterDays, HOT_TIER_CONFIG.maxHotFacts);
@@ -681,9 +727,11 @@ export function register(api: OpenClawPluginApi): void {
 
         const context = formatRecallContext(finalFacts, observationContext);
 
-        // Track access
+        // Track access + feedback loop + budget learning
         const ids = finalFacts.map(f => f.id);
         try { db.trackAccess(ids); } catch { /* non-critical */ }
+        try { feedbackMgr.recordRecall(ids, prompt); } catch { /* non-critical */ }
+        try { budget.recordRecall(recallLimit); } catch { /* non-critical */ }
 
         const hotNote = hotLimit > 0 ? `, ${hotLimit} hot` : "";
         const graphNote = graphFacts.length > 0 ? `, +${graphFacts.length} graph` : "";
@@ -706,6 +754,33 @@ export function register(api: OpenClawPluginApi): void {
       if (!event.success || !event.messages || event.messages.length === 0) return;
 
       try {
+        // ── Feedback loop: measure if recalled facts were used in responses ──
+        try {
+          const assistantTexts: string[] = [];
+          for (const msg of event.messages) {
+            if (!msg || typeof msg !== "object") continue;
+            const m = msg as Record<string, unknown>;
+            if (m.role !== "assistant") continue;
+            const c = m.content;
+            if (typeof c === "string" && c.length > 10) assistantTexts.push(c);
+            else if (Array.isArray(c)) {
+              for (const part of c) {
+                if (part && typeof part === "object" && (part as any).type === "text") {
+                  const t = (part as any).text;
+                  if (typeof t === "string" && t.length > 10) assistantTexts.push(t);
+                }
+              }
+            }
+          }
+          if (assistantTexts.length > 0) {
+            const responseText = assistantTexts.slice(-3).join("\n");
+            const fb = await feedbackMgr.processResponse(responseText);
+            if (fb.used + fb.ignored > 0) {
+              api.logger.debug?.(`memoria: feedback — ${fb.used} used, ${fb.ignored} ignored (${fb.details.length} total)`);
+            }
+          }
+        } catch { /* feedback is non-critical */ }
+
         // Collect user + assistant texts
         const texts: string[] = [];
         for (const msg of event.messages) {
@@ -817,6 +892,11 @@ export function register(api: OpenClawPluginApi): void {
   // ════════════════════════════════════════════════════════════════
 
   api.on("after_compaction", async (event, _ctx) => {
+    // Budget learning: compaction happened → we may have been too aggressive
+    try { budget.onCompaction(); } catch { /* non-critical */ }
+    const penaltyNote = budget.penalty > 0 ? ` (compaction penalty: -${budget.penalty} facts)` : "";
+    if (penaltyNote) api.logger.debug?.(`memoria: budget adjusted${penaltyNote}`);
+
     try {
       const summary = typeof event.summary === "string" ? event.summary : "";
       if (!summary || summary.length < 50) return;

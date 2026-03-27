@@ -1,11 +1,17 @@
 {
   "owner": "nieto42",
   "slug": "openclaw-memoria",
-  "displayName": "Memoria — Persistent Memory for OpenClaw",
+  "displayName": "Memoria",
   "latest": {
-    "version": "3.4.2",
-    "publishedAt": 1774535254409,
-    "commit": "https://github.com/openclaw/skills/commit/7833d41d10a69753822bec785fa47cbf0d6afe78"
+    "version": "3.5.1",
+    "publishedAt": 1774583559112,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.4.2",
+      "publishedAt": 1774535254409,
+      "commit": "https://github.com/openclaw/skills/commit/7833d41d10a69753822bec785fa47cbf0d6afe78"
+    }
+  ]
 }
