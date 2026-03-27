@@ -1,0 +1,11 @@
+{
+  "owner": "sunnydou",
+  "slug": "ollama-web-search-cli",
+  "displayName": "Ollama Web Search CLI",
+  "latest": {
+    "version": "1.0.5",
+    "publishedAt": 1774513255300,
+    "commit": null
+  },
+  "history": []
+}
