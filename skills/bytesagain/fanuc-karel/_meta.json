@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain",
+  "slug": "fanuc-karel",
+  "displayName": "Fanuc Karel",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774532153904,
+    "commit": null
+  },
+  "history": []
+}
