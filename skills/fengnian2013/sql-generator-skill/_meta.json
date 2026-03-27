@@ -1,0 +1,11 @@
+{
+  "owner": "fengnian2013",
+  "slug": "sql-generator-skill",
+  "displayName": "提供数据库ddl内容,根据自然语言生成sql",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774506465826,
+    "commit": null
+  },
+  "history": []
+}
