@@ -1,0 +1,11 @@
+{
+  "owner": "clawwalletteam",
+  "slug": "claw-wallet-pro",
+  "displayName": "ClawWallet",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1774596493184,
+    "commit": null
+  },
+  "history": []
+}
